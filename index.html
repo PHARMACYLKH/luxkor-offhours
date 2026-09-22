@@ -32,6 +32,7 @@
   }
   header h1 { margin: 0 0 4px; font-size: 19px; font-weight: 700; }
   header p { margin: 0; font-size: 13px; opacity: 0.9; }
+  header { text-align: center; }
   main { max-width: 480px; margin: 0 auto; padding: 16px; }
   .card {
     background: var(--card); border-radius: var(--radius); padding: 16px;
@@ -135,9 +136,13 @@
   .toast.ok { background: var(--green); }
   .toast.error { background: var(--danger); }
   .badge-required-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 6px; }
-  .header-top { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
-  .logo-chip { display: flex; align-items: center; flex-shrink: 0; }
-  .logo-chip svg { height: 26px; width: auto; display: block; }
+  .header-top { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .logo-chip {
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: #fff; border-radius: 999px; padding: 8px 16px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  .logo-chip svg { height: 34px; width: auto; display: block; }
   header h1 { margin: 0; }
   .splash {
     position: fixed; inset: 0; background: #ffffff; z-index: 200;
@@ -281,8 +286,8 @@
 
 <header>
   <div class="header-top">
-    <div class="logo-chip"><svg viewBox="0 0 960.55 484.69"><use href="#luxkorLogoWhite"></use></svg></div>
-    <h1>เข้าห้องยานอกเวลา</h1>
+    <div class="logo-chip"><svg viewBox="0 0 960.55 484.69"><use href="#luxkorLogo"></use></svg></div>
+    <h1>Medication Management Records (Special Hour 24.00-08.00)</h1>
   </div>
   <p>24.00–08.00 น. — กรอกให้ครบก่อนหยิบยาทุกครั้ง</p>
 </header>
