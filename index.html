@@ -368,7 +368,19 @@
     <div class="card">
       <h2>5. เหตุผล / เภสัชกรอนุมัติ</h2>
       <label>เหตุผลที่ต้องเข้าห้องยา / อ้างอิงคำสั่งแพทย์ <span class="req">*</span></label>
-      <textarea id="reason" required></textarea>
+      <select id="reasonSelect" required onchange="onReasonSelectChange()">
+        <option value="">— เลือกเหตุผล —</option>
+        <option value="ยาในกล่อง ER ไม่มี/ไม่พอ">ยาในกล่อง ER ไม่มี/ไม่พอ</option>
+        <option value="แพทย์สั่งยานอกบัญชี Extended Night Formulary">แพทย์สั่งยานอกบัญชี Extended Night Formulary</option>
+        <option value="ยาในกล่อง ER หมดอายุ/ชำรุด ใช้ไม่ได้">ยาในกล่อง ER หมดอายุ/ชำรุด ใช้ไม่ได้</option>
+        <option value="ผู้ป่วยแพ้ยา/มีข้อห้ามใช้ยาตัวที่มีในกล่อง ต้องเปลี่ยนตัว">ผู้ป่วยแพ้ยา/มีข้อห้ามใช้ยาตัวที่มีในกล่อง ต้องเปลี่ยนตัว</option>
+        <option value="เปลี่ยนแผนการรักษาฉุกเฉิน ต้องใช้ยาเร่งด่วน">เปลี่ยนแผนการรักษาฉุกเฉิน ต้องใช้ยาเร่งด่วน</option>
+        <option value="other">อื่นๆ (ระบุ)</option>
+      </select>
+      <div id="reasonOtherBlock" class="conditional">
+        <label>ระบุเหตุผลเพิ่มเติม <span class="req">*</span></label>
+        <input type="text" id="reasonOther" placeholder="อธิบายสั้นๆ">
+      </div>
 
       <div id="tierBBlock" class="conditional">
         <label>ชื่อเภสัชกรที่อนุมัติ <span class="req">*</span></label>
@@ -474,6 +486,13 @@
     document.getElementById('statNoBtn').classList.toggle('active-no', val === false);
     document.getElementById('statBlock').classList.toggle('open', val === true);
     document.getElementById('statReason').required = val;
+  }
+
+  function onReasonSelectChange() {
+    const isOther = document.getElementById('reasonSelect').value === 'other';
+    document.getElementById('reasonOtherBlock').classList.toggle('open', isOther);
+    document.getElementById('reasonOther').required = isOther;
+    if (!isOther) document.getElementById('reasonOther').value = '';
   }
 
   // ── รายการยา (แถวซ้ำได้หลายรายการ) ──────────────────────────────
@@ -729,6 +748,11 @@
     if (isStat && !document.getElementById('statReason').value) {
       showToast('กรุณาเลือกเหตุผล STAT', 'error'); return;
     }
+    const reasonSelectVal = document.getElementById('reasonSelect').value;
+    if (!reasonSelectVal) { showToast('กรุณาเลือกเหตุผลที่ต้องเข้าห้องยา', 'error'); return; }
+    if (reasonSelectVal === 'other' && !document.getElementById('reasonOther').value.trim()) {
+      showToast('กรุณาระบุเหตุผลเพิ่มเติม', 'error'); return;
+    }
 
     const drugResult = collectDrugRows();
     if (!drugResult.ok) { showToast(drugResult.msg, 'error'); return; }
@@ -747,7 +771,7 @@
       isStat: isStat ? ('ใช่ (STAT) - ' + statReasonVal) : 'ไม่ใช่',
       lotNumber: document.getElementById('lotNumber').value.trim(),
       expiryDate: document.getElementById('expiryDate').value,
-      reason: document.getElementById('reason').value.trim(),
+      reason: reasonSelectVal === 'other' ? document.getElementById('reasonOther').value.trim() : reasonSelectVal,
       pharmacistApproval: selectedPharmacist,
       evidenceConfirm: document.getElementById('evidenceConfirm').checked ? 'ส่งภาพถ่ายใบสั่งยา/กล่องยาให้เภสัชกร on-call ทาง LINE แล้ว' : ''
     };
@@ -769,6 +793,7 @@
           document.getElementById('accessForm').reset();
           setTier(null);
           setStat(false);
+          onReasonSelectChange();
           selectedPharmacist = '';
           document.getElementById('nurseDupWarning').style.display = 'none';
           document.getElementById('nurse1').classList.remove('input-error');
