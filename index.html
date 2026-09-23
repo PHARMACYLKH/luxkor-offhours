@@ -388,7 +388,7 @@
           <option>ชักต่อเนื่อง (Status epilepticus)</option>
           <option value="other">อื่นๆ ที่แพทย์ระบุชัดในคำสั่งว่าเป็น STAT</option>
         </select>
-        <div class="hint">อนุโลมไม่ print sticker ขณะนั้น แต่ต้องกรอกเลข Lot และวันหมดอายุของยาแต่ละตัวในข้อ 3 ด้านบนทันทีเพื่อรักษา traceability</div>
+        <div class="hint">กรุณาระบุเหตุผลความจำเป็นของ STAT ให้ตรงกับสถานการณ์จริง</div>
       </div>
     </div>
 
@@ -544,12 +544,6 @@
       '<input type="number" id="drugQty_' + rowId + '" min="1" step="1" inputmode="numeric" placeholder="เช่น 20"></div>' +
       '<div><label>หน่วย (UOM)</label>' +
       '<input type="text" id="drugUom_' + rowId + '" class="uom-readonly" readonly placeholder="เลือกยาก่อน"></div>' +
-      '</div>' +
-      '<div class="field-row">' +
-      '<div><label>เลข Lot <span class="req">*</span></label>' +
-      '<input type="text" id="drugLot_' + rowId + '" placeholder="เช่น A12345"></div>' +
-      '<div><label>วันหมดอายุ <span class="req">*</span></label>' +
-      '<input type="date" id="drugExpiry_' + rowId + '"></div>' +
       '</div></div>';
   }
 
@@ -649,15 +643,11 @@
       const qtyRaw = document.getElementById('drugQty_' + rowId).value.trim();
       const uom = document.getElementById('drugUom_' + rowId).value.trim();
       const location = rows[i].dataset.location || '';
-      const lot = document.getElementById('drugLot_' + rowId).value.trim();
-      const expiry = document.getElementById('drugExpiry_' + rowId).value;
       if (!name) return { ok: false, msg: 'กรุณากรอกชื่อยารายการที่ ' + (i + 1) };
       if (!qtyRaw || !/^\d+$/.test(qtyRaw) || parseInt(qtyRaw, 10) <= 0) {
         return { ok: false, msg: 'กรุณากรอกจำนวนที่เบิกเป็นตัวเลขมากกว่า 0 ในรายการที่ ' + (i + 1) };
       }
-      if (!lot) return { ok: false, msg: 'กรุณากรอกเลข Lot ของรายการที่ ' + (i + 1) };
-      if (!expiry) return { ok: false, msg: 'กรุณากรอกวันหมดอายุของรายการที่ ' + (i + 1) };
-      items.push({ name: name, qty: parseInt(qtyRaw, 10), uom: uom, location: location, lotNumber: lot, expiryDate: expiry });
+      items.push({ name: name, qty: parseInt(qtyRaw, 10), uom: uom, location: location });
     }
     return { ok: true, items: items };
   }
