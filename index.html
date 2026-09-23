@@ -95,6 +95,32 @@
     border-radius: 50%; animation: spin 0.7s linear infinite; z-index: 21;
   }
   @keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+  .save-overlay {
+    position: fixed; inset: 0; background: rgba(255,255,255,0.94); z-index: 300;
+    display: flex; align-items: center; justify-content: center; flex-direction: column;
+    opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+  .save-overlay.show { opacity: 1; visibility: visible; }
+  .save-spinner {
+    width: 56px; height: 56px; border: 5px solid #dbe3df; border-top-color: var(--green);
+    border-radius: 50%; animation: spinBig 0.8s linear infinite;
+  }
+  @keyframes spinBig { to { transform: rotate(360deg); } }
+  .save-success { display: none; flex-direction: column; align-items: center; gap: 12px; }
+  .save-success.show { display: flex; }
+  .check-circle { width: 92px; height: 92px; }
+  .check-circle-bg {
+    fill: none; stroke: var(--green); stroke-width: 4;
+    stroke-dasharray: 227; stroke-dashoffset: 227; animation: circleDraw 0.5s ease forwards;
+  }
+  .check-mark {
+    fill: none; stroke: var(--green); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 49; stroke-dashoffset: 49; animation: checkDraw 0.35s ease 0.45s forwards;
+  }
+  @keyframes circleDraw { to { stroke-dashoffset: 0; } }
+  @keyframes checkDraw { to { stroke-dashoffset: 0; } }
+  .save-success-logo { width: 110px; height: auto; opacity: 0; animation: fadeIn 0.4s ease 0.75s forwards; }
+  .save-success-text { font-size: 16px; font-weight: 700; color: var(--green-dark); opacity: 0; animation: fadeIn 0.4s ease 0.9s forwards; }
   .tier-toggle { display: flex; gap: 8px; }
   .tier-toggle button {
     flex: 1; padding: 12px 8px; border-radius: var(--radius-sm); border: 1.5px solid #dbe3df;
@@ -154,6 +180,18 @@
 
 <div id="splash" class="splash">
   <svg viewBox="0 0 960.55 484.69" aria-label="Lux Kor Hospital"><use href="#luxkorLogo"></use></svg>
+</div>
+
+<div id="saveOverlay" class="save-overlay">
+  <div id="saveSpinner" class="save-spinner"></div>
+  <div id="saveSuccess" class="save-success">
+    <svg class="check-circle" viewBox="0 0 80 80">
+      <circle class="check-circle-bg" cx="40" cy="40" r="36"></circle>
+      <path class="check-mark" d="M24 41 L35 52 L57 28"></path>
+    </svg>
+    <svg class="save-success-logo" viewBox="0 0 960.55 484.69" aria-label="Lux Kor Hospital"><use href="#luxkorLogo"></use></svg>
+    <div class="save-success-text">บันทึกสำเร็จ</div>
+  </div>
 </div>
 
 <svg style="position:absolute;width:0;height:0" aria-hidden="true">
@@ -710,6 +748,26 @@
     }
   });
 
+  function showSaveOverlay() {
+    document.getElementById('saveSuccess').classList.remove('show');
+    document.getElementById('saveSpinner').style.display = 'block';
+    document.getElementById('saveOverlay').classList.add('show');
+  }
+  function showSaveSuccess() {
+    document.getElementById('saveSpinner').style.display = 'none';
+    const successEl = document.getElementById('saveSuccess');
+    successEl.querySelectorAll('.check-circle-bg, .check-mark, .save-success-logo, .save-success-text').forEach(function (el) {
+      el.style.animation = 'none';
+      void el.offsetWidth;
+      el.style.animation = '';
+    });
+    successEl.classList.add('show');
+    setTimeout(hideSaveOverlay, 2000);
+  }
+  function hideSaveOverlay() {
+    document.getElementById('saveOverlay').classList.remove('show');
+  }
+
   function showToast(msg, type) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -779,6 +837,7 @@
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
     btn.textContent = 'กำลังบันทึก...';
+    showSaveOverlay();
 
     // ส่งแบบ text/plain กัน CORS preflight (GAS webapp doPost รับ raw contents ได้ปกติ)
     fetch(WEBAPP_URL, {
@@ -789,7 +848,7 @@
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (res.status === 'ok') {
-          showToast('บันทึกสำเร็จ', 'ok');
+          showSaveSuccess();
           document.getElementById('accessForm').reset();
           setTier(null);
           setStat(false);
@@ -801,10 +860,12 @@
           document.getElementById('drugRowsContainer').innerHTML = '';
           addDrugRow(); // เคลียร์กลับเหลือแถวยาแถวเดียวว่างๆ
         } else {
+          hideSaveOverlay();
           showToast(res.msg || 'เกิดข้อผิดพลาด', 'error');
         }
       })
       .catch(function () {
+        hideSaveOverlay();
         showToast('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง', 'error');
       })
       .finally(function () {
