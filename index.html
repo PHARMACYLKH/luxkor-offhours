@@ -343,9 +343,9 @@
         <div id="nurse1Suggestions" class="suggestions"></div>
       </div>
 
-      <label>ชื่อพยาบาลผู้ตรวจสอบร่วม / Double-check (คนที่ 2) <span class="req">*</span></label>
+      <label>ชื่อพยาบาล/แพทย์ Double Check <span class="req">*</span></label>
       <div class="search-wrap">
-        <input type="text" id="nurse2" required autocomplete="off" oninput="onStaffInput('nurse2'); checkDuplicateNurses()" placeholder="พิมพ์ชื่อเพื่อค้นหา...">
+        <input type="text" id="nurse2" required autocomplete="off" oninput="onStaffInput('nurse2'); checkDuplicateNurses()" placeholder="พิมพ์ชื่อพยาบาลหรือแพทย์เพื่อค้นหา...">
         <div id="nurse2Suggestions" class="suggestions"></div>
       </div>
       <div id="nurseDupWarning" class="hint" style="display:none;color:var(--danger);font-weight:600;">⚠ ชื่อคนที่ 1 และคนที่ 2 ต้องไม่ซ้ำกัน กรุณาใส่ชื่อใหม่</div>
@@ -675,7 +675,11 @@
     const q = document.getElementById(fieldId).value.trim().toLowerCase();
     const box = document.getElementById(fieldId + 'Suggestions');
     if (q.length < 1) { box.classList.remove('show'); return; }
-    const matches = staffItems.filter(function (it) {
+    // ช่อง Double Check (คนที่ 2) เลือกได้ทั้งพยาบาลและแพทย์ ส่วนผู้หยิบยา (คนที่ 1) เป็นพยาบาลเท่านั้น
+    const pool = fieldId === 'nurse2'
+      ? staffItems.concat(doctorItems.map(function (it) { return { name: it.name, department: 'แพทย์' }; }))
+      : staffItems;
+    const matches = pool.filter(function (it) {
       return it.name.toLowerCase().indexOf(q) !== -1 || (it.username || '').indexOf(q) !== -1;
     }).slice(0, 20);
     const selectStaff = function (it) {
