@@ -350,18 +350,18 @@
           <option>ชักต่อเนื่อง (Status epilepticus)</option>
           <option value="other">อื่นๆ ที่แพทย์ระบุชัดในคำสั่งว่าเป็น STAT</option>
         </select>
+        <div class="hint">อนุโลมไม่ print sticker ขณะนั้น แต่ต้องกรอกเลข Lot และวันหมดอายุด้านล่างทันทีเพื่อรักษา traceability</div>
+      </div>
 
-        <div class="field-row">
-          <div>
-            <label>เลข Lot <span class="req">*</span></label>
-            <input type="text" id="lotNumber" placeholder="เช่น A12345">
-          </div>
-          <div>
-            <label>วันหมดอายุ <span class="req">*</span></label>
-            <input type="date" id="expiryDate">
-          </div>
+      <div class="field-row">
+        <div>
+          <label>เลข Lot <span class="req">*</span></label>
+          <input type="text" id="lotNumber" required placeholder="เช่น A12345">
         </div>
-        <div class="hint">อนุโลมไม่ print sticker ขณะนั้น แต่ต้องกรอกข้อมูลนี้ทันทีเพื่อรักษา traceability</div>
+        <div>
+          <label>วันหมดอายุ <span class="req">*</span></label>
+          <input type="date" id="expiryDate" required>
+        </div>
       </div>
     </div>
 
@@ -474,8 +474,6 @@
     document.getElementById('statNoBtn').classList.toggle('active-no', val === false);
     document.getElementById('statBlock').classList.toggle('open', val === true);
     document.getElementById('statReason').required = val;
-    document.getElementById('lotNumber').required = val;
-    document.getElementById('expiryDate').required = val;
   }
 
   // ── รายการยา (แถวซ้ำได้หลายรายการ) ──────────────────────────────
