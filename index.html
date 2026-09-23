@@ -57,9 +57,13 @@
   input.input-error { border-color: var(--danger) !important; }
   textarea { resize: vertical; min-height: 64px; }
   .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .loc-badge {
-    display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 999px;
-    background: #eaf3ee; color: var(--green-dark); font-size: 12.5px; font-weight: 600;
+  .loc-badge-label { margin-top: 8px; font-size: 12.5px; font-weight: 600; color: var(--green-dark); }
+  .loc-tile {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 56px; height: 56px; padding: 0 10px; margin-top: 6px;
+    border-radius: 10px; background: #eaf3ee; border: 2px solid var(--green);
+    color: var(--green-dark); font-size: 24px; font-weight: 800; letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
   }
   .field-row { display: flex; gap: 10px; }
   .field-row > div { flex: 1; }
@@ -538,7 +542,10 @@
       '<div class="spinner" id="drugSpinner_' + rowId + '" style="display:none"></div>' +
       '<div class="suggestions" id="drugSuggestions_' + rowId + '"></div>' +
       '</div>' +
-      '<div id="locBadgeWrap_' + rowId + '" style="display:none"><span class="loc-badge">📍 ตำแหน่งจัดเก็บ: <span id="locText_' + rowId + '"></span></span></div>' +
+      '<div id="locBadgeWrap_' + rowId + '" style="display:none">' +
+      '<div class="loc-badge-label">📍 ตำแหน่งจัดเก็บ</div>' +
+      '<div class="loc-tile" id="locText_' + rowId + '"></div>' +
+      '</div>' +
       '<div class="field-row">' +
       '<div><label>จำนวนที่เบิก <span class="req">*</span></label>' +
       '<input type="number" id="drugQty_' + rowId + '" min="1" step="1" inputmode="numeric" placeholder="เช่น 20"></div>' +
