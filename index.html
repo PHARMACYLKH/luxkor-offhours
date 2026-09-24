@@ -630,14 +630,9 @@
     document.getElementById('drugUom_' + rowId).value = it.uom || '';
     hideDrugSuggestions(rowId);
     const row = document.getElementById('drugRow_' + rowId);
-    if (it.location) {
-      document.getElementById('locText_' + rowId).textContent = it.location;
-      document.getElementById('locBadgeWrap_' + rowId).style.display = 'flex';
-      row.dataset.location = it.location;
-    } else {
-      row.dataset.location = '';
-      hideLocBadge(rowId);
-    }
+    document.getElementById('locText_' + rowId).textContent = it.location || 'N/A';
+    document.getElementById('locBadgeWrap_' + rowId).style.display = 'flex';
+    row.dataset.location = it.location || '';
   }
 
   function hideLocBadge(rowId) {
