@@ -390,7 +390,7 @@
 
       <div id="statBlock" class="conditional">
         <label>เหตุผล STAT <span class="req">*</span></label>
-        <select id="statReason">
+        <select id="statReason" onchange="updateLabelStatusUI()">
           <option value="">— เลือก —</option>
           <option>Cardiac arrest / ACLS</option>
           <option>Anaphylaxis</option>
@@ -398,12 +398,29 @@
           <option>ชักต่อเนื่อง (Status epilepticus)</option>
           <option value="other">อื่นๆ ที่แพทย์ระบุชัดในคำสั่งว่าเป็น STAT</option>
         </select>
-        <div class="hint">กรุณาระบุเหตุผลความจำเป็นของ STAT ให้ตรงกับสถานการณ์จริง</div>
+        <div class="hint">กรุณาระบุเหตุผลความจำเป็นของ STAT ให้ตรงกับสถานการณ์จริง — STAT ยังต้องพิมพ์ฉลากยาก่อนให้ยา (ยกเว้นกู้ชีพเท่านั้น ดูข้อ 5)</div>
       </div>
     </div>
 
     <div class="card">
-      <h2>5. เหตุผล / เภสัชกรอนุมัติ</h2>
+      <h2>5. ฉลากยา (Sticker) และการขานซ้ำ</h2>
+      <label>สถานะฉลากยา <span class="req">*</span></label>
+      <select id="labelStatus" required onchange="updateLabelStatusUI()">
+        <option value="">— เลือก —</option>
+        <option value="พิมพ์ฉลากจากระบบแล้ว">พิมพ์ฉลากจากระบบ (Sticker Print ER) แล้ว</option>
+        <option value="ฉลากเขียนมือ (ระบบพิมพ์ขัดข้อง)">เขียนฉลากด้วยมือ (ระบบพิมพ์ขัดข้อง)</option>
+        <option value="พิมพ์ฉลากย้อนหลัง (กู้ชีพ ACLS)" id="labelRetroOpt">ให้ยาก่อน พิมพ์ฉลากย้อนหลัง — เฉพาะกู้ชีพ (Cardiac arrest/ACLS)</option>
+      </select>
+      <div id="labelStatusHint" class="hint">ทุกการเบิกยา รวมทั้ง STAT ต้องพิมพ์ฉลากยาก่อนให้ยา (นโยบายข้อ 2.4)</div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="readBack" required>
+        <span>ผู้หยิบยาและผู้ตรวจสอบร่วม <b>ขานซ้ำ (read-back)</b> แล้ว: ชื่อผู้ป่วย/HN, ชื่อยา, ความแรง, ขนาดยา, วิธีให้ยา — คำสั่งแพทย์ ฉลาก และยาจริงตรงกัน</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>6. เหตุผล / เภสัชกรอนุมัติ</h2>
       <label>เหตุผลที่ต้องเข้าห้องยา / อ้างอิงคำสั่งแพทย์ <span class="req">*</span></label>
       <select id="reasonSelect" required onchange="onReasonSelectChange()">
         <option value="">— เลือกเหตุผล —</option>
@@ -431,7 +448,7 @@
     </div>
 
     <div class="card">
-      <h2>6. หลักฐาน</h2>
+      <h2>7. หลักฐาน</h2>
       <div class="checkbox-row">
         <input type="checkbox" id="evidenceConfirm" required>
         <span>ส่งภาพถ่ายใบสั่งยา/กล่องยาให้เภสัชกร on-call ทาง LINE แล้ว</span>
@@ -523,6 +540,30 @@
     document.getElementById('statNoBtn').classList.toggle('active-no', val === false);
     document.getElementById('statBlock').classList.toggle('open', val === true);
     document.getElementById('statReason').required = val;
+    updateLabelStatusUI();
+  }
+
+  // นโยบายข้อ 2.4.1: "พิมพ์ฉลากย้อนหลัง" ใช้ได้เฉพาะ STAT เหตุผลกู้ชีพเท่านั้น — STAT อื่นต้องพิมพ์ก่อนให้ยา
+  function isAclsStat() {
+    return isStat && document.getElementById('statReason').value === 'Cardiac arrest / ACLS';
+  }
+
+  function updateLabelStatusUI() {
+    const sel = document.getElementById('labelStatus');
+    const retroOpt = document.getElementById('labelRetroOpt');
+    const hint = document.getElementById('labelStatusHint');
+    retroOpt.disabled = !isAclsStat();
+    if (retroOpt.disabled && sel.value === retroOpt.value) sel.value = '';
+    if (sel.value === retroOpt.value) {
+      hint.innerHTML = '⚠ ต้องพิมพ์ฉลากและบันทึกฟอร์มนี้ <b>ภายใน 30 นาทีหลังภาวะฉุกเฉินสิ้นสุด</b> และเก็บหลอด/ขวดยาเปล่าไว้จนตรวจสอบเสร็จ';
+      hint.style.color = 'var(--danger)';
+    } else if (sel.value === 'ฉลากเขียนมือ (ระบบพิมพ์ขัดข้อง)') {
+      hint.innerHTML = '⚠ ฉลากต้องมี ชื่อ-สกุล, HN, ชื่อยา, ความแรง, ขนาดยา/วิธีใช้ และลายมือชื่อทั้ง 2 คน — แจ้งเภสัชกร on-call ทาง LINE ว่าระบบพิมพ์ขัดข้อง';
+      hint.style.color = 'var(--danger)';
+    } else {
+      hint.textContent = 'ทุกการเบิกยา รวมทั้ง STAT ต้องพิมพ์ฉลากยาก่อนให้ยา (นโยบายข้อ 2.4)';
+      hint.style.color = '';
+    }
   }
 
   function onReasonSelectChange() {
@@ -809,6 +850,14 @@
     if (isStat && !document.getElementById('statReason').value) {
       showToast('กรุณาเลือกเหตุผล STAT', 'error'); return;
     }
+    const labelStatusVal = document.getElementById('labelStatus').value;
+    if (!labelStatusVal) { showToast('กรุณาเลือกสถานะฉลากยา', 'error'); return; }
+    if (labelStatusVal === 'พิมพ์ฉลากย้อนหลัง (กู้ชีพ ACLS)' && !isAclsStat()) {
+      showToast('พิมพ์ฉลากย้อนหลังได้เฉพาะ STAT กู้ชีพ (Cardiac arrest/ACLS) เท่านั้น', 'error'); return;
+    }
+    if (!document.getElementById('readBack').checked) {
+      showToast('กรุณายืนยันการขานซ้ำ (read-back) ก่อนบันทึก', 'error'); return;
+    }
     const reasonSelectVal = document.getElementById('reasonSelect').value;
     if (!reasonSelectVal) { showToast('กรุณาเลือกเหตุผลที่ต้องเข้าห้องยา', 'error'); return; }
     if (reasonSelectVal === 'other' && !document.getElementById('reasonOther').value.trim()) {
@@ -832,6 +881,8 @@
       isStat: isStat ? ('ใช่ (STAT) - ' + statReasonVal) : 'ไม่ใช่',
       reason: reasonSelectVal === 'other' ? document.getElementById('reasonOther').value.trim() : reasonSelectVal,
       pharmacistApproval: selectedPharmacist,
+      labelStatus: labelStatusVal,
+      readBack: document.getElementById('readBack').checked,
       evidenceConfirm: document.getElementById('evidenceConfirm').checked ? 'ส่งภาพถ่ายใบสั่งยา/กล่องยาให้เภสัชกร on-call ทาง LINE แล้ว' : ''
     };
 
@@ -877,6 +928,7 @@
 
   loadLookups();
   addDrugRow(); // สร้างแถวยาแถวแรกตอนโหลดหน้า (เพิ่มแถวถัดไปได้ด้วยปุ่ม + เพิ่มรายการยา)
+  updateLabelStatusUI(); // ปิดตัวเลือก "ย้อนหลัง (กู้ชีพ)" ไว้ก่อนจนกว่าจะเลือก STAT = ACLS
   attachSuggestionKeyNav('doctorName', 'doctorSuggestions');
   attachSuggestionKeyNav('nurse1', 'nurse1Suggestions');
   attachSuggestionKeyNav('nurse2', 'nurse2Suggestions');
