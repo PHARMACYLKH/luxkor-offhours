@@ -172,6 +172,43 @@
   .logo-chip { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .logo-chip svg { height: 76px; width: auto; display: block; }
   header h1 { margin: 0; }
+  /* ── Landing / views (2026-10-07): หน้าแรกเลือก 2 การ์ด, สลับ view ด้วย hash (#box / #record) ── */
+  .view { display: none; }
+  .view.active { display: block; animation: fadeIn 0.3s ease; }
+  .back-btn {
+    display: none; margin: 12px auto 0; padding: 7px 16px; border-radius: 20px; border: 1.5px solid #dbe3df;
+    background: #fff; color: var(--green-dark); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .back-btn.show { display: inline-block; }
+  .landing-card {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer;
+    background: var(--card); border: 1.5px solid #e3ebe6; border-radius: var(--radius); padding: 20px 16px;
+    margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); font-family: inherit; color: var(--text);
+    transition: transform 0.12s ease, border-color 0.15s ease;
+  }
+  .landing-card:active { transform: scale(0.98); }
+  .landing-card:hover, .landing-card:focus-visible { border-color: var(--green); outline: none; }
+  .landing-icon {
+    width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 26px; background: #e7f1ec;
+  }
+  .landing-card.gold .landing-icon { background: #f5eedd; }
+  .landing-text b { display: block; font-size: 16px; color: var(--green-dark); margin-bottom: 3px; }
+  .landing-text span { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .landing-arrow { margin-left: auto; font-size: 22px; color: #b7c4bd; }
+  .box-options { display: flex; flex-direction: column; gap: 8px; }
+  .box-option {
+    display: flex; align-items: center; gap: 12px; padding: 13px 12px; border: 1.5px solid #dbe3df; margin: 0;
+    border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s ease; background: #fff;
+  }
+  .box-option input { width: 20px; height: 20px; accent-color: var(--green); flex-shrink: 0; margin: 0; }
+  .box-option.checked { border-color: var(--green); background: #f0f7f3; }
+  .box-num {
+    width: 30px; height: 30px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px;
+  }
+  .box-option span { font-size: 14px; font-weight: 600; }
+  .box-option small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
   .splash {
     position: fixed; inset: 0; background: #ffffff; z-index: 200;
     display: flex; align-items: center; justify-content: center;
@@ -327,12 +364,67 @@
 <header>
   <div class="header-top">
     <div class="logo-chip"><svg viewBox="0 0 960.55 484.69"><use href="#luxkorLogo"></use></svg></div>
-    <h1>Medication Management Records (Special Hour 24.00-08.00)</h1>
+    <h1 id="pageTitle">Off-Hours Medication (24.00-08.00)</h1>
   </div>
-  <p>24.00–08.00 น. — กรอกให้ครบก่อนหยิบยาทุกครั้ง</p>
+  <p id="pageSub">เลือกรายการที่ต้องการบันทึก</p>
+  <button type="button" class="back-btn" id="backBtn" onclick="goView('')">← กลับหน้าแรก</button>
 </header>
 
-<main>
+<!-- ═══ VIEW: LANDING ═══ -->
+<main id="viewLanding" class="view">
+  <button type="button" class="landing-card gold" onclick="goView('box')">
+    <div class="landing-icon">📦</div>
+    <div class="landing-text">
+      <b>บันทึกผู้เบิก / คืนกล่องยา</b>
+      <span>กล่องยา Tier A — เบิกตอน 24.00 น. / คืนไม่เกิน 08.30 น.</span>
+    </div>
+    <div class="landing-arrow">›</div>
+  </button>
+  <button type="button" class="landing-card" onclick="goView('record')">
+    <div class="landing-icon">💊</div>
+    <div class="landing-text">
+      <b>Medication Management Records</b>
+      <span>บันทึกการเบิกยานอกเวลา (Special Hour 24.00-08.00) — กรอกให้ครบก่อนหยิบยาทุกครั้ง</span>
+    </div>
+    <div class="landing-arrow">›</div>
+  </button>
+</main>
+
+<!-- ═══ VIEW: เบิก/คืนกล่องยา ═══ -->
+<main id="viewBox" class="view">
+  <form id="boxForm">
+    <div class="card">
+      <h2>1. ผู้เบิก / ผู้คืนกล่องยา</h2>
+      <label>ชื่อพยาบาล / ผู้ช่วยพยาบาล <span class="req">*</span></label>
+      <select id="boxStaff" required>
+        <option value="">— กำลังโหลดรายชื่อ —</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <h2>2. เบิกหรือคืน</h2>
+      <div class="tier-toggle">
+        <button type="button" id="boxOutBtn" onclick="setBoxAction('เบิก')">เบิกกล่อง<br><span style="font-weight:400;font-size:11.5px">ตอน 24.00 น.</span></button>
+        <button type="button" id="boxInBtn" onclick="setBoxAction('คืน')">คืนกล่อง<br><span style="font-weight:400;font-size:11.5px">ไม่เกิน 08.30 น.</span></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>3. กล่องยา Tier A (เลือกได้มากกว่า 1 กล่อง)</h2>
+      <div class="box-options">
+        <label class="box-option"><input type="checkbox" name="box" value="1" onchange="syncBoxOption(this)"><div class="box-num">1</div><span>กล่องยาฉีด<small>IPD</small></span></label>
+        <label class="box-option"><input type="checkbox" name="box" value="2" onchange="syncBoxOption(this)"><div class="box-num">2</div><span>กล่องยาเม็ด<small>IPD</small></span></label>
+        <label class="box-option"><input type="checkbox" name="box" value="3" onchange="syncBoxOption(this)"><div class="box-num">3</div><span>กล่องใหญ่<small>ER</small></span></label>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="boxSubmitBtn">บันทึกข้อมูล</button>
+    <div class="badge-required-note">ช่องที่มี <span class="req">*</span> ต้องกรอกให้ครบ</div>
+  </form>
+</main>
+
+<!-- ═══ VIEW: Medication Management Records (หน้าเดิม) ═══ -->
+<main id="viewRecord" class="view">
   <form id="accessForm">
 
     <div class="card">
@@ -827,6 +919,7 @@
       .then(function (data) { doctorItems = data.items || []; })
       .catch(function () {});
     Promise.all([staffPromise, doctorPromise]).finally(function () {
+      populateBoxStaff();
       // โชว์ splash logo อย่างน้อย 500ms กันกระพริบเร็วเกินไปตอนเน็ตแรง แต่ยึดตามเวลาโหลดจริง
       const wait = Math.max(0, 500 - (Date.now() - splashStart));
       setTimeout(function () { document.getElementById('splash').classList.add('hide'); }, wait);
@@ -922,6 +1015,89 @@
       });
   });
 
+  // ── Views: '' = landing, 'box' = เบิก/คืนกล่อง, 'record' = Medication Management Records ──
+  const VIEW_META = {
+    '':       { id: 'viewLanding', title: 'Off-Hours Medication (24.00-08.00)', sub: 'เลือกรายการที่ต้องการบันทึก' },
+    'box':    { id: 'viewBox',     title: 'บันทึกผู้เบิก / คืนกล่องยา', sub: 'กล่องยา Tier A — เบิก 24.00 น. / คืนไม่เกิน 08.30 น.' },
+    'record': { id: 'viewRecord',  title: 'Medication Management Records (Special Hour 24.00-08.00)', sub: '24.00–08.00 น. — กรอกให้ครบก่อนหยิบยาทุกครั้ง' }
+  };
+  function goView(v) {
+    // ใช้ hash เพื่อให้ปุ่ม back ของมือถือกลับหน้าแรกได้
+    if (location.hash.replace('#', '') === v) renderView(); else location.hash = v;
+  }
+  function renderView() {
+    let v = location.hash.replace('#', '');
+    if (!VIEW_META[v]) v = '';
+    Object.keys(VIEW_META).forEach(function (k) {
+      document.getElementById(VIEW_META[k].id).classList.toggle('active', k === v);
+    });
+    document.getElementById('pageTitle').textContent = VIEW_META[v].title;
+    document.getElementById('pageSub').textContent = VIEW_META[v].sub;
+    document.getElementById('backBtn').classList.toggle('show', v !== '');
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', renderView);
+
+  // ── เบิก/คืนกล่องยา ──
+  let boxAction = '';
+  function setBoxAction(a) {
+    boxAction = a;
+    document.getElementById('boxOutBtn').classList.toggle('active-a', a === 'เบิก');
+    document.getElementById('boxInBtn').classList.toggle('active-b', a === 'คืน');
+  }
+  function syncBoxOption(cb) { cb.closest('.box-option').classList.toggle('checked', cb.checked); }
+  function populateBoxStaff() {
+    const sel = document.getElementById('boxStaff');
+    // เฉพาะพยาบาล/ผู้ช่วยพยาบาล (ตำแหน่งมีคำว่า "พยาบาล") — ถ้ากรองแล้วว่างให้ใช้ทั้งหมด
+    let list = staffItems.filter(function (s) { return /พยาบาล/.test(s.department || ''); });
+    if (!list.length) list = staffItems.slice();
+    list.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
+    sel.innerHTML = '<option value="">' + (list.length ? '— เลือกชื่อ —' : '— โหลดรายชื่อไม่สำเร็จ ลองรีเฟรช —') + '</option>';
+    list.forEach(function (s) {
+      const o = document.createElement('option');
+      o.value = s.name;
+      o.dataset.position = s.department || '';
+      o.textContent = s.name + (s.department ? ' — ' + s.department : '');
+      sel.appendChild(o);
+    });
+  }
+  document.getElementById('boxForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    const sel = document.getElementById('boxStaff');
+    const boxes = Array.prototype.map.call(document.querySelectorAll('input[name=box]:checked'), function (c) { return c.value; });
+    if (!sel.value) { showToast('กรุณาเลือกชื่อผู้เบิก/ผู้คืน', 'error'); return; }
+    if (!boxAction) { showToast('กรุณาเลือกว่าเบิกหรือคืนกล่อง', 'error'); return; }
+    if (!boxes.length) { showToast('กรุณาเลือกกล่องยาอย่างน้อย 1 กล่อง', 'error'); return; }
+    const btn = document.getElementById('boxSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังบันทึก...';
+    showSaveOverlay();
+    fetch(WEBAPP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'addOffHoursBoxLog', staffName: sel.value,
+        position: sel.options[sel.selectedIndex].dataset.position || '', boxAction: boxAction, boxes: boxes
+      })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.status === 'ok') {
+          showSaveSuccess();
+          if (res.late) setTimeout(function () { showToast('บันทึกแล้ว — คืนกล่องหลัง 08.30 น.', 'error'); }, 2100);
+          document.getElementById('boxForm').reset();
+          setBoxAction('');
+          document.querySelectorAll('.box-option.checked').forEach(function (el) { el.classList.remove('checked'); });
+        } else {
+          hideSaveOverlay();
+          showToast(res.msg || 'เกิดข้อผิดพลาด', 'error');
+        }
+      })
+      .catch(function () { hideSaveOverlay(); showToast('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง', 'error'); })
+      .finally(function () { btn.disabled = false; btn.textContent = 'บันทึกข้อมูล'; });
+  });
+
+  renderView();
   loadLookups();
   addDrugRow(); // สร้างแถวยาแถวแรกตอนโหลดหน้า (เพิ่มแถวถัดไปได้ด้วยปุ่ม + เพิ่มรายการยา)
   updateLabelStatusUI(); // ปิดตัวเลือก "ย้อนหลัง (กู้ชีพ)" ไว้ก่อนจนกว่าจะเลือก STAT = ACLS
