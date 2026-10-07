@@ -209,6 +209,11 @@
   }
   .box-option span { font-size: 14px; font-weight: 600; }
   .box-option small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .box-option small.box-open { color: var(--danger); font-weight: 600; }
+  .open-notice { border-left: 4px solid var(--danger); display: none; }
+  .open-notice.show { display: block; }
+  .open-notice h2 { color: var(--danger); }
+  .open-notice ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
   .splash {
     position: fixed; inset: 0; background: #ffffff; z-index: 200;
     display: flex; align-items: center; justify-content: center;
@@ -393,6 +398,11 @@
 <!-- ═══ VIEW: เบิก/คืนกล่องยา ═══ -->
 <main id="viewBox" class="view">
   <form id="boxForm">
+    <div class="card open-notice" id="openBoxNotice">
+      <h2>⚠ กล่องที่ยังไม่บันทึกคืน</h2>
+      <ul id="openBoxList"></ul>
+    </div>
+
     <div class="card">
       <h2>1. ผู้เบิก / ผู้คืนกล่องยา</h2>
       <label>ชื่อพยาบาล / ผู้ช่วยพยาบาล <span class="req">*</span></label>
@@ -412,9 +422,9 @@
     <div class="card">
       <h2>3. กล่องยา Tier A (เลือกได้มากกว่า 1 กล่อง)</h2>
       <div class="box-options">
-        <label class="box-option"><input type="checkbox" name="box" value="1" onchange="syncBoxOption(this)"><div class="box-num">1</div><span>กล่องยาฉีด<small>IPD</small></span></label>
-        <label class="box-option"><input type="checkbox" name="box" value="2" onchange="syncBoxOption(this)"><div class="box-num">2</div><span>กล่องยาเม็ด<small>IPD</small></span></label>
-        <label class="box-option"><input type="checkbox" name="box" value="3" onchange="syncBoxOption(this)"><div class="box-num">3</div><span>กล่องใหญ่<small>ER</small></span></label>
+        <label class="box-option"><input type="checkbox" name="box" value="1" onchange="syncBoxOption(this)"><div class="box-num">1</div><span>กล่องยาฉีด<small>IPD</small><small class="box-open" id="boxOpen1"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="box" value="2" onchange="syncBoxOption(this)"><div class="box-num">2</div><span>กล่องยาเม็ด<small>IPD</small><small class="box-open" id="boxOpen2"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="box" value="3" onchange="syncBoxOption(this)"><div class="box-num">3</div><span>กล่องใหญ่<small>ER</small><small class="box-open" id="boxOpen3"></small></span></label>
       </div>
     </div>
 
@@ -1034,6 +1044,7 @@
     document.getElementById('pageTitle').textContent = VIEW_META[v].title;
     document.getElementById('pageSub').textContent = VIEW_META[v].sub;
     document.getElementById('backBtn').classList.toggle('show', v !== '');
+    if (v === 'box') loadOpenBoxes();
     window.scrollTo(0, 0);
   }
   window.addEventListener('hashchange', renderView);
@@ -1044,6 +1055,23 @@
     boxAction = a;
     document.getElementById('boxOutBtn').classList.toggle('active-a', a === 'เบิก');
     document.getElementById('boxInBtn').classList.toggle('active-b', a === 'คืน');
+  }
+  let openBoxes = [];
+  function loadOpenBoxes() {
+    fetch(WEBAPP_URL + '?action=getOpenBoxes')
+      .then(function (r) { return r.json(); })
+      .then(function (d) { openBoxes = d.items || []; renderOpenBoxes(); })
+      .catch(function () {});
+  }
+  function renderOpenBoxes() {
+    ['1', '2', '3'].forEach(function (n) {
+      const o = openBoxes.filter(function (b) { return String(b.boxNo) === n; }).pop();
+      document.getElementById('boxOpen' + n).textContent = o ? 'ยังไม่คืน — เบิกโดย ' + o.by + ' ' + o.checkoutTs : '';
+    });
+    document.getElementById('openBoxList').innerHTML = openBoxes.map(function (b) {
+      return '<li>กล่อง ' + b.boxNo + ' ' + b.boxName + ' — เบิกโดย ' + b.by + ' เมื่อ ' + b.checkoutTs + '</li>';
+    }).join('');
+    document.getElementById('openBoxNotice').classList.toggle('show', openBoxes.length > 0);
   }
   function syncBoxOption(cb) { cb.closest('.box-option').classList.toggle('checked', cb.checked); }
   function populateBoxStaff() {
@@ -1068,6 +1096,10 @@
     if (!sel.value) { showToast('กรุณาเลือกชื่อผู้เบิก/ผู้คืน', 'error'); return; }
     if (!boxAction) { showToast('กรุณาเลือกว่าเบิกหรือคืนกล่อง', 'error'); return; }
     if (!boxes.length) { showToast('กรุณาเลือกกล่องยาอย่างน้อย 1 กล่อง', 'error'); return; }
+    if (boxAction === 'เบิก') {
+      const stillOut = boxes.filter(function (n) { return openBoxes.some(function (b) { return String(b.boxNo) === n; }); });
+      if (stillOut.length && !confirm('กล่อง ' + stillOut.join(', ') + ' ยังไม่ได้บันทึกคืนจากรอบก่อน\nถ้าคืนแล้วแต่ลืมบันทึก ให้บันทึก "คืนกล่อง" ก่อน\n\nต้องการบันทึกเบิกต่อหรือไม่?')) return;
+    }
     const btn = document.getElementById('boxSubmitBtn');
     btn.disabled = true;
     btn.textContent = 'กำลังบันทึก...';
@@ -1091,6 +1123,7 @@
           document.getElementById('boxForm').reset();
           setBoxAction('');
           document.querySelectorAll('.box-option.checked').forEach(function (el) { el.classList.remove('checked'); });
+          loadOpenBoxes();
         } else {
           hideSaveOverlay();
           showToast(res.msg || 'เกิดข้อผิดพลาด', 'error');
