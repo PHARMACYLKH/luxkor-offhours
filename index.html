@@ -1084,7 +1084,10 @@
       .then(function (res) {
         if (res.status === 'ok') {
           showSaveSuccess();
-          if (res.late) setTimeout(function () { showToast('บันทึกแล้ว — คืนกล่องหลัง 08.30 น.', 'error'); }, 2100);
+          const warn = [];
+          if (res.orphans && res.orphans.length) warn.push('ไม่พบรายการเบิกของกล่อง ' + res.orphans.join(', '));
+          if (res.late) warn.push('คืนกล่องหลัง 08.30 น.');
+          if (warn.length) setTimeout(function () { showToast('บันทึกแล้ว — ' + warn.join(' / '), 'error'); }, 2100);
           document.getElementById('boxForm').reset();
           setBoxAction('');
           document.querySelectorAll('.box-option.checked').forEach(function (el) { el.classList.remove('checked'); });
