@@ -534,10 +534,10 @@
       </div>
     </div>
 
-    <div class="card" id="reasonCard">
+    <div class="card" id="reasonCard" style="display:none">
       <h2>6. เหตุผล / เภสัชกรอนุมัติ</h2>
       <label>เหตุผลที่ต้องเข้าห้องยา / อ้างอิงคำสั่งแพทย์ <span class="req">*</span></label>
-      <select id="reasonSelect" required onchange="onReasonSelectChange()">
+      <select id="reasonSelect" onchange="onReasonSelectChange()">
         <option value="">— เลือกเหตุผล —</option>
         <option value="ยาในกล่อง ER ไม่มี/ไม่พอ">ยาในกล่อง ER ไม่มี/ไม่พอ</option>
         <option value="แพทย์สั่งยานอกบัญชี Extended Night Formulary">แพทย์สั่งยานอกบัญชี Extended Night Formulary</option>
@@ -563,7 +563,7 @@
     </div>
 
     <div class="card">
-      <h2 id="evidenceTitle">7. หลักฐาน</h2>
+      <h2 id="evidenceTitle">6. หลักฐาน</h2>
       <div class="checkbox-row">
         <input type="checkbox" id="evidenceConfirm" required>
         <span>ส่งภาพถ่ายใบสั่งยา/กล่องยาให้เภสัชกร on-call ทาง LINE แล้ว</span>
@@ -590,9 +590,9 @@
     document.getElementById('tierABtn').classList.toggle('active-a', t === 'A');
     document.getElementById('tierBBtn').classList.toggle('active-b', t === 'B');
     document.getElementById('tierBBlock').classList.toggle('open', t === 'B');
-    // Tier A = ยาในกล่อง (PTC อนุมัติล่วงหน้า) ไม่ต้องระบุเหตุผล/เภสัชกรอนุมัติ → ซ่อนการ์ด 6 ทั้งใบ
-    // ต้องถอด required ด้วย ไม่งั้น browser บล็อกการ submit เพราะ select ที่ซ่อนอยู่ยังว่าง
-    const hideReason = t === 'A';
+    // การ์ด 6 (เหตุผล/เภสัชกรอนุมัติ) แสดงเฉพาะ Tier B — Tier A (ยาในกล่อง PTC อนุมัติล่วงหน้า) และตอนยังไม่เลือก Tier
+    // ซ่อนทั้งใบ; ต้องถอด required ด้วย ไม่งั้น browser บล็อกการ submit เพราะ select ที่ซ่อนอยู่ยังว่าง
+    const hideReason = t !== 'B';
     document.getElementById('reasonCard').style.display = hideReason ? 'none' : '';
     document.getElementById('reasonSelect').required = !hideReason;
     if (hideReason) {
@@ -984,8 +984,8 @@
     if (!document.getElementById('readBack').checked) {
       showToast('กรุณายืนยันการขานซ้ำ (read-back) ก่อนบันทึก', 'error'); return;
     }
-    const reasonSelectVal = currentTier === 'A' ? '' : document.getElementById('reasonSelect').value;
-    if (currentTier !== 'A' && !reasonSelectVal) { showToast('กรุณาเลือกเหตุผลที่ต้องเข้าห้องยา', 'error'); return; }
+    const reasonSelectVal = currentTier === 'B' ? document.getElementById('reasonSelect').value : '';
+    if (currentTier === 'B' && !reasonSelectVal) { showToast('กรุณาเลือกเหตุผลที่ต้องเข้าห้องยา', 'error'); return; }
     if (reasonSelectVal === 'other' && !document.getElementById('reasonOther').value.trim()) {
       showToast('กรุณาระบุเหตุผลเพิ่มเติม', 'error'); return;
     }
