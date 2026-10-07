@@ -405,7 +405,7 @@
 
     <div class="card">
       <h2>1. ผู้เบิก / ผู้คืนกล่องยา</h2>
-      <label>ชื่อพยาบาล / ผู้ช่วยพยาบาล <span class="req">*</span></label>
+      <label>ชื่อผู้เบิก / ผู้คืน <span class="req">*</span></label>
       <select id="boxStaff" required>
         <option value="">— กำลังโหลดรายชื่อ —</option>
       </select>
@@ -1076,10 +1076,9 @@
   function syncBoxOption(cb) { cb.closest('.box-option').classList.toggle('checked', cb.checked); }
   function populateBoxStaff() {
     const sel = document.getElementById('boxStaff');
-    // เฉพาะพยาบาล/ผู้ช่วยพยาบาล (ตำแหน่งมีคำว่า "พยาบาล") — ถ้ากรองแล้วว่างให้ใช้ทั้งหมด
-    let list = staffItems.filter(function (s) { return /พยาบาล/.test(s.department || ''); });
-    if (!list.length) list = staffItems.slice();
-    list.sort(function (a, b) { return a.name.localeCompare(b.name, 'th'); });
+    // ทุกคนในชีต Staff_Nursing (พยาบาล + ผู้ช่วยพยาบาล + ระดับ manager — ผู้ใช้กำหนด 2026-10-07)
+    // เรียงตามลำดับในชีต (รหัสพนักงาน) ไม่กรองตามตำแหน่ง — เพิ่ม/ลดคนให้แก้ที่ชีตอย่างเดียว
+    const list = staffItems.slice();
     sel.innerHTML = '<option value="">' + (list.length ? '— เลือกชื่อ —' : '— โหลดรายชื่อไม่สำเร็จ ลองรีเฟรช —') + '</option>';
     list.forEach(function (s) {
       const o = document.createElement('option');
