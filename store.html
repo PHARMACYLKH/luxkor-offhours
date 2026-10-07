@@ -613,7 +613,7 @@
     const card = document.getElementById('tempStatusCard');
     const bad = temps.some(function (t) { return t.tStatus.indexOf('เกิน') === 0 || t.hStatus.indexOf('เกิน') === 0; });
     card.classList.toggle('warn', temps.length < 2 || bad);
-    el.innerHTML = '<b>บันทึกแล้ว ' + temps.length + ' / 2 ครั้ง</b>' + (temps.length < 2 ? ' — ยังต้องบันทึกอีก ' + (2 - temps.length) + ' ครั้ง (เช้า/บ่าย)' : ' ✓') +
+    el.innerHTML = '<b>บันทึกแล้ว ' + temps.length + ' / 2 ครั้ง</b>' + (temps.length < 2 ? ' — ยังต้องบันทึกอีก ' + (2 - temps.length) + ' ครั้ง (08.00 / 17.00 น.)' : ' ✓') +
       (temps.length ? '<ul>' + temps.map(function (t) {
         const cls = (t.tStatus.indexOf('เกิน') === 0 || t.hStatus.indexOf('เกิน') === 0) ? ' class="bad"' : '';
         return '<li' + cls + '>' + esc(t.ts.split(' ')[1]) + ' น. — ' + esc(t.temp) + ' °C / ' + esc(t.rh) + ' %RH (' + esc(t.by) + ')</li>';
