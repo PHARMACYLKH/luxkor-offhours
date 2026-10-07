@@ -210,6 +210,7 @@
   .box-option span { font-size: 14px; font-weight: 600; }
   .box-option small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
   .box-option small.box-open { color: var(--danger); font-weight: 600; }
+  .box-option.locked { opacity: .55; background: #f4f4f4; cursor: not-allowed; }
   /* การ์ดเตือนกล่องยังไม่คืน — อยู่บน landing, กระพริบแดง (ปิด animation ถ้าเครื่องตั้งลดการเคลื่อนไหว) */
   .open-notice {
     display: none; width: 100%; text-align: left; color: var(--text);
@@ -1100,6 +1101,7 @@
     boxAction = a;
     document.getElementById('boxOutBtn').classList.toggle('active-a', a === 'เบิก');
     document.getElementById('boxInBtn').classList.toggle('active-b', a === 'คืน');
+    applyBoxLocks();
   }
   let openBoxes = [];
   function loadOpenBoxes() {
@@ -1117,6 +1119,19 @@
       return '<li>กล่อง ' + b.boxNo + ' ' + b.boxName + ' — เบิกโดย ' + b.by + ' เมื่อ ' + b.checkoutTs + '</li>';
     }).join('');
     document.getElementById('openBoxNotice').classList.toggle('show', openBoxes.length > 0);
+    applyBoxLocks();
+  }
+  // (2026-10-07) กล่องที่ยังไม่คืน เบิกซ้ำไม่ได้จนกว่าจะบันทึกคืน — ตอนเลือก "เบิก" ติ๊กกล่องนั้นไม่ได้
+  // (server ตรวจซ้ำอีกชั้นใน addOffHoursBoxLog_ กันหน้าเว็บค้างเวอร์ชันเก่า/ข้อมูลยังไม่ทันโหลด)
+  function applyBoxLocks() {
+    document.querySelectorAll('input[name=box]').forEach(function (cb) {
+      const isOut = openBoxes.some(function (b) { return String(b.boxNo) === cb.value; });
+      const lock = boxAction === 'เบิก' && isOut;
+      cb.disabled = lock;
+      if (lock && cb.checked) { cb.checked = false; }
+      cb.closest('.box-option').classList.toggle('locked', lock);
+      cb.closest('.box-option').classList.toggle('checked', cb.checked);
+    });
   }
   function syncBoxOption(cb) { cb.closest('.box-option').classList.toggle('checked', cb.checked); }
   function populateBoxStaff() {
@@ -1142,7 +1157,10 @@
     if (!boxes.length) { showToast('กรุณาเลือกกล่องยาอย่างน้อย 1 กล่อง', 'error'); return; }
     if (boxAction === 'เบิก') {
       const stillOut = boxes.filter(function (n) { return openBoxes.some(function (b) { return String(b.boxNo) === n; }); });
-      if (stillOut.length && !confirm('กล่อง ' + stillOut.join(', ') + ' ยังไม่ได้บันทึกคืนจากรอบก่อน\nถ้าคืนแล้วแต่ลืมบันทึก ให้บันทึก "คืนกล่อง" ก่อน\n\nต้องการบันทึกเบิกต่อหรือไม่?')) return;
+      if (stillOut.length) {
+        showToast('กล่อง ' + stillOut.join(', ') + ' ยังไม่ได้บันทึกคืน — ต้องบันทึก "คืนกล่อง" ก่อนจึงจะเบิกได้', 'error');
+        return;
+      }
     }
     const btn = document.getElementById('boxSubmitBtn');
     btn.disabled = true;
@@ -1171,6 +1189,7 @@
         } else {
           hideSaveOverlay();
           showToast(res.msg || 'เกิดข้อผิดพลาด', 'error');
+          loadOpenBoxes();
         }
       })
       .catch(function () { hideSaveOverlay(); showToast('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง', 'error'); })
