@@ -483,10 +483,18 @@
     <div class="card">
       <h2>2. ระดับบัญชียาที่หยิบ (Tier)</h2>
       <div class="tier-toggle">
-        <button type="button" id="tierABtn" onclick="setTier('A')">Tier A<br><span style="font-weight:400;font-size:11.5px">ยาในกล่อง ER</span></button>
+        <button type="button" id="tierABtn" onclick="setTier('A')">Tier A<br><span style="font-weight:400;font-size:11.5px">ยาในกล่อง (3 กล่อง)</span></button>
         <button type="button" id="tierBBtn" onclick="setTier('B')">Tier B<br><span style="font-weight:400;font-size:11.5px">ยานอกกล่อง (ต้องเปิดห้องยา)</span></button>
       </div>
-      <div class="hint">Tier A = ยาในกล่อง ER (PTC อนุมัติล่วงหน้าแล้ว ไม่ต้องรอสายเภสัชกร) / Tier B = ยานอกกล่อง ต้องเปิดห้องยา (ต้องโทรขออนุมัติเภสัชกรก่อนเข้าเสมอ)</div>
+      <div id="tierABoxBlock" class="conditional">
+        <label>นำมาจากกล่องไหน <span class="req">*</span> <span style="font-weight:400;color:var(--muted)">(เลือกได้มากกว่า 1 กล่อง)</span></label>
+        <div class="box-options">
+          <label class="box-option"><input type="checkbox" name="tierABox" value="1 กล่องยาฉีด IPD" onchange="syncBoxOption(this)"><div class="box-num">1</div><span>กล่องยาฉีด<small>IPD</small></span></label>
+          <label class="box-option"><input type="checkbox" name="tierABox" value="2 กล่องยาเม็ด IPD" onchange="syncBoxOption(this)"><div class="box-num">2</div><span>กล่องยาเม็ด<small>IPD</small></span></label>
+          <label class="box-option"><input type="checkbox" name="tierABox" value="3 กล่องใหญ่เหลือง ER" onchange="syncBoxOption(this)"><div class="box-num">3</div><span>กล่องใหญ่เหลือง<small>ER</small></span></label>
+        </div>
+      </div>
+      <div class="hint">Tier A = ยาในกล่อง 3 กล่อง (PTC อนุมัติล่วงหน้าแล้ว ไม่ต้องรอสายเภสัชกร) / Tier B = ยานอกกล่อง ต้องเปิดห้องยา (ต้องโทรขออนุมัติเภสัชกรก่อนเข้าเสมอ)</div>
     </div>
 
     <div class="card">
@@ -589,6 +597,13 @@
     currentTier = t;
     document.getElementById('tierABtn').classList.toggle('active-a', t === 'A');
     document.getElementById('tierBBtn').classList.toggle('active-b', t === 'B');
+    document.getElementById('tierABoxBlock').classList.toggle('open', t === 'A');
+    if (t !== 'A') {
+      document.querySelectorAll('input[name=tierABox]').forEach(function (c) {
+        c.checked = false;
+        c.closest('.box-option').classList.remove('checked');
+      });
+    }
     document.getElementById('tierBBlock').classList.toggle('open', t === 'B');
     // การ์ด 6 (เหตุผล/เภสัชกรอนุมัติ) แสดงเฉพาะ Tier B — Tier A (ยาในกล่อง PTC อนุมัติล่วงหน้า) และตอนยังไม่เลือก Tier
     // ซ่อนทั้งใบ; ต้องถอด required ด้วย ไม่งั้น browser บล็อกการ submit เพราะ select ที่ซ่อนอยู่ยังว่าง
@@ -970,6 +985,8 @@
       showToast('ชื่อพยาบาลคนที่ 1 และ 2 ห้ามซ้ำกัน กรุณาใส่ชื่อใหม่', 'error'); return;
     }
     if (!currentTier) { showToast('กรุณาเลือกระดับบัญชียา (Tier A/B)', 'error'); return; }
+    const tierABoxes = Array.prototype.map.call(document.querySelectorAll('input[name=tierABox]:checked'), function (c) { return c.value; });
+    if (currentTier === 'A' && !tierABoxes.length) { showToast('กรุณาเลือกว่านำยามาจากกล่องไหน', 'error'); return; }
     if (currentTier === 'B' && !selectedPharmacist) {
       showToast('กรุณาเลือกเภสัชกรที่อนุมัติ', 'error'); return;
     }
@@ -1007,6 +1024,7 @@
       isStat: isStat ? ('ใช่ (STAT) - ' + statReasonVal) : 'ไม่ใช่',
       reason: reasonSelectVal === 'other' ? document.getElementById('reasonOther').value.trim() : reasonSelectVal,
       pharmacistApproval: selectedPharmacist,
+      tierABoxes: currentTier === 'A' ? tierABoxes.join(', ') : '',
       labelStatus: labelStatusVal,
       readBack: document.getElementById('readBack').checked,
       evidenceConfirm: document.getElementById('evidenceConfirm').checked ? 'ส่งภาพถ่ายใบสั่งยา/กล่องยาให้เภสัชกร on-call ทาง LINE แล้ว' : ''
