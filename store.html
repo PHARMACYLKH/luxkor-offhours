@@ -210,6 +210,7 @@
   .box-option span { font-size: 14px; font-weight: 600; }
   .box-option small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
   .box-option small.box-open { color: var(--danger); font-weight: 600; }
+  .box-option.locked { opacity: .55; background: #f4f4f4; cursor: not-allowed; }
   /* การ์ดเตือนกล่องยังไม่คืน — อยู่บน landing, กระพริบแดง (ปิด animation ถ้าเครื่องตั้งลดการเคลื่อนไหว) */
   .open-notice {
     display: none; width: 100%; text-align: left; color: var(--text);
@@ -446,7 +447,7 @@
 <main id="viewIn" class="view">
   <form id="inForm">
     <div class="card">
-      <h2>1. ผู้เข้าห้อง</h2>
+      <h2>ผู้เข้าห้อง</h2>
       <label>ชื่อผู้เข้าห้อง <span class="req">*</span></label>
       <select id="inName" required onchange="onNameChange()">
         <option value="">— กำลังโหลดรายชื่อ —</option>
@@ -461,17 +462,38 @@
     </div>
 
     <div class="card" id="coCard" style="display:none">
-      <h2>2. เภสัชกรผู้ตรวจสอบร่วม (Double Audit)</h2>
-      <label>เภสัชกร / ผู้มีสิทธิ์ระดับ 1 ที่เข้าไปด้วย <span class="req">*</span></label>
-      <select id="coAuditor"></select>
+      <h2 id="coTitle">ผู้ตรวจสอบร่วม</h2>
+      <div id="coSelectBlock">
+        <label>เภสัชกร / ผู้มีสิทธิ์ระดับ 1–2 ที่เข้าไปด้วย <span class="req">*</span></label>
+        <select id="coAuditor"></select>
+      </div>
+      <div id="coWitnessBlock" style="display:none">
+        <label id="coWitnessLabel">ชื่อพยานที่เข้าห้องด้วย <span class="req">*</span></label>
+        <input type="text" id="coWitness" list="witnessList" autocomplete="off" placeholder="พิมพ์ชื่อเพื่อค้นหา หรือพิมพ์ชื่อเอง">
+        <datalist id="witnessList"></datalist>
+        <div class="hint">ผู้ช่วยเภสัชกรในเวร หรือบุคลากรผู้ขอเบิก (แพทย์/พยาบาล) — ไม่พบชื่อในรายการก็พิมพ์ชื่อเต็มได้</div>
+      </div>
       <div class="checkbox-row">
         <input type="checkbox" id="coConfirm">
-        <span>เภสัชกรผู้ตรวจสอบร่วมเป็นผู้สแกนลายนิ้วมือเปิดประตู และอยู่ในห้องตลอดการปฏิบัติงาน</span>
+        <span id="coConfirmText">ผู้ตรวจสอบร่วมเป็นผู้เปิดประตู และอยู่ในห้องตลอดการปฏิบัติงาน</span>
       </div>
     </div>
 
+    <div class="card" id="keyCard">
+      <h2>กุญแจฉุกเฉิน</h2>
+      <div class="checkbox-row" style="margin-top:0">
+        <input type="checkbox" id="emergencyKey" onchange="onKeyChange()">
+        <span>เข้าห้องด้วย<b>กุญแจฉุกเฉิน</b> (สแกนลายนิ้วมือไม่ได้ / เภสัชกร part time)</span>
+      </div>
+      <div class="checkbox-row" id="lineRow" style="display:none">
+        <input type="checkbox" id="lineNotified">
+        <span>แจ้งหัวหน้าแผนกเภสัชกรรมทาง LINE แล้ว (เหตุผล รายการที่จะเบิก และชื่อพยาน)</span>
+      </div>
+      <div class="hint">ใช้แล้วคืนกุญแจเข้ากล่องและล็อกกล่องทันที</div>
+    </div>
+
     <div class="card">
-      <h2 id="purposeTitle">2. วัตถุประสงค์</h2>
+      <h2 id="purposeTitle">วัตถุประสงค์</h2>
       <label>เข้าห้องเพื่อ <span class="req">*</span></label>
       <select id="purpose" required onchange="onPurposeChange()">
         <option value="">— เลือก —</option>
@@ -536,6 +558,7 @@
   const VISITOR = '__visitor__';
   const NEED_REF = ['เบิกเวชภัณฑ์ตามใบเบิกปกติ', 'เบิกด่วนตามคำสั่งแพทย์/พยาบาล', 'รับสินค้าเข้าคลัง'];
   let roster = [];
+  let staffNames = [];
   let openVisits = [];
   let selectedVisit = null;
 
@@ -594,14 +617,25 @@
   }
   function populateNames() {
     const sel = document.getElementById('inName');
-    const lv = { 1: 'ระดับ 1', 2: 'ระดับ 2', 3: 'ระดับ 3' };
+    const lv = { 1: 'ระดับ 1', 2: 'ระดับ 2', 3: 'ระดับ 3', 4: 'ระดับ 4' };
     sel.innerHTML = '<option value="">— เลือกชื่อ —</option>' + roster.map(function (r) {
       return '<option value="' + esc(r.name) + '">' + esc(r.name) + ' — ' + esc(r.position) + ' (' + lv[r.level] + ')</option>';
-    }).join('') + '<option value="' + VISITOR + '">บุคคลภายนอก / ไม่มีชื่อในทะเบียน (ระดับ 3)</option>';
+    }).join('') + '<option value="' + VISITOR + '">บุคคลภายนอก / ไม่มีชื่อในทะเบียน (ระดับ 4)</option>';
     const co = document.getElementById('coAuditor');
-    co.innerHTML = '<option value="">— เลือกเภสัชกร —</option>' + roster.filter(function (r) { return r.level === 1; }).map(function (r) {
+    co.innerHTML = '<option value="">— เลือกเภสัชกร —</option>' + roster.filter(function (r) { return r.level === 1 || r.level === 2; }).map(function (r) {
       return '<option value="' + esc(r.name) + '">' + esc(r.name) + ' — ' + esc(r.position) + '</option>';
     }).join('');
+  }
+  // รายชื่อพยาน: พยาบาล/ผู้ช่วยพยาบาล/manager (Staff_Nursing) + ผู้ช่วยเภสัชกรในทะเบียน — พิมพ์ชื่อเองได้ถ้าไม่พบ
+  function loadWitnessNames() {
+    fetch(WEBAPP_URL + '?action=getNursingStaff').then(function (r) { return r.json(); })
+      .then(function (d) { staffNames = (d.items || []).map(function (s) { return s.name; }); fillWitnessList(); })
+      .catch(function () { fillWitnessList(); });
+  }
+  function fillWitnessList() {
+    const names = staffNames.concat(roster.filter(function (r) { return r.level === 3; }).map(function (r) { return r.name; }));
+    document.getElementById('witnessList').innerHTML = names.filter(function (n, i, a) { return n && a.indexOf(n) === i; })
+      .map(function (n) { return '<option value="' + esc(n) + '"></option>'; }).join('');
   }
   function loadStatus() {
     fetch(WEBAPP_URL + '?action=getStoreStatus').then(function (r) { return r.json(); })
@@ -621,9 +655,9 @@
     const notice = document.getElementById('insideNotice');
     notice.classList.toggle('show', openVisits.length > 0);
     document.getElementById('insideList').innerHTML = openVisits.map(function (o) {
-      const long = o.minutes !== null && o.minutes > 120;
+      const long = !!o.overdue;
       return '<li' + (long ? ' class="bad"' : '') + '>' + esc(o.name) + ' — เข้าเมื่อ ' + esc(o.entryTs) +
-        (o.minutes !== null ? ' (' + o.minutes + ' นาที)' : '') + ' · ' + esc(o.purpose) + '</li>';
+        (o.minutes !== null ? ' (' + o.minutes + '/' + o.limitMin + ' นาที)' : '') + ' · ' + esc(o.purpose) + (o.emergencyKey ? ' · 🔑' : '') + '</li>';
     }).join('');
   }
   function renderOutList() {
@@ -649,9 +683,17 @@
   function currentLevel() {
     const v = document.getElementById('inName').value;
     if (!v) return 0;
-    if (v === VISITOR) return 3;
+    if (v === VISITOR) return 4;
     const r = roster.filter(function (x) { return x.name === v; })[0];
-    return r ? r.level : 3;
+    return r ? r.level : 4;
+  }
+  function isHeadSelected() {
+    const r = roster.filter(function (x) { return x.name === document.getElementById('inName').value; })[0];
+    return !!(r && /หัวหน้าแผนกเภสัชกรรม/.test(r.position));
+  }
+  function onKeyChange() {
+    const k = document.getElementById('emergencyKey').checked;
+    document.getElementById('lineRow').style.display = (k && !isHeadSelected()) ? '' : 'none';
   }
   function onNameChange() {
     const v = document.getElementById('inName').value;
@@ -659,15 +701,24 @@
     document.getElementById('visitorBlock').classList.toggle('open', v === VISITOR);
     document.getElementById('visitorName').required = v === VISITOR;
     document.getElementById('visitorOrg').required = v === VISITOR;
-    const needCo = lv >= 2;
-    document.getElementById('coCard').style.display = needCo ? '' : 'none';
-    document.getElementById('coAuditor').required = needCo;
-    document.getElementById('purposeTitle').textContent = (needCo ? '3' : '2') + '. วัตถุประสงค์';
+    // ระดับ 2 = พยาน (พิมพ์ชื่อได้) / ระดับ 3–4 = ผู้ตรวจสอบร่วมจากทะเบียน (ระดับ 1–2)
+    document.getElementById('coCard').style.display = lv >= 2 ? '' : 'none';
+    document.getElementById('coSelectBlock').style.display = lv >= 3 ? '' : 'none';
+    document.getElementById('coWitnessBlock').style.display = lv === 2 ? '' : 'none';
+    document.getElementById('coTitle').textContent = lv === 2 ? 'พยานที่เข้าห้องด้วย' : 'ผู้ตรวจสอบร่วม (Double Audit)';
+    document.getElementById('coConfirmText').textContent = lv === 2
+      ? 'พยานอยู่ในห้องตลอดการปฏิบัติงานและรับทราบรายการที่เบิกออก'
+      : 'ผู้ตรวจสอบร่วมเป็นผู้เปิดประตู และอยู่ในห้องตลอดการปฏิบัติงาน';
+    const key = document.getElementById('emergencyKey');
+    key.disabled = lv === 2;            // เภสัชกร part time ใช้กุญแจฉุกเฉินเสมอ
+    if (lv === 2) key.checked = true;
+    onKeyChange();
     const badge = document.getElementById('levelBadge');
-    badge.className = 'level-badge' + (lv ? ' lv' + lv : '');
+    badge.className = 'level-badge' + (lv ? ' lv' + Math.min(lv, 3) : '');
     badge.textContent = lv === 1 ? 'ระดับ 1 — เข้าได้เองด้วยลายนิ้วมือ'
-      : lv === 2 ? 'ระดับ 2 — ต้องมีเภสัชกรเข้าไปด้วยเพื่อตรวจสอบร่วม (double audit)'
-      : lv === 3 ? 'ระดับ 3 — ต้องมีผู้มีสิทธิ์ระดับ 1 นำเข้าและอยู่ด้วยตลอด' : '';
+      : lv === 2 ? 'ระดับ 2 เภสัชกร part time — ใช้กุญแจฉุกเฉิน ต้องแจ้งหัวหน้าแผนกทาง LINE และมีพยานเข้าห้องด้วย'
+      : lv === 3 ? 'ระดับ 3 ผู้ช่วยเภสัชกร — ต้องมีเภสัชกรเข้าไปด้วยเพื่อตรวจสอบร่วม (double audit)'
+      : lv === 4 ? 'ระดับ 4 บุคคลอื่น — ต้องมีผู้มีสิทธิ์ระดับ 1–2 นำเข้าและอยู่ด้วยตลอด' : '';
   }
   function onPurposeChange() {
     const p = document.getElementById('purpose').value;
@@ -703,11 +754,15 @@
     if (!nameSel) { showToast('กรุณาเลือกชื่อผู้เข้าห้อง', 'error'); return; }
     const name = nameSel === VISITOR ? document.getElementById('visitorName').value.trim() : nameSel;
     if (nameSel === VISITOR && (!name || !document.getElementById('visitorOrg').value.trim())) { showToast('กรุณากรอกชื่อและหน่วยงานของบุคคลภายนอก', 'error'); return; }
-    const co = document.getElementById('coAuditor').value;
-    if (lv >= 2) {
-      if (!co) { showToast('กรุณาเลือกเภสัชกรผู้ตรวจสอบร่วม', 'error'); return; }
-      if (co === name) { showToast('ผู้ตรวจสอบร่วมต้องเป็นคนละคนกับผู้เข้าห้อง', 'error'); return; }
-      if (!document.getElementById('coConfirm').checked) { showToast('กรุณายืนยันว่าเภสัชกรเปิดประตูและอยู่ในห้องตลอด', 'error'); return; }
+    const co = lv === 2 ? document.getElementById('coWitness').value.trim() : document.getElementById('coAuditor').value;
+    const tempOnly = p === 'บันทึกอุณหภูมิ/ความชื้น';
+    if (lv === 2 && !co && !tempOnly) { showToast('กรุณาระบุพยานที่เข้าห้องด้วย', 'error'); return; }
+    if (lv >= 3 && !co) { showToast('กรุณาเลือกเภสัชกรผู้ตรวจสอบร่วม', 'error'); return; }
+    if (co && co === name) { showToast('ผู้ตรวจสอบร่วม/พยานต้องเป็นคนละคนกับผู้เข้าห้อง', 'error'); return; }
+    if (lv >= 2 && co && !document.getElementById('coConfirm').checked) { showToast('กรุณาติ๊กยืนยันผู้ตรวจสอบร่วม/พยาน', 'error'); return; }
+    const eKey = document.getElementById('emergencyKey').checked;
+    if (eKey && !isHeadSelected() && !document.getElementById('lineNotified').checked) {
+      showToast('การใช้กุญแจฉุกเฉินต้องแจ้งหัวหน้าแผนกเภสัชกรรมทาง LINE ก่อน', 'error'); return;
     }
     if (!p) { showToast('กรุณาเลือกวัตถุประสงค์', 'error'); return; }
     if (p === 'อื่นๆ' && !document.getElementById('purposeOther').value.trim()) { showToast('กรุณาระบุวัตถุประสงค์', 'error'); return; }
@@ -720,7 +775,7 @@
     showSaveOverlay();
     post({
       action: 'addStoreEntry', name: name, visitorOrg: nameSel === VISITOR ? document.getElementById('visitorOrg').value.trim() : '',
-      coAuditor: lv >= 2 ? co : '', purpose: p, purposeOther: document.getElementById('purposeOther').value.trim(),
+      coAuditor: lv >= 2 ? co : '', purpose: p, emergencyKey: eKey, lineNotified: document.getElementById('lineNotified').checked, purposeOther: document.getElementById('purposeOther').value.trim(),
       reference: document.getElementById('reference').value.trim(), note: document.getElementById('note').value.trim(),
       temp: document.getElementById('temp').value, rh: document.getElementById('rh').value,
       tMin: document.getElementById('tMin').value, tMax: document.getElementById('tMax').value
@@ -731,6 +786,7 @@
           setTimeout(function () { showToast('บันทึกแล้ว — ค่าเกินเกณฑ์ แจ้งหัวหน้าแผนก/วิศวกรรมทันที', 'error'); }, 2100);
         }
         document.getElementById('inForm').reset();
+        document.getElementById('emergencyKey').disabled = false;
         onNameChange(); onPurposeChange(); checkTempLive();
         setTimeout(function () { goView(''); }, 2100);
       } else {
@@ -765,6 +821,7 @@
   const splashStart = Date.now();
   renderView();
   loadRoster().finally(function () {
+    loadWitnessNames();
     const wait = Math.max(0, 500 - (Date.now() - splashStart));
     setTimeout(function () { document.getElementById('splash').classList.add('hide'); }, wait);
   });
