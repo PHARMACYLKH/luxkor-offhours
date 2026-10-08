@@ -503,7 +503,7 @@
           <label class="box-option"><input type="checkbox" name="tierABox" value="3 กล่องใหญ่เหลือง ER" onchange="syncBoxOption(this)"><div class="box-num">3</div><span>กล่องใหญ่เหลือง<small>ER</small></span></label>
         </div>
       </div>
-      <div class="hint">Tier A = ยาในกล่อง 3 กล่อง (PTC อนุมัติล่วงหน้าแล้ว ไม่ต้องรอสายเภสัชกร) / Tier B = ยานอกกล่อง ต้องเปิดห้องยา (ต้องโทรขออนุมัติเภสัชกรก่อนเข้าเสมอ)</div>
+      <div class="hint">Tier A = ยาในกล่อง 3 กล่อง (PTC อนุมัติล่วงหน้าแล้ว หยิบได้ทันทีไม่ต้องแจ้งเภสัชกรก่อน) / Tier B = ยานอกกล่อง ต้องเปิดห้องยา (ต้องแจ้งเภสัชกรทาง LINE ก่อนเปิดห้องยาเสมอ)</div>
     </div>
 
     <div class="card">
@@ -552,7 +552,7 @@
     </div>
 
     <div class="card" id="reasonCard" style="display:none">
-      <h2>6. เหตุผล / เภสัชกรอนุมัติ</h2>
+      <h2>6. เหตุผล / เภสัชกรที่รับแจ้ง</h2>
       <label>เหตุผลที่ต้องเข้าห้องยา / อ้างอิงคำสั่งแพทย์ <span class="req">*</span></label>
       <select id="reasonSelect" onchange="onReasonSelectChange()">
         <option value="">— เลือกเหตุผล —</option>
@@ -569,7 +569,7 @@
       </div>
 
       <div id="tierBBlock" class="conditional">
-        <label>ชื่อเภสัชกรที่อนุมัติ <span class="req">*</span></label>
+        <label>ชื่อเภสัชกรที่รับแจ้งทาง LINE <span class="req">*</span></label>
         <select id="pharmacistSelect" onchange="setPharmacist(this.value)">
           <option value="">— เลือกเภสัชกร —</option>
           <option value="ภก.ปัญญา วัฒนเชาวน์พิสุทธิ์">ภก.ปัญญา วัฒนเชาวน์พิสุทธิ์ (หัวหน้าแผนกเภสัชกรรม)</option>
@@ -614,7 +614,7 @@
       });
     }
     document.getElementById('tierBBlock').classList.toggle('open', t === 'B');
-    // การ์ด 6 (เหตุผล/เภสัชกรอนุมัติ) แสดงเฉพาะ Tier B — Tier A (ยาในกล่อง PTC อนุมัติล่วงหน้า) และตอนยังไม่เลือก Tier
+    // การ์ด 6 (เหตุผล/เภสัชกรที่รับแจ้ง) แสดงเฉพาะ Tier B — Tier A (ยาในกล่อง PTC อนุมัติล่วงหน้า) และตอนยังไม่เลือก Tier
     // ซ่อนทั้งใบ; ต้องถอด required ด้วย ไม่งั้น browser บล็อกการ submit เพราะ select ที่ซ่อนอยู่ยังว่าง
     const hideReason = t !== 'B';
     document.getElementById('reasonCard').style.display = hideReason ? 'none' : '';
@@ -999,7 +999,7 @@
     const tierABoxes = Array.prototype.map.call(document.querySelectorAll('input[name=tierABox]:checked'), function (c) { return c.value; });
     if (currentTier === 'A' && !tierABoxes.length) { showToast('กรุณาเลือกว่านำยามาจากกล่องไหน', 'error'); return; }
     if (currentTier === 'B' && !selectedPharmacist) {
-      showToast('กรุณาเลือกเภสัชกรที่อนุมัติ', 'error'); return;
+      showToast('กรุณาเลือกเภสัชกรที่รับแจ้งทาง LINE', 'error'); return;
     }
     if (isStat && !document.getElementById('statReason').value) {
       showToast('กรุณาเลือกเหตุผล STAT', 'error'); return;
