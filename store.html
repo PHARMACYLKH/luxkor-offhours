@@ -524,11 +524,9 @@
           <input type="number" id="temp" step="0.1" inputmode="decimal" oninput="checkTempLive()"></div>
         <div><label>ความชื้น (%RH) <span class="req">*</span></label>
           <input type="number" id="rh" step="1" inputmode="decimal" oninput="checkTempLive()"></div>
-        <div><label>ต่ำสุด (°C)</label><input type="number" id="tMin" step="0.1" inputmode="decimal"></div>
-        <div><label>สูงสุด (°C)</label><input type="number" id="tMax" step="0.1" inputmode="decimal"></div>
       </div>
       <div id="tempLive" class="temp-live"></div>
-      <div class="hint">เกณฑ์ (ภาคผนวก ข): อุณหภูมิ 20–25 °C / ต้องแก้ไขเมื่อต่ำกว่า 15 หรือสูงกว่า 30 °C · ความชื้นไม่เกิน 60% / ต้องแก้ไขเมื่อเกิน 70% · บันทึกค่าต่ำสุด-สูงสุดแล้วกดรีเซ็ตที่เครื่องวัด</div>
+      <div class="hint">เกณฑ์ (ภาคผนวก ข): อุณหภูมิ 20–25 °C / ต้องแก้ไขเมื่อต่ำกว่า 15 หรือสูงกว่า 30 °C · ความชื้นไม่เกิน 60% / ต้องแก้ไขเมื่อเกิน 70%</div>
     </div>
 
     <button type="submit" class="submit-btn" id="inSubmitBtn">บันทึกเข้าห้อง</button>
@@ -542,9 +540,9 @@
     <h2>เลือกรายการที่จะบันทึกออก</h2>
     <div id="outList" class="hint">กำลังโหลด...</div>
   </div>
-  <div class="card" id="outConfirmCard" style="display:none">
+  <div class="card" id="outConfirmCard">
     <h2>ยืนยันการออกจากห้อง</h2>
-    <div id="outSelected" class="out-selected"></div>
+    <div id="outSelected" class="out-selected hint">เลือกชื่อจากรายการด้านบน</div>
     <label>สิ่งที่นำออก / หมายเหตุ</label>
     <input type="text" id="exitNote" autocomplete="off" placeholder="(ถ้ามี) เช่น เบิก NSS 1,000 mL x 2">
     <button type="button" class="submit-btn" id="outSubmitBtn" style="margin-top:14px" onclick="submitExit()">บันทึกออก</button>
@@ -662,21 +660,30 @@
   }
   function renderOutList() {
     const el = document.getElementById('outList');
+    const keepRow = selectedVisit ? selectedVisit.row : null;
     selectedVisit = null;
-    document.getElementById('outConfirmCard').style.display = 'none';
+    showSelected();
     if (!openVisits.length) { el.innerHTML = 'ไม่มีรายการที่ยังอยู่ในห้อง'; return; }
     el.innerHTML = '<div class="out-options">' + openVisits.map(function (o, i) {
       return '<button type="button" class="out-option" onclick="pickVisit(' + i + ')">' +
         '<b>' + esc(o.name) + '</b><small>เข้าเมื่อ ' + esc(o.entryTs) + ' · ' + esc(o.purpose) +
         (o.coAuditor ? ' · ร่วมกับ ' + esc(o.coAuditor) : '') + '</small></button>';
     }).join('') + '</div>';
+    const k = openVisits.findIndex(function (o) { return o.row === keepRow; });
+    if (k !== -1) pickVisit(k, true);
   }
-  function pickVisit(i) {
+  function showSelected() {
+    const el = document.getElementById('outSelected');
+    el.classList.toggle('hint', !selectedVisit);
+    el.innerHTML = selectedVisit
+      ? '<b>' + esc(selectedVisit.name) + '</b><br>เข้าเมื่อ ' + esc(selectedVisit.entryTs) + ' · ' + esc(selectedVisit.purpose)
+      : 'เลือกชื่อจากรายการด้านบน';
+  }
+  function pickVisit(i, quiet) {
     selectedVisit = openVisits[i];
     document.querySelectorAll('.out-option').forEach(function (b, k) { b.classList.toggle('picked', k === i); });
-    document.getElementById('outSelected').innerHTML = '<b>' + esc(selectedVisit.name) + '</b><br>เข้าเมื่อ ' + esc(selectedVisit.entryTs) + ' · ' + esc(selectedVisit.purpose);
-    document.getElementById('outConfirmCard').style.display = '';
-    document.getElementById('outConfirmCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showSelected();
+    if (!quiet) document.getElementById('outConfirmCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   // ── ฟอร์มบันทึกเข้า ──
@@ -777,8 +784,7 @@
       action: 'addStoreEntry', name: name, visitorOrg: nameSel === VISITOR ? document.getElementById('visitorOrg').value.trim() : '',
       coAuditor: lv >= 2 ? co : '', purpose: p, emergencyKey: eKey, lineNotified: document.getElementById('lineNotified').checked, purposeOther: document.getElementById('purposeOther').value.trim(),
       reference: document.getElementById('reference').value.trim(), note: document.getElementById('note').value.trim(),
-      temp: document.getElementById('temp').value, rh: document.getElementById('rh').value,
-      tMin: document.getElementById('tMin').value, tMax: document.getElementById('tMax').value
+      temp: document.getElementById('temp').value, rh: document.getElementById('rh').value
     }).then(function (res) {
       if (res.status === 'ok') {
         showSaveSuccess();
