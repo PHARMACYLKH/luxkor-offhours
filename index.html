@@ -530,7 +530,7 @@
           <option>ชักต่อเนื่อง (Status epilepticus)</option>
           <option value="other">อื่นๆ ที่แพทย์ระบุชัดในคำสั่งว่าเป็น STAT</option>
         </select>
-        <div class="hint">กรุณาระบุเหตุผลความจำเป็นของ STAT ให้ตรงกับสถานการณ์จริง — STAT ยังต้องพิมพ์ฉลากยาก่อนให้ยา (ยกเว้นกู้ชีพเท่านั้น ดูข้อ 5)</div>
+        <div class="hint">กรุณาระบุเหตุผลความจำเป็นของ STAT ให้ตรงกับสถานการณ์จริง — STAT ยังต้องพิมพ์ฉลากยาก่อนให้ยา (ยกเว้นยาช่วยชีวิตเท่านั้น ดูข้อ 5)</div>
       </div>
     </div>
 
@@ -541,7 +541,7 @@
         <option value="">— เลือก —</option>
         <option value="พิมพ์ฉลากจากระบบแล้ว">พิมพ์ฉลากจากระบบ (Sticker Print ER) แล้ว</option>
         <option value="ฉลากเขียนมือ (ระบบพิมพ์ขัดข้อง)">เขียนฉลากด้วยมือ (ระบบพิมพ์ขัดข้อง)</option>
-        <option value="พิมพ์ฉลากย้อนหลัง (กู้ชีพ ACLS)" id="labelRetroOpt">ให้ยาก่อน พิมพ์ฉลากย้อนหลัง — เฉพาะกู้ชีพ (Cardiac arrest/ACLS)</option>
+        <option value="พิมพ์ฉลากย้อนหลัง (ยาช่วยชีวิต)" id="labelRetroOpt">ให้ยาก่อน พิมพ์ฉลากย้อนหลัง — ยาช่วยชีวิต (บันทึกหลังผู้ป่วยอาการคงที่)</option>
       </select>
       <div id="labelStatusHint" class="hint">ทุกการเบิกยา รวมทั้ง STAT ต้องพิมพ์ฉลากยาก่อนให้ยา (นโยบายข้อ 2.4)</div>
 
@@ -692,9 +692,11 @@
     updateLabelStatusUI();
   }
 
-  // นโยบายข้อ 2.4.1: "พิมพ์ฉลากย้อนหลัง" ใช้ได้เฉพาะ STAT เหตุผลกู้ชีพเท่านั้น — STAT อื่นต้องพิมพ์ก่อนให้ยา
+  // นโยบายข้อ 2.4.1 (rev01, 2026-10-08): "พิมพ์ฉลากย้อนหลัง" ใช้ได้เฉพาะยาช่วยชีวิต = STAT เหตุผล
+  // Cardiac arrest/ACLS, Anaphylaxis, Hypoglycemia รุนแรง, ชักต่อเนื่อง — "อื่นๆ" ไม่นับ ต้องพิมพ์ก่อนให้ยา
+  const LIFE_SAVING_REASONS = ['Cardiac arrest / ACLS', 'Anaphylaxis', 'Hypoglycemia รุนแรง', 'ชักต่อเนื่อง (Status epilepticus)'];
   function isAclsStat() {
-    return isStat && document.getElementById('statReason').value === 'Cardiac arrest / ACLS';
+    return isStat && LIFE_SAVING_REASONS.indexOf(document.getElementById('statReason').value) !== -1;
   }
 
   function updateLabelStatusUI() {
@@ -704,7 +706,7 @@
     retroOpt.disabled = !isAclsStat();
     if (retroOpt.disabled && sel.value === retroOpt.value) sel.value = '';
     if (sel.value === retroOpt.value) {
-      hint.innerHTML = '⚠ ต้องพิมพ์ฉลากและบันทึกฟอร์มนี้ <b>ภายใน 30 นาทีหลังภาวะฉุกเฉินสิ้นสุด</b> และเก็บหลอด/ขวดยาเปล่าไว้จนตรวจสอบเสร็จ';
+      hint.innerHTML = '⚠ เมื่อผู้ป่วยอาการคงที่แล้ว ต้องบันทึกการให้ยาโดยละเอียดในบันทึกทางการพยาบาล และพิมพ์ฉลาก/บันทึกฟอร์มนี้ <b>ภายใน 30 นาทีหลังผู้ป่วยอาการคงที่</b> เก็บหลอด/ขวดยาเปล่าไว้จนตรวจสอบเสร็จ';
       hint.style.color = 'var(--danger)';
     } else if (sel.value === 'ฉลากเขียนมือ (ระบบพิมพ์ขัดข้อง)') {
       hint.innerHTML = '⚠ ฉลากต้องมี ชื่อ-สกุล, HN, ชื่อยา, ความแรง, ขนาดยา/วิธีใช้ และลายมือชื่อทั้ง 2 คน — แจ้งเภสัชกร on-call ทาง LINE ว่าระบบพิมพ์ขัดข้อง';
@@ -1004,8 +1006,8 @@
     }
     const labelStatusVal = document.getElementById('labelStatus').value;
     if (!labelStatusVal) { showToast('กรุณาเลือกสถานะฉลากยา', 'error'); return; }
-    if (labelStatusVal === 'พิมพ์ฉลากย้อนหลัง (กู้ชีพ ACLS)' && !isAclsStat()) {
-      showToast('พิมพ์ฉลากย้อนหลังได้เฉพาะ STAT กู้ชีพ (Cardiac arrest/ACLS) เท่านั้น', 'error'); return;
+    if (labelStatusVal === 'พิมพ์ฉลากย้อนหลัง (ยาช่วยชีวิต)' && !isAclsStat()) {
+      showToast('พิมพ์ฉลากย้อนหลังได้เฉพาะยาช่วยชีวิต (STAT: ACLS, Anaphylaxis, Hypoglycemia รุนแรง, ชักต่อเนื่อง) เท่านั้น', 'error'); return;
     }
     if (!document.getElementById('readBack').checked) {
       showToast('กรุณายืนยันการขานซ้ำ (read-back) ก่อนบันทึก', 'error'); return;
