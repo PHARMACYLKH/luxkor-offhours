@@ -196,6 +196,15 @@
   .landing-text b { display: block; font-size: 16px; color: var(--green-dark); margin-bottom: 3px; }
   .landing-text span { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
   .landing-arrow { margin-left: auto; font-size: 22px; color: #b7c4bd; }
+  .landing-card.or-only { flex-direction: column; align-items: stretch; gap: 12px; border: 2.5px solid #1d4ed8; background: #f3f6ff; }
+  .landing-card.or-only:hover, .landing-card.or-only:focus-visible { border-color: #1e3a8a; }
+  .or-only-badge {
+    background: #1d4ed8; color: #fff; text-align: center; font-size: 19px; font-weight: 800;
+    padding: 9px 10px; border-radius: var(--radius-sm); letter-spacing: .3px;
+  }
+  .or-only-body { display: flex; align-items: center; gap: 14px; }
+  .landing-card.or-only .landing-icon { background: #dbe5ff; }
+  .landing-card.or-only .landing-text b { font-size: 18px; color: #1e3a8a; }
   .box-options { display: flex; flex-direction: column; gap: 8px; }
   .box-option {
     display: flex; align-items: center; gap: 12px; padding: 13px 12px; border: 1.5px solid #dbe3df; margin: 0;
@@ -211,6 +220,32 @@
   .box-option small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
   .box-option small.box-open { color: var(--danger); font-weight: 600; }
   .box-option.locked { opacity: .55; background: #f4f4f4; cursor: not-allowed; }
+  /* (2026-10-13) คืนกล่อง OR: ยาที่ใช้จากแต่ละกล่อง — การ์ดกล่องกดแล้วกางรายการยา (slide) */
+  #orDrugCard { display: none; }
+  #orDrugCard.open { display: block; animation: fadeIn 0.3s ease; }
+  .drug-acc { border: 1.5px solid #dbe3df; border-radius: var(--radius-sm); margin-bottom: 8px; background: #fff; overflow: hidden; }
+  .drug-acc.has-use { border-color: var(--green); }
+  .drug-acc-head {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 12px; border: 0; background: transparent;
+    font-family: inherit; text-align: left; cursor: pointer; color: var(--text);
+  }
+  .drug-acc-head span.t { font-size: 14px; font-weight: 600; flex: 1; }
+  .drug-acc-head small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .drug-acc-count { font-size: 12px; font-weight: 700; color: #fff; background: var(--green); border-radius: 12px; padding: 2px 9px; display: none; }
+  .drug-acc.has-use .drug-acc-count { display: inline-block; }
+  .drug-acc-chev { font-size: 18px; color: #9aa9a1; transition: transform 0.25s ease; }
+  .drug-acc.expanded .drug-acc-chev { transform: rotate(90deg); }
+  .drug-acc-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; background: #fafcfb; }
+  .drug-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid #edf1ef; }
+  .drug-row input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--green); flex-shrink: 0; margin: 0; }
+  .drug-row .dn { flex: 1; min-width: 0; cursor: pointer; }
+  .drug-row .dn b { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+  .drug-row .dn small { font-size: 12px; color: var(--muted); }
+  .drug-row .dq { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+  .drug-row .dq input { width: 62px; padding: 7px 6px; text-align: center; margin: 0; }
+  .drug-row .dq span { font-size: 12px; color: var(--muted); min-width: 32px; }
+  .drug-row.on { background: #f0f7f3; }
+  .drug-row:not(.on) .dq { opacity: .4; }
   /* การ์ดเตือนกล่องยังไม่คืน — อยู่บน landing, กระพริบแดง (ปิด animation ถ้าเครื่องตั้งลดการเคลื่อนไหว) */
   .open-notice {
     display: none; width: 100%; text-align: left; color: var(--text);
@@ -408,6 +443,18 @@
     </div>
     <div class="landing-arrow">›</div>
   </button>
+  <!-- (2026-10-13) การ์ด OR — ป้ายตัวใหญ่ "สำหรับ OR เท่านั้น" กันพยาบาลเวรดึกกดผิดการ์ด (ผู้ใช้สั่ง) -->
+  <button type="button" class="landing-card or-only" onclick="goView('orbox')">
+    <div class="or-only-badge">⚠ ช่องนี้สำหรับ OR เท่านั้น ⚠</div>
+    <div class="or-only-body">
+      <div class="landing-icon">🩺</div>
+      <div class="landing-text">
+        <b>*** เบิกกล่องยา OR ***</b>
+        <span>ห้องผ่าตัด — General Anesthesia / Narcotics / Temperature-controlled medications</span>
+      </div>
+      <div class="landing-arrow">›</div>
+    </div>
+  </button>
   <button type="button" class="landing-card" onclick="goView('record')">
     <div class="landing-icon">💊</div>
     <div class="landing-text">
@@ -455,6 +502,49 @@
     </div>
 
     <button type="submit" class="submit-btn" id="boxSubmitBtn">บันทึกข้อมูล</button>
+    <div class="badge-required-note">ช่องที่มี <span class="req">*</span> ต้องกรอกให้ครบ</div>
+  </form>
+</main>
+
+<!-- ═══ VIEW: เบิก/คืนกล่องยา OR (2026-10-13) — ฟอร์มเดียวกับกล่องนอกเวลา, ชีตปลายทาง OR_BoxLog ═══ -->
+<main id="viewOrBox" class="view">
+  <form id="orBoxForm">
+    <div class="card">
+      <h2>1. ผู้เบิก / ผู้คืนกล่องยา</h2>
+      <label>ชื่อผู้เบิก / ผู้คืน (เฉพาะเจ้าหน้าที่ห้องผ่าตัด) <span class="req">*</span></label>
+      <select id="orBoxStaff" required>
+        <option value="">— กำลังโหลดรายชื่อ —</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <h2>2. เบิกหรือคืน</h2>
+      <div class="tier-toggle">
+        <button type="button" id="orBoxOutBtn" onclick="setBoxAction('เบิก', 'or')">เบิกกล่อง<br><span style="font-weight:400;font-size:11.5px">แจ้งอีเมลทุกฝ่าย</span></button>
+        <button type="button" id="orBoxInBtn" onclick="setBoxAction('คืน', 'or')">คืนกล่อง<br><span style="font-weight:400;font-size:11.5px">ภายใน 24 ชม. หลังเบิก</span></button>
+      </div>
+    </div>
+
+    <div class="card" id="orDrugCard">
+      <h2>3. ใช้ยาจากกล่องใดบ้าง <span class="req">*</span></h2>
+      <div style="font-size:12.5px;color:var(--muted);margin:-4px 0 10px">กดที่กล่องเพื่อดูรายการยา → ติ๊กยาที่ใช้และระบุจำนวน</div>
+      <div id="orDrugAcc"><div style="font-size:13px;color:var(--muted)">— กำลังโหลดรายการยา —</div></div>
+      <label class="checkbox-row" style="cursor:pointer">
+        <input type="checkbox" id="orNoDrugUse" onchange="onNoDrugUse()">
+        <span>ไม่ได้ใช้ยาจากกล่องใดเลย (คืนกล่องครบตามจำนวน)</span>
+      </label>
+    </div>
+
+    <div class="card">
+      <h2><span id="orBoxStepNo">3</span>. กล่องยา OR (เลือกได้มากกว่า 1 กล่อง)</h2>
+      <div class="box-options">
+        <label class="box-option"><input type="checkbox" name="orbox" value="1" onchange="syncBoxOption(this)"><div class="box-num">1</div><span>General Anesthesia<small>ยาระงับความรู้สึกทั่วไป</small><small class="box-open" id="orBoxOpen1"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="orbox" value="2" onchange="syncBoxOption(this)"><div class="box-num">2</div><span>Narcotics<small>ยาเสพติด</small><small class="box-open" id="orBoxOpen2"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="orbox" value="3" onchange="syncBoxOption(this)"><div class="box-num">3</div><span>Temperature-controlled medications<small>ยาควบคุมอุณหภูมิ</small><small class="box-open" id="orBoxOpen3"></small></span></label>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="orBoxSubmitBtn">บันทึกข้อมูล</button>
     <div class="badge-required-note">ช่องที่มี <span class="req">*</span> ต้องกรอกให้ครบ</div>
   </form>
 </main>
@@ -1081,10 +1171,11 @@
       });
   });
 
-  // ── Views: '' = landing, 'box' = เบิก/คืนกล่อง, 'record' = Medication Management Records ──
+  // ── Views: '' = landing, 'box' = เบิก/คืนกล่อง, 'orbox' = เบิก/คืนกล่อง OR, 'record' = Medication Management Records ──
   const VIEW_META = {
     '':       { id: 'viewLanding', title: 'Off-Hours Medication (24.00-08.00)', sub: 'เลือกรายการที่ต้องการบันทึก' },
     'box':    { id: 'viewBox',     title: 'บันทึกผู้เบิก / คืนกล่องยา', sub: 'กล่องยา Tier A — เบิก 24.00 น. / คืนไม่เกิน 08.30 น.' },
+    'orbox':  { id: 'viewOrBox',   title: 'บันทึกผู้เบิก / คืนกล่องยา OR', sub: 'ห้องผ่าตัด — บันทึกทุกครั้งที่เบิก-คืน / คืนภายใน 24 ชม. หลังเบิก' },
     'record': { id: 'viewRecord',  title: 'Medication Management Records (Special Hour 24.00-08.00)', sub: '24.00–08.00 น. — กรอกให้ครบก่อนหยิบยาทุกครั้ง' }
   };
   function goView(v) {
@@ -1101,42 +1192,145 @@
     document.getElementById('pageSub').textContent = VIEW_META[v].sub;
     document.getElementById('backBtn').classList.toggle('show', v !== '');
     if (v === '' || v === 'box') loadOpenBoxes();
+    if (v === 'orbox') { loadOpenBoxes('or'); loadOrBoxDrugs(); }
     window.scrollTo(0, 0);
   }
   window.addEventListener('hashchange', renderView);
 
   // ── เบิก/คืนกล่องยา ──
-  let boxAction = '';
-  function setBoxAction(a) {
-    boxAction = a;
-    document.getElementById('boxOutBtn').classList.toggle('active-a', a === 'เบิก');
-    document.getElementById('boxInBtn').classList.toggle('active-b', a === 'คืน');
-    applyBoxLocks();
+  // (2026-10-13) ใช้ร่วม 2 ฟอร์ม: 'box' = กล่องนอกเวลา Tier A (OffHours_BoxLog), 'or' = กล่องยาห้องผ่าตัด (OR_BoxLog)
+  // แต่ละฟอร์มมี state ของตัวเอง (action ที่เลือก + รายการกล่องที่ยังไม่คืน) — backend แยกชีตด้วย group
+  const BOX_FORMS = {
+    box: { group: 'offhours', form: 'boxForm', staff: 'boxStaff', outBtn: 'boxOutBtn', inBtn: 'boxInBtn',
+           openPrefix: 'boxOpen', submit: 'boxSubmitBtn', input: 'box', action: '', open: [] },
+    or:  { group: 'or', form: 'orBoxForm', staff: 'orBoxStaff', outBtn: 'orBoxOutBtn', inBtn: 'orBoxInBtn',
+           openPrefix: 'orBoxOpen', submit: 'orBoxSubmitBtn', input: 'orbox', action: '', open: [],
+           deptFilter: 'ห้องผ่าตัด' } // เฉพาะหัวหน้าห้องผ่าตัด/ผู้ช่วยห้องผ่าตัด (server ตรวจซ้ำ)
+  };
+  function setBoxAction(a, k) {
+    k = k || 'box';
+    const f = BOX_FORMS[k];
+    f.action = a;
+    document.getElementById(f.outBtn).classList.toggle('active-a', a === 'เบิก');
+    document.getElementById(f.inBtn).classList.toggle('active-b', a === 'คืน');
+    if (k === 'or') {
+      const showDrugs = a === 'คืน' && orDrugsReady;
+      document.getElementById('orDrugCard').classList.toggle('open', showDrugs);
+      document.getElementById('orBoxStepNo').textContent = showDrugs ? '4' : '3';
+    }
+    applyBoxLocks(k);
   }
-  let openBoxes = [];
-  function loadOpenBoxes() {
-    fetch(WEBAPP_URL + '?action=getOpenBoxes')
+
+  // ── (2026-10-13) คืนกล่อง OR: ยาที่ใช้จากแต่ละกล่อง (รายการ/ลำดับตาม MEMO 022 OR Floor Stock, ชื่อ/UOM จาก Index) ──
+  let orBoxDrugs = null;
+  // backend เวอร์ชันที่ยังไม่มี getOrBoxDrugs (ตอบ unknown action) → ซ่อนขั้นตอนยาที่ใช้ คืนกล่องได้แบบเดิม
+  // พอ deploy backend ใหม่แล้วหน้าเว็บจะแสดงขั้นตอนนี้เองโดยไม่ต้องแก้หน้าเว็บอีก
+  let orDrugsReady = false;
+  function loadOrBoxDrugs() {
+    if (orBoxDrugs) return;
+    fetch(WEBAPP_URL + '?action=getOrBoxDrugs')
       .then(function (r) { return r.json(); })
-      .then(function (d) { openBoxes = d.items || []; renderOpenBoxes(); })
+      .then(function (d) {
+        if (!d.boxes) return;
+        orBoxDrugs = d.boxes; orDrugsReady = true; renderOrDrugAcc();
+        if (BOX_FORMS.or.action === 'คืน') setBoxAction('คืน', 'or');
+      })
+      .catch(function () {
+        document.getElementById('orDrugAcc').innerHTML = '<div style="font-size:13px;color:var(--danger)">โหลดรายการยาไม่สำเร็จ ลองรีเฟรช</div>';
+      });
+  }
+  function escHtml(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function renderOrDrugAcc() {
+    const names = { '1': ['General Anesthesia', 'ยาระงับความรู้สึกทั่วไป'], '2': ['Narcotics', 'ยาเสพติด'], '3': ['Temperature-controlled medications', 'ยาควบคุมอุณหภูมิ'] };
+    document.getElementById('orDrugAcc').innerHTML = ['1', '2', '3'].map(function (b) {
+      const list = orBoxDrugs[b] || [];
+      return '<div class="drug-acc" id="orAcc' + b + '">'
+        + '<button type="button" class="drug-acc-head" onclick="toggleOrAcc(\'' + b + '\')">'
+        + '<div class="box-num">' + b + '</div><span class="t">' + names[b][0] + '<small>' + names[b][1] + ' — ' + list.length + ' รายการ</small></span>'
+        + '<span class="drug-acc-count" id="orAccCount' + b + '"></span><span class="drug-acc-chev">›</span></button>'
+        + '<div class="drug-acc-body">' + list.map(function (d, i) {
+          const id = 'orDrug_' + b + '_' + i;
+          return '<div class="drug-row" data-box="' + b + '" data-code="' + escHtml(d.code) + '">'
+            + '<input type="checkbox" id="' + id + '" onchange="onOrDrugToggle(this)">'
+            + '<label class="dn" for="' + id + '"><b>' + escHtml(d.name) + '</b><small>' + escHtml(d.code) + '</small></label>'
+            + '<div class="dq"><input type="number" min="1" step="1" inputmode="numeric" disabled placeholder="จำนวน"'
+            + ' oninput="updateOrAccCount(\'' + b + '\')"><span>' + escHtml(d.uom || '') + '</span></div></div>';
+        }).join('') + '</div></div>';
+    }).join('');
+  }
+  function toggleOrAcc(b) {
+    const acc = document.getElementById('orAcc' + b);
+    const body = acc.querySelector('.drug-acc-body');
+    const open = !acc.classList.contains('expanded');
+    acc.classList.toggle('expanded', open);
+    body.style.maxHeight = open ? body.scrollHeight + 'px' : '0';
+  }
+  function onOrDrugToggle(cb) {
+    const row = cb.closest('.drug-row');
+    const qty = row.querySelector('.dq input');
+    row.classList.toggle('on', cb.checked);
+    qty.disabled = !cb.checked;
+    if (cb.checked) {
+      if (!qty.value) qty.value = 1;
+      qty.focus();
+      document.getElementById('orNoDrugUse').checked = false;
+    } else { qty.value = ''; }
+    updateOrAccCount(row.dataset.box);
+  }
+  function updateOrAccCount(b) {
+    const n = document.querySelectorAll('#orAcc' + b + ' .drug-row.on').length;
+    document.getElementById('orAcc' + b).classList.toggle('has-use', n > 0);
+    document.getElementById('orAccCount' + b).textContent = 'ใช้ ' + n + ' รายการ';
+  }
+  function onNoDrugUse() {
+    if (!document.getElementById('orNoDrugUse').checked) return;
+    document.querySelectorAll('#orDrugAcc .drug-row.on input[type=checkbox]').forEach(function (cb) {
+      cb.checked = false; onOrDrugToggle(cb);
+    });
+  }
+  function collectOrDrugUse() {
+    return Array.prototype.map.call(document.querySelectorAll('#orDrugAcc .drug-row.on'), function (row) {
+      return { box: row.dataset.box, code: row.dataset.code, qty: Number(row.querySelector('.dq input').value) };
+    });
+  }
+  function resetOrDrugUse() {
+    document.getElementById('orNoDrugUse').checked = false;
+    document.querySelectorAll('#orDrugAcc .drug-row.on input[type=checkbox]').forEach(function (cb) {
+      cb.checked = false; onOrDrugToggle(cb);
+    });
+    document.querySelectorAll('#orDrugAcc .drug-acc.expanded').forEach(function (acc) {
+      acc.classList.remove('expanded'); acc.querySelector('.drug-acc-body').style.maxHeight = '0';
+    });
+  }
+  function loadOpenBoxes(k) {
+    k = k || 'box';
+    fetch(WEBAPP_URL + '?action=getOpenBoxes' + (k === 'or' ? '&group=or' : ''))
+      .then(function (r) { return r.json(); })
+      .then(function (d) { BOX_FORMS[k].open = d.items || []; renderOpenBoxes(k); })
       .catch(function () {});
   }
-  function renderOpenBoxes() {
+  function renderOpenBoxes(k) {
+    const f = BOX_FORMS[k];
     ['1', '2', '3'].forEach(function (n) {
-      const o = openBoxes.filter(function (b) { return String(b.boxNo) === n; }).pop();
-      document.getElementById('boxOpen' + n).textContent = o ? 'ยังไม่คืน — เบิกโดย ' + o.by + ' ' + o.checkoutTs : '';
+      const o = f.open.filter(function (b) { return String(b.boxNo) === n; }).pop();
+      document.getElementById(f.openPrefix + n).textContent = o ? 'ยังไม่คืน — เบิกโดย ' + o.by + ' ' + o.checkoutTs : '';
     });
-    document.getElementById('openBoxList').innerHTML = openBoxes.map(function (b) {
-      return '<li>กล่อง ' + b.boxNo + ' ' + b.boxName + ' — เบิกโดย ' + b.by + ' เมื่อ ' + b.checkoutTs + '</li>';
-    }).join('');
-    document.getElementById('openBoxNotice').classList.toggle('show', openBoxes.length > 0);
-    applyBoxLocks();
+    // การ์ดเตือนกะพริบบน landing ใช้เฉพาะกล่องนอกเวลา (กล่อง OR เบิกค้างระหว่างผ่าตัดเป็นเรื่องปกติ)
+    if (k === 'box') {
+      document.getElementById('openBoxList').innerHTML = f.open.map(function (b) {
+        return '<li>กล่อง ' + b.boxNo + ' ' + b.boxName + ' — เบิกโดย ' + b.by + ' เมื่อ ' + b.checkoutTs + '</li>';
+      }).join('');
+      document.getElementById('openBoxNotice').classList.toggle('show', f.open.length > 0);
+    }
+    applyBoxLocks(k);
   }
   // (2026-10-07) กล่องที่ยังไม่คืน เบิกซ้ำไม่ได้จนกว่าจะบันทึกคืน — ตอนเลือก "เบิก" ติ๊กกล่องนั้นไม่ได้
   // (server ตรวจซ้ำอีกชั้นใน addOffHoursBoxLog_ กันหน้าเว็บค้างเวอร์ชันเก่า/ข้อมูลยังไม่ทันโหลด)
-  function applyBoxLocks() {
-    document.querySelectorAll('input[name=box]').forEach(function (cb) {
-      const isOut = openBoxes.some(function (b) { return String(b.boxNo) === cb.value; });
-      const lock = boxAction === 'เบิก' && isOut;
+  function applyBoxLocks(k) {
+    const f = BOX_FORMS[k];
+    document.querySelectorAll('input[name=' + f.input + ']').forEach(function (cb) {
+      const isOut = f.open.some(function (b) { return String(b.boxNo) === cb.value; });
+      const lock = f.action === 'เบิก' && isOut;
       cb.disabled = lock;
       if (lock && cb.checked) { cb.checked = false; }
       cb.closest('.box-option').classList.toggle('locked', lock);
@@ -1145,34 +1339,48 @@
   }
   function syncBoxOption(cb) { cb.closest('.box-option').classList.toggle('checked', cb.checked); }
   function populateBoxStaff() {
-    const sel = document.getElementById('boxStaff');
     // ทุกคนในชีต Staff_Nursing (พยาบาล + ผู้ช่วยพยาบาล + ระดับ manager — ผู้ใช้กำหนด 2026-10-07)
     // เรียงตามลำดับในชีต (รหัสพนักงาน) ไม่กรองตามตำแหน่ง — เพิ่ม/ลดคนให้แก้ที่ชีตอย่างเดียว
-    const list = staffItems.slice();
-    sel.innerHTML = '<option value="">' + (list.length ? '— เลือกชื่อ —' : '— โหลดรายชื่อไม่สำเร็จ ลองรีเฟรช —') + '</option>';
-    list.forEach(function (s) {
-      const o = document.createElement('option');
-      o.value = s.name;
-      o.dataset.position = s.department || '';
-      o.textContent = s.name + (s.department ? ' — ' + s.department : '');
-      sel.appendChild(o);
+    Object.keys(BOX_FORMS).forEach(function (k) {
+      const dept = BOX_FORMS[k].deptFilter;
+      const list = staffItems.filter(function (s) { return !dept || (s.department || '').indexOf(dept) > -1; });
+      const sel = document.getElementById(BOX_FORMS[k].staff);
+      sel.innerHTML = '<option value="">' + (list.length ? '— เลือกชื่อ —' : '— โหลดรายชื่อไม่สำเร็จ ลองรีเฟรช —') + '</option>';
+      list.forEach(function (s) {
+        const o = document.createElement('option');
+        o.value = s.name;
+        o.dataset.position = s.department || '';
+        o.textContent = s.name + (s.department ? ' — ' + s.department : '');
+        sel.appendChild(o);
+      });
     });
   }
-  document.getElementById('boxForm').addEventListener('submit', function (ev) {
+  function submitBoxForm(ev, k) {
     ev.preventDefault();
-    const sel = document.getElementById('boxStaff');
-    const boxes = Array.prototype.map.call(document.querySelectorAll('input[name=box]:checked'), function (c) { return c.value; });
+    const f = BOX_FORMS[k];
+    const sel = document.getElementById(f.staff);
+    const boxes = Array.prototype.map.call(document.querySelectorAll('input[name=' + f.input + ']:checked'), function (c) { return c.value; });
     if (!sel.value) { showToast('กรุณาเลือกชื่อผู้เบิก/ผู้คืน', 'error'); return; }
-    if (!boxAction) { showToast('กรุณาเลือกว่าเบิกหรือคืนกล่อง', 'error'); return; }
+    if (!f.action) { showToast('กรุณาเลือกว่าเบิกหรือคืนกล่อง', 'error'); return; }
     if (!boxes.length) { showToast('กรุณาเลือกกล่องยาอย่างน้อย 1 กล่อง', 'error'); return; }
-    if (boxAction === 'เบิก') {
-      const stillOut = boxes.filter(function (n) { return openBoxes.some(function (b) { return String(b.boxNo) === n; }); });
+    let drugUse = [], noDrugUse = false;
+    if (k === 'or' && f.action === 'คืน' && orDrugsReady) {
+      drugUse = collectOrDrugUse();
+      noDrugUse = document.getElementById('orNoDrugUse').checked;
+      if (!drugUse.length && !noDrugUse) { showToast('กรุณาระบุยาที่ใช้จากกล่อง หรือติ๊ก "ไม่ได้ใช้ยาจากกล่องใดเลย"', 'error'); return; }
+      if (drugUse.some(function (x) { return !(x.qty > 0); })) { showToast('กรุณาระบุจำนวนยาที่ใช้ให้ครบทุกรายการ', 'error'); return; }
+      const notReturned = drugUse.map(function (x) { return x.box; })
+        .filter(function (b, i, a) { return a.indexOf(b) === i && boxes.indexOf(b) < 0; });
+      if (notReturned.length) { showToast('มียาที่ใช้จากกล่อง ' + notReturned.join(', ') + ' — ต้องเลือกคืนกล่องนั้นในข้อ 4 ด้วย', 'error'); return; }
+    }
+    if (f.action === 'เบิก') {
+      const stillOut = boxes.filter(function (n) { return f.open.some(function (b) { return String(b.boxNo) === n; }); });
       if (stillOut.length) {
         showToast('กล่อง ' + stillOut.join(', ') + ' ยังไม่ได้บันทึกคืน — ต้องบันทึก "คืนกล่อง" ก่อนจึงจะเบิกได้', 'error');
         return;
       }
     }
-    const btn = document.getElementById('boxSubmitBtn');
+    const btn = document.getElementById(f.submit);
     btn.disabled = true;
     btn.textContent = 'กำลังบันทึก...';
     showSaveOverlay();
@@ -1180,8 +1388,9 @@
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
-        action: 'addOffHoursBoxLog', staffName: sel.value,
-        position: sel.options[sel.selectedIndex].dataset.position || '', boxAction: boxAction, boxes: boxes
+        action: 'addOffHoursBoxLog', boxGroup: f.group, staffName: sel.value,
+        position: sel.options[sel.selectedIndex].dataset.position || '', boxAction: f.action, boxes: boxes,
+        drugUse: drugUse, noDrugUse: noDrugUse
       })
     })
       .then(function (r) { return r.json(); })
@@ -1190,21 +1399,24 @@
           showSaveSuccess();
           const warn = [];
           if (res.orphans && res.orphans.length) warn.push('ไม่พบรายการเบิกของกล่อง ' + res.orphans.join(', '));
-          if (res.late) warn.push('คืนกล่องหลัง 08.30 น.');
+          if (res.late) warn.push(res.lateMsg || 'คืนกล่องหลัง 08.30 น.');
           if (warn.length) setTimeout(function () { showToast('บันทึกแล้ว — ' + warn.join(' / '), 'error'); }, 2100);
-          document.getElementById('boxForm').reset();
-          setBoxAction('');
-          document.querySelectorAll('.box-option.checked').forEach(function (el) { el.classList.remove('checked'); });
-          loadOpenBoxes();
+          document.getElementById(f.form).reset();
+          if (k === 'or') resetOrDrugUse();
+          setBoxAction('', k);
+          document.querySelectorAll('#' + f.form + ' .box-option.checked').forEach(function (el) { el.classList.remove('checked'); });
+          loadOpenBoxes(k);
         } else {
           hideSaveOverlay();
           showToast(res.msg || 'เกิดข้อผิดพลาด', 'error');
-          loadOpenBoxes();
+          loadOpenBoxes(k);
         }
       })
       .catch(function () { hideSaveOverlay(); showToast('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง', 'error'); })
       .finally(function () { btn.disabled = false; btn.textContent = 'บันทึกข้อมูล'; });
-  });
+  }
+  document.getElementById('boxForm').addEventListener('submit', function (ev) { submitBoxForm(ev, 'box'); });
+  document.getElementById('orBoxForm').addEventListener('submit', function (ev) { submitBoxForm(ev, 'or'); });
 
   renderView();
   loadLookups();
