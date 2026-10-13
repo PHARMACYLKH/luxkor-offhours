@@ -529,10 +529,6 @@
       <h2>3. ใช้ยาจากกล่องใดบ้าง <span class="req">*</span></h2>
       <div style="font-size:12.5px;color:var(--muted);margin:-4px 0 10px">กดที่กล่องเพื่อดูรายการยา → ติ๊กยาที่ใช้และระบุจำนวน</div>
       <div id="orDrugAcc"><div style="font-size:13px;color:var(--muted)">— กำลังโหลดรายการยา —</div></div>
-      <label class="checkbox-row" style="cursor:pointer">
-        <input type="checkbox" id="orNoDrugUse" onchange="onNoDrugUse()">
-        <span>ไม่ได้ใช้ยาจากกล่องใดเลย (คืนกล่องครบตามจำนวน)</span>
-      </label>
     </div>
 
     <div class="card">
@@ -1273,7 +1269,6 @@
     if (cb.checked) {
       if (!qty.value) qty.value = 1;
       qty.focus();
-      document.getElementById('orNoDrugUse').checked = false;
     } else { qty.value = ''; }
     updateOrAccCount(row.dataset.box);
   }
@@ -1282,19 +1277,12 @@
     document.getElementById('orAcc' + b).classList.toggle('has-use', n > 0);
     document.getElementById('orAccCount' + b).textContent = 'ใช้ ' + n + ' รายการ';
   }
-  function onNoDrugUse() {
-    if (!document.getElementById('orNoDrugUse').checked) return;
-    document.querySelectorAll('#orDrugAcc .drug-row.on input[type=checkbox]').forEach(function (cb) {
-      cb.checked = false; onOrDrugToggle(cb);
-    });
-  }
   function collectOrDrugUse() {
     return Array.prototype.map.call(document.querySelectorAll('#orDrugAcc .drug-row.on'), function (row) {
       return { box: row.dataset.box, code: row.dataset.code, qty: Number(row.querySelector('.dq input').value) };
     });
   }
   function resetOrDrugUse() {
-    document.getElementById('orNoDrugUse').checked = false;
     document.querySelectorAll('#orDrugAcc .drug-row.on input[type=checkbox]').forEach(function (cb) {
       cb.checked = false; onOrDrugToggle(cb);
     });
@@ -1363,11 +1351,11 @@
     if (!sel.value) { showToast('กรุณาเลือกชื่อผู้เบิก/ผู้คืน', 'error'); return; }
     if (!f.action) { showToast('กรุณาเลือกว่าเบิกหรือคืนกล่อง', 'error'); return; }
     if (!boxes.length) { showToast('กรุณาเลือกกล่องยาอย่างน้อย 1 กล่อง', 'error'); return; }
-    let drugUse = [], noDrugUse = false;
+    let drugUse = [];
     if (k === 'or' && f.action === 'คืน' && orDrugsReady) {
+      // (2026-10-13) เบิกกล่อง OR ทุกครั้งต้องใช้ยา — ไม่มีตัวเลือก "ไม่ได้ใช้ยา" แล้ว
       drugUse = collectOrDrugUse();
-      noDrugUse = document.getElementById('orNoDrugUse').checked;
-      if (!drugUse.length && !noDrugUse) { showToast('กรุณาระบุยาที่ใช้จากกล่อง หรือติ๊ก "ไม่ได้ใช้ยาจากกล่องใดเลย"', 'error'); return; }
+      if (!drugUse.length) { showToast('กรุณาระบุยาที่ใช้จากกล่องอย่างน้อย 1 รายการ', 'error'); return; }
       if (drugUse.some(function (x) { return !(x.qty > 0); })) { showToast('กรุณาระบุจำนวนยาที่ใช้ให้ครบทุกรายการ', 'error'); return; }
       const notReturned = drugUse.map(function (x) { return x.box; })
         .filter(function (b, i, a) { return a.indexOf(b) === i && boxes.indexOf(b) < 0; });
@@ -1390,7 +1378,7 @@
       body: JSON.stringify({
         action: 'addOffHoursBoxLog', boxGroup: f.group, staffName: sel.value,
         position: sel.options[sel.selectedIndex].dataset.position || '', boxAction: f.action, boxes: boxes,
-        drugUse: drugUse, noDrugUse: noDrugUse
+        drugUse: drugUse
       })
     })
       .then(function (r) { return r.json(); })
