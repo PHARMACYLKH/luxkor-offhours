@@ -973,10 +973,12 @@
       if (!document.getElementById('itemRow_' + id)) return;
       if (document.getElementById('itemName_' + id).value.trim() !== q) return; // พิมพ์ต่อไปแล้ว รอรอบใหม่
       const words = q.toLowerCase().split(/\s+/);
-      const hits = (list || []).filter(function (it) {
-        const s = (it.name + ' ' + it.code).toLowerCase();
-        return words.every(function (w) { return s.indexOf(w) !== -1; });
-      }).slice(0, 30);
+      const all = function (s) { s = s.toLowerCase(); return words.every(function (w) { return s.indexOf(w) !== -1; }); };
+      const byName = [], byCode = [];
+      (list || []).forEach(function (it) {   // ตรงที่ชื่อขึ้นก่อน ตรงเพราะรหัสอยู่ท้าย
+        if (all(it.name)) byName.push(it); else if (all(it.name + ' ' + it.code)) byCode.push(it);
+      });
+      const hits = byName.concat(byCode).slice(0, 30);
       renderItemSuggestions(id, hits, !list);
     }).finally(function () { spin.style.display = 'none'; });
   }
