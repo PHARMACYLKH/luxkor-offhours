@@ -260,6 +260,21 @@
   .out-option small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
   .out-option.picked { border-color: var(--green); background: #f0f7f3; }
   .out-selected { font-size: 14px; line-height: 1.5; }
+
+  /* ── (2026-10-15) ช่องตามวัตถุประสงค์: TRF / รายการเวชภัณฑ์ / รับเข้า ── */
+  .prefix-input { display: flex; align-items: stretch; }
+  .prefix-chip { display: flex; align-items: center; padding: 0 12px; background: #eaf3ee; color: var(--green-dark);
+    border: 1.5px solid #dbe3df; border-right: none; border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    font-size: 15px; font-weight: 700; letter-spacing: .5px; font-variant-numeric: tabular-nums; }
+  .prefix-input input { border-radius: 0 var(--radius-sm) var(--radius-sm) 0; letter-spacing: .5px; font-variant-numeric: tabular-nums; }
+  .item-row .new-toggle { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--gold); margin: 0; cursor: pointer; }
+  .item-row .new-toggle input { width: 18px; height: 18px; accent-color: var(--gold); margin: 0; }
+  .item-row.is-new { border-color: var(--gold); background: #fffaf0; }
+  .item-row .code-line { font-size: 11.5px; color: var(--muted); margin-top: 4px; min-height: 0; }
+  .vat-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  .vat-pair input.auto { background: #f4f6f5; color: var(--muted); }
+  .vat-tag { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 3px; }
+  .line-total { font-size: 12.5px; color: var(--green-dark); font-weight: 600; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -511,19 +526,63 @@
         <label>ระบุวัตถุประสงค์ <span class="req">*</span></label>
         <input type="text" id="purposeOther" autocomplete="off">
       </div>
-      <label id="refLabel">เลขที่ใบเบิก / HN / เอกสารอ้างอิง</label>
-      <input type="text" id="reference" autocomplete="off" placeholder="เช่น เลขใบเบิก, HN + ชื่อแพทย์/พยาบาลผู้สั่ง, เลขใบส่งของ">
-      <label>หมายเหตุ</label>
-      <input type="text" id="note" autocomplete="off" placeholder="(ถ้ามี)">
+      <!-- 1. เบิกตามใบเบิกปกติ: เลขที่ใบเบิกใน HIS (TRF + running number) -->
+      <div id="trfBlock" class="conditional">
+        <label>เลขที่ใบเบิกใน HIS (Request Number) <span class="req">*</span></label>
+        <div class="prefix-input">
+          <span class="prefix-chip" id="trfPrefix">TRF000</span>
+          <input type="text" id="trfNo" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="XXX" oninput="onTrfInput()">
+        </div>
+        <div class="hint" id="trfPreview">พิมพ์เฉพาะตัวเลข running number ท้ายเลขที่ใบเบิก</div>
+      </div>
+      <!-- 2. เบิกด่วน: HN / ผู้สั่ง -->
+      <div id="refBlock" class="conditional">
+        <label>HN ผู้ป่วย + ชื่อแพทย์/พยาบาลผู้สั่ง <span class="req">*</span></label>
+        <input type="text" id="reference" autocomplete="off" placeholder="เช่น HN 6901234 / พว.สมใจ">
+      </div>
+    </div>
+
+    <!-- 3. รับสินค้าเข้าคลัง: เอกสารอ้างอิง (ลง GR_Ledger) -->
+    <div class="card" id="grCard" style="display:none">
+      <h2>เอกสารรับสินค้า</h2>
+      <label>เลขที่ Invoice <span class="req">*</span></label>
+      <input type="text" id="grInv" autocomplete="off" placeholder="เช่น IV6939171">
+      <div class="grid2">
+        <div><label>เลขที่ PR</label>
+          <input type="text" id="grPr" autocomplete="off" placeholder="PHA-00810-2026"></div>
+        <div><label>เลขที่ PO</label>
+          <input type="text" id="grPo" autocomplete="off" placeholder="PO-1297-102569"></div>
+      </div>
+      <div class="hint">บันทึกแล้วลง GR_Ledger อัตโนมัติ (ประเภท Z01 รับเข้าจากการสั่ง) — ไม่ต้องคีย์ซ้ำในชีต</div>
+    </div>
+
+    <!-- 2./3. รายการเวชภัณฑ์ (ค้นจาก Ledger_MedSupply) -->
+    <div class="card" id="itemsCard" style="display:none">
+      <h2 id="itemsTitle">รายการเวชภัณฑ์</h2>
+      <div id="itemRows"></div>
+      <button type="button" class="add-row-btn" onclick="addItemRow()">+ เพิ่มรายการ</button>
+    </div>
+
+    <!-- 7./8. ซ่อมบำรุง/ทำความสะอาด, ตรวจประเมิน/เยี่ยมชม -->
+    <div class="card" id="outsiderCard" style="display:none">
+      <h2>ผู้ปฏิบัติงาน / ผู้เข้าเยี่ยมชม</h2>
+      <label>ชื่อ-สกุล และหน่วยงาน <span class="req">*</span></label>
+      <textarea id="workers" rows="2" placeholder="เช่น นายสมชาย ใจดี (ฝ่ายวิศวกรรม) — ซ่อมแอร์&#10;นางสมศรี มีสุข (แม่บ้าน)"></textarea>
+      <div class="hint">ระบุทุกคนที่เข้าห้อง และงานที่ทำ (ถ้ามี)</div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="secureConfirm">
+        <span>ล็อกตู้/ชั้นที่เก็บสินค้ามูลค่าสูงและยาควบคุมแล้ว และเจ้าหน้าที่คลัง/เภสัชกร<b>อยู่ด้วยตลอด</b>จนบุคคลภายนอกออกจากห้อง</span>
+      </div>
+      <div class="hint">ตอนบันทึกออกต้องติ๊กยืนยันว่าตรวจพื้นที่แล้ว ไม่มีสินค้าสูญหาย/ไม่มีการนำสิ่งของออก</div>
     </div>
 
     <div class="card conditional-card" id="tempCard" style="display:none">
       <h2>อุณหภูมิและความชื้นห้องคลัง</h2>
       <div class="grid2">
         <div><label>อุณหภูมิ (°C) <span class="req">*</span></label>
-          <input type="number" id="temp" step="0.1" inputmode="decimal" oninput="checkTempLive()"></div>
+          <input type="text" id="temp" inputmode="decimal" maxlength="4" autocomplete="off" placeholder="เช่น 23.5" oninput="onTempInput(this, 1)"></div>
         <div><label>ความชื้น (%RH) <span class="req">*</span></label>
-          <input type="number" id="rh" step="1" inputmode="decimal" oninput="checkTempLive()"></div>
+          <input type="text" id="rh" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="เช่น 55" oninput="onTempInput(this, 0)"></div>
       </div>
       <div id="tempLive" class="temp-live"></div>
       <div class="hint">เกณฑ์ (ภาคผนวก ข): อุณหภูมิ 20–25 °C / ต้องแก้ไขเมื่อต่ำกว่า 15 หรือสูงกว่า 30 °C · ความชื้นไม่เกิน 60% / ต้องแก้ไขเมื่อเกิน 70%</div>
@@ -543,6 +602,14 @@
   <div class="card" id="outConfirmCard">
     <h2>ยืนยันการออกจากห้อง</h2>
     <div id="outSelected" class="out-selected hint">เลือกชื่อจากรายการด้านบน</div>
+    <div id="exitCheckBlock" style="display:none">
+      <div class="checkbox-row">
+        <input type="checkbox" id="exitConfirm">
+        <span>ตรวจพื้นที่หลังเสร็จงานแล้ว <b>ไม่มีสินค้าสูญหาย/เสียหาย</b> และบุคคลภายนอกไม่ได้นำสิ่งของออกจากห้อง</span>
+      </div>
+      <label>ผู้ร่วมยืนยัน (ช่าง / แม่บ้าน / ผู้ตรวจประเมิน)</label>
+      <input type="text" id="exitWitness" autocomplete="off" placeholder="ชื่อผู้ปฏิบัติงานที่ร่วมตรวจและยืนยัน">
+    </div>
     <label>สิ่งที่นำออก / หมายเหตุ</label>
     <input type="text" id="exitNote" autocomplete="off" placeholder="(ถ้ามี) เช่น เบิก NSS 1,000 mL x 2">
     <button type="button" class="submit-btn" id="outSubmitBtn" style="margin-top:14px" onclick="submitExit()">บันทึกออก</button>
@@ -554,7 +621,36 @@
   // ⚠️ URL เดียวกับหน้า index.html (deployment ID คงที่ — ห้ามสร้าง deployment ใหม่)
   const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzuBl87e9Xc61jtFItkslSeJMsIMt8LaJQ4gmLO6_JxaarnCA5m2EecnqNIjNbwSaKP/exec";
   const VISITOR = '__visitor__';
-  const NEED_REF = ['เบิกเวชภัณฑ์ตามใบเบิกปกติ', 'เบิกด่วนตามคำสั่งแพทย์/พยาบาล', 'รับสินค้าเข้าคลัง'];
+  // วัตถุประสงค์ — ข้อความต้องตรงกับ STORE_PURPOSES / STORE_P_* ใน Code.js
+  const P_NORMAL = 'เบิกเวชภัณฑ์ตามใบเบิกปกติ', P_URGENT = 'เบิกด่วนตามคำสั่งแพทย์/พยาบาล', P_RECEIVE = 'รับสินค้าเข้าคลัง';
+  const OUTSIDER = ['ซ่อมบำรุง/ทำความสะอาด', 'ตรวจประเมิน/เยี่ยมชม'];
+
+  // ── dropdown ค้นหา: ลูกศรขึ้น/ลง + Enter เลือก, Esc ปิด (pattern เดียวกับ index.html) ──
+  const suggestionState = {};
+  function attachSuggestionKeyNav(inputId, boxId) {
+    document.getElementById(inputId).addEventListener('keydown', function (ev) {
+      const state = suggestionState[inputId];
+      const box = document.getElementById(boxId);
+      if (!state || !box.classList.contains('show') || !state.items.length) return;
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        state.idx = ev.key === 'ArrowDown' ? Math.min(state.idx + 1, state.items.length - 1) : Math.max(state.idx - 1, 0);
+        const els = box.querySelectorAll('.item');
+        els.forEach(function (el, i) { el.classList.toggle('hl', i === state.idx); });
+        if (els[state.idx]) els[state.idx].scrollIntoView({ block: 'nearest' });
+      } else if (ev.key === 'Enter') {
+        ev.preventDefault();
+        if (state.idx >= 0) state.onSelect(state.items[state.idx]);
+      } else if (ev.key === 'Escape') {
+        box.classList.remove('show'); state.idx = -1;
+      }
+    });
+  }
+  document.addEventListener('click', function (ev) {
+    if (!ev.target.closest('.search-wrap')) {
+      document.querySelectorAll('.suggestions.show').forEach(function (el) { el.classList.remove('show'); });
+    }
+  });
   let roster = [];
   let staffNames = [];
   let openVisits = [];
@@ -678,6 +774,7 @@
     el.innerHTML = selectedVisit
       ? '<b>' + esc(selectedVisit.name) + '</b><br>เข้าเมื่อ ' + esc(selectedVisit.entryTs) + ' · ' + esc(selectedVisit.purpose)
       : 'เลือกชื่อจากรายการด้านบน';
+    updateExitCheck();
   }
   function pickVisit(i, quiet) {
     selectedVisit = openVisits[i];
@@ -731,13 +828,253 @@
     const p = document.getElementById('purpose').value;
     document.getElementById('purposeOtherBlock').classList.toggle('open', p === 'อื่นๆ');
     document.getElementById('purposeOther').required = p === 'อื่นๆ';
-    const needRef = NEED_REF.indexOf(p) !== -1;
-    document.getElementById('reference').required = needRef;
-    document.getElementById('refLabel').innerHTML = 'เลขที่ใบเบิก / HN / เอกสารอ้างอิง' + (needRef ? ' <span class="req">*</span>' : '');
+    document.getElementById('trfBlock').classList.toggle('open', p === P_NORMAL);
+    document.getElementById('refBlock').classList.toggle('open', p === P_URGENT);
+    document.getElementById('grCard').style.display = p === P_RECEIVE ? '' : 'none';
+    document.getElementById('outsiderCard').style.display = OUTSIDER.indexOf(p) !== -1 ? '' : 'none';
     const isTemp = p === 'บันทึกอุณหภูมิ/ความชื้น';
     document.getElementById('tempCard').style.display = isTemp ? '' : 'none';
-    document.getElementById('temp').required = isTemp;
-    document.getElementById('rh').required = isTemp;
+    // รายการเวชภัณฑ์: เบิกด่วน (เลือกจากรายการ) / รับเข้า (มี LOT, EXP, ราคา, ติ๊กสินค้าใหม่ได้)
+    const mode = p === P_URGENT ? 'issue' : p === P_RECEIVE ? 'receive' : '';
+    document.getElementById('itemsCard').style.display = mode ? '' : 'none';
+    if (mode && mode !== itemMode) {
+      itemMode = mode;
+      document.getElementById('itemsTitle').textContent = mode === 'issue' ? 'รายการเวชภัณฑ์ที่เบิก' : 'รายการสินค้าที่รับเข้า';
+      document.getElementById('itemRows').innerHTML = '';
+      addItemRow();
+      loadSupplyItems();
+    }
+    if (!mode) { itemMode = ''; document.getElementById('itemRows').innerHTML = ''; }
+  }
+
+  // ── 1. เลขที่ใบเบิก HIS: TRF + running number 6 หลัก (พิมพ์แค่ตัวเลขท้าย เช่น 123 → TRF000123) ──
+  function onTrfInput() {
+    const el = document.getElementById('trfNo');
+    el.value = el.value.replace(/\D/g, '').slice(0, 6);
+    document.getElementById('trfPrefix').textContent = 'TRF' + '0'.repeat(Math.max(0, 6 - Math.max(3, el.value.length)));
+    const v = trfValue();
+    document.getElementById('trfPreview').innerHTML = v ? 'จะบันทึกเป็น <b>' + v + '</b>' : 'พิมพ์เฉพาะตัวเลข running number ท้ายเลขที่ใบเบิก';
+  }
+  function trfValue() {
+    const d = document.getElementById('trfNo').value.replace(/\D/g, '');
+    return d && Number(d) > 0 ? 'TRF' + d.padStart(6, '0') : '';
+  }
+
+  // ── 5. อุณหภูมิทศนิยม 1 ตำแหน่ง / ความชื้นจำนวนเต็ม — ตัดตัวที่เกินทิ้งระหว่างพิมพ์ ──
+  function onTempInput(el, decimals) {
+    let v = el.value.replace(/[^\d.]/g, '');
+    if (!decimals) v = v.replace(/\./g, '');
+    else { const i = v.indexOf('.'); if (i !== -1) v = v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, decimals); }
+    el.value = v;
+    checkTempLive();
+  }
+
+  // ── 2./3. รายการเวชภัณฑ์จาก Ledger_MedSupply (โหลดครั้งเดียว กรองในเครื่อง) ──
+  let itemMode = '';
+  let supplyItems = null, supplyLoading = null;
+  let nextItemRowId = 0;
+  const itemSearchTimers = {};
+  function loadSupplyItems() {
+    if (supplyItems || supplyLoading) return supplyLoading || Promise.resolve(supplyItems);
+    const get = function () {
+      return fetch(WEBAPP_URL + '?action=getStoreSupplyItems').then(function (r) { return r.json(); })
+        .then(function (d) { if (!d || !Array.isArray(d.items)) throw new Error('bad'); return d.items; });
+    };
+    // GAS ตอบพลาดได้บ้างตอนมีหลาย request พร้อมกัน (โหลดรายชื่อ/สถานะ) — ลองซ้ำอัตโนมัติอีก 1 ครั้ง
+    supplyLoading = get().catch(function () { return new Promise(function (r) { setTimeout(r, 800); }).then(get); })
+      .then(function (arr) {
+        supplyItems = arr.map(function (a) { return { code: a[0], name: a[1], uom: a[2], location: a[3] }; });
+        return supplyItems;
+      })
+      .catch(function () { showToast('โหลดรายการเวชภัณฑ์ไม่สำเร็จ ลองพิมพ์ใหม่อีกครั้ง', 'error'); return null; })
+      .finally(function () { supplyLoading = null; });
+    return supplyLoading;
+  }
+  function itemRowTemplate(id) {
+    const rec = itemMode === 'receive';
+    return '<div class="drug-row item-row" id="itemRow_' + id + '" data-id="' + id + '" data-code="" data-location="" data-price-src="ex">' +
+      '<div class="drug-row-header"><span class="drug-row-label"></span>' +
+      '<div class="drug-row-header-right">' +
+      '<div id="itemLoc_' + id + '" class="loc-inline" style="display:none"><span class="loc-badge-label">📍 Location</span>' +
+      '<span class="loc-tile" id="itemLocText_' + id + '"></span></div>' +
+      '<button type="button" class="remove-row-btn" onclick="removeItemRow(' + id + ')">✕ ลบ</button>' +
+      '</div></div>' +
+      (rec ? '<label class="new-toggle"><input type="checkbox" id="itemNew_' + id + '" onchange="onItemNewChange(' + id + ')"> สินค้าใหม่ (ยังไม่มีในรายการ — พิมพ์ชื่อเอง)</label>' : '') +
+      '<label>ชื่อเวชภัณฑ์ <span class="req">*</span></label>' +
+      '<div class="search-wrap">' +
+      '<input type="text" id="itemName_' + id + '" autocomplete="off" oninput="onItemInput(' + id + ')" placeholder="พิมพ์ชื่อหรือรหัสอย่างน้อย 2 ตัวอักษร...">' +
+      '<div class="spinner" id="itemSpin_' + id + '" style="display:none"></div>' +
+      '<div class="suggestions" id="itemSug_' + id + '"></div>' +
+      '</div><div class="code-line" id="itemCode_' + id + '"></div>' +
+      (rec ? '<div class="field-row"><div><label>เลข LOT <span class="req">*</span></label>' +
+        '<input type="text" id="itemLot_' + id + '" autocomplete="off" placeholder="ไม่มีให้ใส่ -"></div>' +
+        '<div><label>วันหมดอายุ (EXP) <span class="req">*</span></label>' +
+        '<input type="date" id="itemExp_' + id + '"></div></div>' : '') +
+      '<div class="field-row"><div><label>' + (rec ? 'จำนวนที่รับเข้า' : 'จำนวนที่เบิก') + ' <span class="req">*</span></label>' +
+      '<input type="text" id="itemQty_' + id + '" inputmode="numeric" autocomplete="off" placeholder="เช่น 10" oninput="this.value=this.value.replace(/\\D/g,\'\');updateLineTotal(' + id + ')"></div>' +
+      '<div><label>หน่วย (UOM)</label>' +
+      '<input type="text" id="itemUom_' + id + '" class="uom-readonly" readonly placeholder="เลือกรายการก่อน"></div></div>' +
+      (rec ? '<label>ราคาต่อหน่วย (ตาม Invoice — กรอกช่องใดก็ได้) <span class="req">*</span></label>' +
+        '<div class="vat-pair"><div><span class="vat-tag">Ex.VAT (ไม่รวม VAT)</span><input type="text" id="itemEx_' + id + '" inputmode="decimal" autocomplete="off" placeholder="0.00" oninput="onPriceInput(' + id + ', \'ex\')"></div>' +
+        '<div><span class="vat-tag">In.VAT (รวม VAT 7%)</span><input type="text" id="itemIn_' + id + '" inputmode="decimal" autocomplete="off" placeholder="0.00" oninput="onPriceInput(' + id + ', \'in\')"></div></div>' +
+        '<div class="line-total" id="itemTotal_' + id + '"></div>' : '') +
+      '</div>';
+  }
+  function addItemRow() {
+    const id = nextItemRowId++;
+    document.getElementById('itemRows').insertAdjacentHTML('beforeend', itemRowTemplate(id));
+    attachSuggestionKeyNav('itemName_' + id, 'itemSug_' + id);
+    renumberItemRows();
+  }
+  function removeItemRow(id) {
+    const el = document.getElementById('itemRow_' + id);
+    if (el) el.remove();
+    delete suggestionState['itemName_' + id];
+    renumberItemRows();
+  }
+  function renumberItemRows() {
+    const rows = document.querySelectorAll('#itemRows .item-row');
+    rows.forEach(function (row, i) {
+      row.querySelector('.drug-row-label').textContent = 'รายการที่ ' + (i + 1);
+      row.querySelector('.remove-row-btn').style.display = rows.length > 1 ? 'inline-block' : 'none';
+    });
+  }
+  function isNewItem(id) { const cb = document.getElementById('itemNew_' + id); return !!(cb && cb.checked); }
+  function clearItemPick(id) {
+    const row = document.getElementById('itemRow_' + id);
+    row.dataset.code = ''; row.dataset.location = '';
+    document.getElementById('itemLoc_' + id).style.display = 'none';
+    document.getElementById('itemCode_' + id).textContent = '';
+    const u = document.getElementById('itemUom_' + id);
+    if (!isNewItem(id)) { u.value = ''; u.readOnly = true; u.classList.add('uom-readonly'); u.placeholder = 'เลือกรายการก่อน'; }
+  }
+  function onItemNewChange(id) {
+    const on = isNewItem(id);
+    document.getElementById('itemRow_' + id).classList.toggle('is-new', on);
+    clearItemPick(id);
+    document.getElementById('itemSug_' + id).classList.remove('show');
+    const u = document.getElementById('itemUom_' + id);
+    u.readOnly = !on; u.classList.toggle('uom-readonly', !on);
+    u.placeholder = on ? 'เช่น PCS, BOX, ROL' : 'เลือกรายการก่อน';
+    document.getElementById('itemName_' + id).placeholder = on ? 'พิมพ์ชื่อสินค้าใหม่ให้ครบ (ชื่อ/ขนาด/ยี่ห้อ)' : 'พิมพ์ชื่อหรือรหัสอย่างน้อย 2 ตัวอักษร...';
+  }
+  function onItemInput(id) {
+    if (isNewItem(id)) return; // สินค้าใหม่พิมพ์อิสระ ไม่มี dropdown
+    clearItemPick(id);
+    const q = document.getElementById('itemName_' + id).value.trim();
+    clearTimeout(itemSearchTimers[id]);
+    if (q.length < 2) { document.getElementById('itemSug_' + id).classList.remove('show'); return; }
+    itemSearchTimers[id] = setTimeout(function () { searchItems(id, q); }, 200);
+  }
+  function searchItems(id, q) {
+    const spin = document.getElementById('itemSpin_' + id);
+    spin.style.display = 'block';
+    Promise.resolve(supplyItems || loadSupplyItems()).then(function (list) {
+      if (!document.getElementById('itemRow_' + id)) return;
+      if (document.getElementById('itemName_' + id).value.trim() !== q) return; // พิมพ์ต่อไปแล้ว รอรอบใหม่
+      const words = q.toLowerCase().split(/\s+/);
+      const hits = (list || []).filter(function (it) {
+        const s = (it.name + ' ' + it.code).toLowerCase();
+        return words.every(function (w) { return s.indexOf(w) !== -1; });
+      }).slice(0, 30);
+      renderItemSuggestions(id, hits, !list);
+    }).finally(function () { spin.style.display = 'none'; });
+  }
+  function renderItemSuggestions(id, items, failed) {
+    const box = document.getElementById('itemSug_' + id);
+    box.innerHTML = '';
+    const select = function (it) { selectItem(id, it); };
+    suggestionState['itemName_' + id] = { items: items, idx: -1, onSelect: select };
+    if (!items.length) {
+      box.innerHTML = '<div class="empty">' + (failed ? 'โหลดรายการไม่สำเร็จ — ลองพิมพ์ใหม่'
+        : 'ไม่พบรายการที่ตรงกัน' + (itemMode === 'receive' ? ' — ถ้าเป็นสินค้าใหม่ ให้ติ๊ก "สินค้าใหม่" ด้านบน' : '')) + '</div>';
+    } else {
+      items.forEach(function (it) {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = esc(it.name) + '<span class="code">' + esc(it.code) + (it.uom ? ' · ' + esc(it.uom) : '') + '</span>';
+        div.onclick = function () { select(it); };
+        box.appendChild(div);
+      });
+    }
+    box.classList.add('show');
+  }
+  function selectItem(id, it) {
+    const row = document.getElementById('itemRow_' + id);
+    document.getElementById('itemName_' + id).value = it.name;
+    document.getElementById('itemSug_' + id).classList.remove('show');
+    row.dataset.code = it.code; row.dataset.location = it.location || '';
+    document.getElementById('itemCode_' + id).textContent = 'รหัส ' + it.code;
+    document.getElementById('itemLocText_' + id).textContent = it.location || 'N/A';
+    document.getElementById('itemLoc_' + id).style.display = 'flex';
+    const u = document.getElementById('itemUom_' + id);
+    u.value = it.uom || '';
+    // Ledger_MedSupply col F ว่าง (รายการที่เพิ่งสร้าง) → ให้พิมพ์หน่วยเอง
+    u.readOnly = !!it.uom; u.classList.toggle('uom-readonly', !!it.uom);
+    u.placeholder = it.uom ? '' : 'ไม่มีหน่วยในทะเบียน — พิมพ์เอง';
+    document.getElementById('itemQty_' + id).focus();
+  }
+  // ราคา: กรอก Ex.VAT หรือ In.VAT ช่องใดก็ได้ อีกช่องคำนวณให้ (VAT 7%)
+  function cleanMoney(v) {
+    v = v.replace(/[^\d.]/g, '');
+    const i = v.indexOf('.');
+    return i === -1 ? v : v.slice(0, i + 1) + v.slice(i + 1).replace(/\./g, '').slice(0, 4);
+  }
+  function onPriceInput(id, src) {
+    const ex = document.getElementById('itemEx_' + id), inn = document.getElementById('itemIn_' + id);
+    const from = src === 'ex' ? ex : inn, to = src === 'ex' ? inn : ex;
+    from.value = cleanMoney(from.value);
+    from.classList.remove('auto'); to.classList.add('auto');
+    document.getElementById('itemRow_' + id).dataset.priceSrc = src;
+    const n = parseFloat(from.value);
+    to.value = isNaN(n) ? '' : (src === 'ex' ? (n * 1.07).toFixed(2) : (n / 1.07).toFixed(4));
+    updateLineTotal(id);
+  }
+  function unitExVat(id) {
+    const row = document.getElementById('itemRow_' + id);
+    const ex = parseFloat(document.getElementById('itemEx_' + id).value);
+    const inn = parseFloat(document.getElementById('itemIn_' + id).value);
+    if (row.dataset.priceSrc === 'in') return isNaN(inn) ? NaN : inn / 1.07;
+    return ex;
+  }
+  function updateLineTotal(id) {
+    const el = document.getElementById('itemTotal_' + id);
+    if (!el) return;
+    const q = parseInt(document.getElementById('itemQty_' + id).value, 10), ex = unitExVat(id);
+    const f = function (n) { return n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    el.textContent = (q > 0 && !isNaN(ex)) ? 'รวม ' + q + ' หน่วย: Ex.VAT ' + f(ex * q) + ' / In.VAT ' + f(ex * q * 1.07) + ' บาท' : '';
+  }
+  function collectItems() {
+    const rows = document.querySelectorAll('#itemRows .item-row');
+    const out = [];
+    for (let i = 0; i < rows.length; i++) {
+      const id = rows[i].dataset.id, n = i + 1, isNew = isNewItem(id);
+      const name = document.getElementById('itemName_' + id).value.trim();
+      const it = { code: isNew ? '' : rows[i].dataset.code, name: name, isNew: isNew, location: rows[i].dataset.location || '',
+        qty: document.getElementById('itemQty_' + id).value.trim(), uom: document.getElementById('itemUom_' + id).value.trim() };
+      if (!name) return { msg: 'กรุณาระบุชื่อเวชภัณฑ์รายการที่ ' + n };
+      if (!isNew && !it.code) return { msg: 'รายการที่ ' + n + ': กรุณาเลือกจาก dropdown' + (itemMode === 'receive' ? ' หรือติ๊ก "สินค้าใหม่"' : '') };
+      if (!/^\d+$/.test(it.qty) || +it.qty <= 0) return { msg: 'รายการที่ ' + n + ': กรุณากรอกจำนวนเป็นตัวเลขมากกว่า 0' };
+      if (!it.uom) return { msg: 'รายการที่ ' + n + ': กรุณาระบุหน่วย (UOM)' };
+      if (itemMode === 'receive') {
+        it.lot = document.getElementById('itemLot_' + id).value.trim();
+        it.exp = document.getElementById('itemExp_' + id).value;
+        const ex = unitExVat(id);
+        if (!it.lot) return { msg: 'รายการที่ ' + n + ': กรุณาระบุเลข LOT (ไม่มีให้ใส่ -)' };
+        if (!it.exp) return { msg: 'รายการที่ ' + n + ': กรุณาเลือกวันหมดอายุ' };
+        if (isNaN(ex) || ex < 0) return { msg: 'รายการที่ ' + n + ': กรุณาระบุราคาต่อหน่วย (Ex.VAT หรือ In.VAT)' };
+        it.exvat = Math.round(ex * 10000) / 10000;
+      }
+      out.push(it);
+    }
+    return { items: out };
+  }
+
+  // ── บันทึกออก: งานที่มีบุคคลภายนอก (ข้อ 7–8) ต้องยืนยันตรวจพื้นที่ ──
+  function updateExitCheck() {
+    const need = !!(selectedVisit && OUTSIDER.some(function (p) { return selectedVisit.purpose === p; }));
+    document.getElementById('exitCheckBlock').style.display = need ? '' : 'none';
+    return need;
   }
   // เกณฑ์ภาคผนวก ข — ต้องตรงกับ storeTempStatus_/storeRhStatus_ ใน Code.js
   function tempLevel(t) { return (t < 15 || t > 30) ? 2 : (t > 25 || t < 20) ? 1 : 0; }
@@ -773,9 +1110,30 @@
     }
     if (!p) { showToast('กรุณาเลือกวัตถุประสงค์', 'error'); return; }
     if (p === 'อื่นๆ' && !document.getElementById('purposeOther').value.trim()) { showToast('กรุณาระบุวัตถุประสงค์', 'error'); return; }
-    if (NEED_REF.indexOf(p) !== -1 && !document.getElementById('reference').value.trim()) { showToast('กรุณาระบุเลขที่ใบเบิก / เอกสารอ้างอิง', 'error'); return; }
-    if (p === 'บันทึกอุณหภูมิ/ความชื้น' && (document.getElementById('temp').value === '' || document.getElementById('rh').value === '')) {
-      showToast('กรุณากรอกอุณหภูมิและความชื้น', 'error'); return;
+    let reference = '', items = null;
+    if (p === P_NORMAL) {
+      reference = trfValue();
+      if (!reference) { showToast('กรุณากรอกเลขที่ใบเบิกใน HIS (ตัวเลขท้าย TRF)', 'error'); document.getElementById('trfNo').focus(); return; }
+    }
+    if (p === P_URGENT) {
+      reference = document.getElementById('reference').value.trim();
+      if (!reference) { showToast('กรุณาระบุ HN ผู้ป่วย + ชื่อแพทย์/พยาบาลผู้สั่ง', 'error'); return; }
+    }
+    if (p === P_RECEIVE && !document.getElementById('grInv').value.trim()) { showToast('กรุณาระบุเลขที่ Invoice', 'error'); return; }
+    if (p === P_URGENT || p === P_RECEIVE) {
+      const c = collectItems();
+      if (c.msg) { showToast(c.msg, 'error'); return; }
+      items = c.items;
+    }
+    if (OUTSIDER.indexOf(p) !== -1) {
+      if (!document.getElementById('workers').value.trim()) { showToast('กรุณาระบุชื่อและหน่วยงานของผู้ปฏิบัติงาน/ผู้เข้าเยี่ยมชม', 'error'); return; }
+      if (!document.getElementById('secureConfirm').checked) { showToast('กรุณาติ๊กยืนยันการล็อกตู้และการอยู่ด้วยตลอด', 'error'); return; }
+    }
+    if (p === 'บันทึกอุณหภูมิ/ความชื้น') {
+      const tv = document.getElementById('temp').value, hv = document.getElementById('rh').value;
+      if (!tv || !hv) { showToast('กรุณากรอกอุณหภูมิและความชื้น', 'error'); return; }
+      if (!/^\d{1,2}(\.\d)?$/.test(tv)) { showToast('อุณหภูมิ: ตัวเลข ทศนิยมไม่เกิน 1 ตำแหน่ง เช่น 23.5', 'error'); return; }
+      if (!/^\d{1,3}$/.test(hv)) { showToast('ความชื้น: จำนวนเต็มเท่านั้น เช่น 55', 'error'); return; }
     }
     const btn = document.getElementById('inSubmitBtn');
     btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
@@ -783,17 +1141,21 @@
     post({
       action: 'addStoreEntry', name: name, visitorOrg: nameSel === VISITOR ? document.getElementById('visitorOrg').value.trim() : '',
       coAuditor: lv >= 2 ? co : '', purpose: p, emergencyKey: eKey, lineNotified: document.getElementById('lineNotified').checked, purposeOther: document.getElementById('purposeOther').value.trim(),
-      reference: document.getElementById('reference').value.trim(), note: document.getElementById('note').value.trim(),
+      reference: reference, note: '', items: items,
+      invoice: document.getElementById('grInv').value.trim(), pr: document.getElementById('grPr').value.trim(), po: document.getElementById('grPo').value.trim(),
+      workers: document.getElementById('workers').value.trim(), secureConfirm: document.getElementById('secureConfirm').checked,
       temp: document.getElementById('temp').value, rh: document.getElementById('rh').value
     }).then(function (res) {
       if (res.status === 'ok') {
         showSaveSuccess();
+        if (res.grRows) setTimeout(function () { showToast('ลง GR_Ledger แล้ว ' + res.grRows + ' รายการ', 'ok'); }, 2100);
         if (res.temp && (res.temp.tStatus.indexOf('เกิน') === 0 || res.temp.hStatus.indexOf('เกิน') === 0)) {
           setTimeout(function () { showToast('บันทึกแล้ว — ค่าเกินเกณฑ์ แจ้งหัวหน้าแผนก/วิศวกรรมทันที', 'error'); }, 2100);
         }
         document.getElementById('inForm').reset();
         document.getElementById('emergencyKey').disabled = false;
-        onNameChange(); onPurposeChange(); checkTempLive();
+        itemMode = '';
+        onNameChange(); onPurposeChange(); onTrfInput(); checkTempLive();
         setTimeout(function () { goView(''); }, 2100);
       } else {
         hideSaveOverlay();
@@ -805,14 +1167,19 @@
 
   function submitExit() {
     if (!selectedVisit) { showToast('กรุณาเลือกรายการ', 'error'); return; }
+    const needCheck = updateExitCheck();
+    if (needCheck && !document.getElementById('exitConfirm').checked) { showToast('กรุณาติ๊กยืนยันการตรวจพื้นที่หลังเสร็จงาน', 'error'); return; }
     const btn = document.getElementById('outSubmitBtn');
     btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
     showSaveOverlay();
-    post({ action: 'addStoreExit', row: selectedVisit.row, name: selectedVisit.name, exitNote: document.getElementById('exitNote').value.trim() })
+    post({ action: 'addStoreExit', row: selectedVisit.row, name: selectedVisit.name, exitNote: document.getElementById('exitNote').value.trim(),
+      exitConfirm: needCheck && document.getElementById('exitConfirm').checked, exitWitness: document.getElementById('exitWitness').value.trim() })
       .then(function (res) {
         if (res.status === 'ok') {
           showSaveSuccess();
           document.getElementById('exitNote').value = '';
+          document.getElementById('exitConfirm').checked = false;
+          document.getElementById('exitWitness').value = '';
           setTimeout(function () { goView(''); }, 2100);
         } else {
           hideSaveOverlay();
