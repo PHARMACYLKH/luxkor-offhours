@@ -545,6 +545,14 @@
     <!-- 3. รับสินค้าเข้าคลัง: เอกสารอ้างอิง (ลง GR_Ledger) -->
     <div class="card" id="grCard" style="display:none">
       <h2>เอกสารรับสินค้า</h2>
+      <label>รหัสพนักงานผู้รับสินค้า <span class="req">*</span></label>
+      <input type="text" id="grEmp" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="เช่น 69011" oninput="this.value=this.value.replace(/\D/g,'')">
+      <label>ผู้ขาย (Vendor) <span class="req">*</span></label>
+      <div class="search-wrap">
+        <input type="text" id="grVendor" autocomplete="off" oninput="onVendorInput()" placeholder="พิมพ์ชื่อบริษัทเพื่อค้นหา หรือพิมพ์เอง">
+        <div class="spinner" id="vendorSpin" style="display:none"></div>
+        <div class="suggestions" id="vendorSug"></div>
+      </div>
       <label>เลขที่ Invoice <span class="req">*</span></label>
       <input type="text" id="grInv" autocomplete="off" placeholder="เช่น IV6939171">
       <div class="grid2">
@@ -553,7 +561,7 @@
         <div><label>เลขที่ PO</label>
           <input type="text" id="grPo" autocomplete="off" placeholder="PO-1297-102569"></div>
       </div>
-      <div class="hint">บันทึกแล้วลง GR_Ledger อัตโนมัติ (ประเภท Z01 รับเข้าจากการสั่ง) — ไม่ต้องคีย์ซ้ำในชีต</div>
+      <div class="hint">บันทึกแล้วลง GR_Ledger อัตโนมัติ (ประเภท Z01 รับเข้าจากการสั่ง) — ก่อนคีย์ GR เองในชีต ให้เช็คก่อนว่ามีแถวจากหน้านี้แล้วหรือยัง (Remark "บันทึกผ่าน QR ห้องคลัง") ระบบจะไม่ยอมบันทึก Invoice + รหัส + LOT ที่มีในชีตอยู่แล้ว</div>
     </div>
 
     <!-- 2./3. รายการเวชภัณฑ์ (ค้นจาก Ledger_MedSupply) -->
@@ -801,6 +809,7 @@
   }
   function onNameChange() {
     const v = document.getElementById('inName').value;
+    if (document.getElementById('purpose').value === P_RECEIVE) prefillEmp();
     const lv = currentLevel();
     document.getElementById('visitorBlock').classList.toggle('open', v === VISITOR);
     document.getElementById('visitorName').required = v === VISITOR;
@@ -831,6 +840,7 @@
     document.getElementById('trfBlock').classList.toggle('open', p === P_NORMAL);
     document.getElementById('refBlock').classList.toggle('open', p === P_URGENT);
     document.getElementById('grCard').style.display = p === P_RECEIVE ? '' : 'none';
+    if (p === P_RECEIVE) { prefillEmp(); loadVendors(); }
     document.getElementById('outsiderCard').style.display = OUTSIDER.indexOf(p) !== -1 ? '' : 'none';
     const isTemp = p === 'บันทึกอุณหภูมิ/ความชื้น';
     document.getElementById('tempCard').style.display = isTemp ? '' : 'none';
@@ -1072,6 +1082,46 @@
     return { items: out };
   }
 
+  // ── ผู้ขาย: รายชื่อจาก Index_VendorList (?action=getVendors) โหลดครั้งเดียว — ไม่พบก็พิมพ์เองได้ ──
+  let vendors = null, vendorLoading = null, vendorTimer = null;
+  function loadVendors() {
+    if (vendors) return Promise.resolve(vendors);
+    if (!vendorLoading) {
+      vendorLoading = fetch(WEBAPP_URL + '?action=getVendors').then(function (r) { return r.json(); })
+        .then(function (d) { vendors = d.vendors || []; return vendors; })
+        .catch(function () { return []; })
+        .finally(function () { vendorLoading = null; });
+    }
+    return vendorLoading;
+  }
+  function onVendorInput() {
+    const q = document.getElementById('grVendor').value.trim();
+    clearTimeout(vendorTimer);
+    const box = document.getElementById('vendorSug');
+    if (q.length < 2) { box.classList.remove('show'); return; }
+    vendorTimer = setTimeout(function () {
+      const spin = document.getElementById('vendorSpin');
+      spin.style.display = 'block';
+      loadVendors().then(function (list) {
+        if (document.getElementById('grVendor').value.trim() !== q) return;
+        const words = q.toLowerCase().split(/\s+/);
+        const hits = list.filter(function (v) { const s = v.toLowerCase(); return words.every(function (w) { return s.indexOf(w) !== -1; }); }).slice(0, 20);
+        const select = function (v) { document.getElementById('grVendor').value = v; box.classList.remove('show'); };
+        suggestionState['grVendor'] = { items: hits, idx: -1, onSelect: select };
+        box.innerHTML = hits.length ? '' : '<div class="empty">ไม่พบในรายชื่อผู้ขาย — ใช้ชื่อที่พิมพ์ได้เลย</div>';
+        hits.forEach(function (v) {
+          const div = document.createElement('div');
+          div.className = 'item'; div.textContent = v;
+          div.onclick = function () { select(v); };
+          box.appendChild(div);
+        });
+        box.classList.add('show');
+      }).finally(function () { spin.style.display = 'none'; });
+    }, 200);
+  }
+  function rememberEmp(name, code) { try { localStorage.setItem('lkh_store_emp_' + name, code); } catch (e) {} }
+  function recallEmp(name) { try { return localStorage.getItem('lkh_store_emp_' + name) || ''; } catch (e) { return ''; } }
+
   // ── บันทึกออก: งานที่มีบุคคลภายนอก (ข้อ 7–8) ต้องยืนยันตรวจพื้นที่ ──
   function updateExitCheck() {
     const need = !!(selectedVisit && OUTSIDER.some(function (p) { return selectedVisit.purpose === p; }));
@@ -1121,7 +1171,11 @@
       reference = document.getElementById('reference').value.trim();
       if (!reference) { showToast('กรุณาระบุ HN ผู้ป่วย + ชื่อแพทย์/พยาบาลผู้สั่ง', 'error'); return; }
     }
-    if (p === P_RECEIVE && !document.getElementById('grInv').value.trim()) { showToast('กรุณาระบุเลขที่ Invoice', 'error'); return; }
+    if (p === P_RECEIVE) {
+      if (!/^\d{4,6}$/.test(document.getElementById('grEmp').value)) { showToast('กรุณาระบุรหัสพนักงานผู้รับสินค้า (ตัวเลข 4–6 หลัก)', 'error'); return; }
+      if (!document.getElementById('grVendor').value.trim()) { showToast('กรุณาระบุผู้ขาย (Vendor)', 'error'); return; }
+      if (!document.getElementById('grInv').value.trim()) { showToast('กรุณาระบุเลขที่ Invoice', 'error'); return; }
+    }
     if (p === P_URGENT || p === P_RECEIVE) {
       const c = collectItems();
       if (c.msg) { showToast(c.msg, 'error'); return; }
@@ -1144,12 +1198,14 @@
       action: 'addStoreEntry', name: name, visitorOrg: nameSel === VISITOR ? document.getElementById('visitorOrg').value.trim() : '',
       coAuditor: lv >= 2 ? co : '', purpose: p, emergencyKey: eKey, lineNotified: document.getElementById('lineNotified').checked, purposeOther: document.getElementById('purposeOther').value.trim(),
       reference: reference, note: '', items: items,
+      vendor: document.getElementById('grVendor').value.trim(), empCode: document.getElementById('grEmp').value.trim(),
       invoice: document.getElementById('grInv').value.trim(), pr: document.getElementById('grPr').value.trim(), po: document.getElementById('grPo').value.trim(),
       workers: document.getElementById('workers').value.trim(), secureConfirm: document.getElementById('secureConfirm').checked,
       temp: document.getElementById('temp').value, rh: document.getElementById('rh').value
     }).then(function (res) {
       if (res.status === 'ok') {
         showSaveSuccess();
+        if (p === P_RECEIVE) rememberEmp(nameSel, document.getElementById('grEmp').value.trim());
         if (res.grRows) setTimeout(function () { showToast('ลง GR_Ledger แล้ว ' + res.grRows + ' รายการ', 'ok'); }, 2100);
         if (res.temp && (res.temp.tStatus.indexOf('เกิน') === 0 || res.temp.hStatus.indexOf('เกิน') === 0)) {
           setTimeout(function () { showToast('บันทึกแล้ว — ค่าเกินเกณฑ์ แจ้งหัวหน้าแผนก/วิศวกรรมทันที', 'error'); }, 2100);
@@ -1193,6 +1249,12 @@
   }
 
   // ── เริ่มต้น ──
+  attachSuggestionKeyNav('grVendor', 'vendorSug');
+  function prefillEmp() {
+    const el = document.getElementById('grEmp');
+    const v = recallEmp(document.getElementById('inName').value);
+    if (v) el.value = v;
+  }
   const splashStart = Date.now();
   renderView();
   loadRoster().finally(function () {
