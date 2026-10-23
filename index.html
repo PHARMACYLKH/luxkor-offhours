@@ -4,8 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>เข้าห้องยานอกเวลา - Lux Kor Hospital</title>
+<!-- (2026-10-23 ผู้ใช้สั่ง) ฟอนต์: ไทย = TH SarabunPSK, อังกฤษ/ตัวเลข = Arial (มือถือ Android ไม่มี Arial → Arimo ขนาดเท่า Arial)
+     TH SarabunPSK จำกัด unicode-range เฉพาะอักษรไทย + size-adjust 133% ให้ตัวไทยสูงเท่า Arial (วัดจาก glyph จริง ดู mailFont_ ใน Code.js)
+     ไฟล์ฟอนต์อยู่ที่ GitHub Pages (URL เต็ม เพราะสำเนา GAS OffHoursAccess.html ใช้ไฟล์เดียวกัน) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;700&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: 'LK Thai'; font-weight: 400; font-display: swap; unicode-range: U+0E00-0E7F; size-adjust: 133%;
+  src: local('TH SarabunPSK'), local('THSarabunPSK'), url('https://pharmacylkh.github.io/luxkor-offhours/fonts/THSarabunPSK.ttf') format('truetype'); }
+@font-face { font-family: 'LK Thai'; font-weight: 700; font-display: swap; unicode-range: U+0E00-0E7F; size-adjust: 133%;
+  src: local('TH SarabunPSK Bold'), local('THSarabunPSK-Bold'), url('https://pharmacylkh.github.io/luxkor-offhours/fonts/THSarabunPSK-Bold.ttf') format('truetype'); }
+</style>
 <style>
   :root {
     --green: #0f613b;
@@ -22,7 +31,7 @@
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; background: var(--bg); color: var(--text);
-    font-family: 'Sarabun', sans-serif; -webkit-tap-highlight-color: transparent;
+    font-family: 'LK Thai', Arial, Arimo, sans-serif; -webkit-tap-highlight-color: transparent;
   }
   body { padding-bottom: 40px; }
   header {
