@@ -1292,7 +1292,7 @@
     k = k || 'box';
     fetch(WEBAPP_URL + '?action=getOpenBoxes' + (k === 'or' ? '&group=or' : ''))
       .then(function (r) { return r.json(); })
-      .then(function (d) { BOX_FORMS[k].open = d.items || []; renderOpenBoxes(k); })
+      .then(function (d) { BOX_FORMS[k].open = d.items || []; BOX_FORMS[k].loaded = Array.isArray(d.items); renderOpenBoxes(k); })
       .catch(function () {});
   }
   function renderOpenBoxes(k) {
@@ -1312,11 +1312,16 @@
   }
   // (2026-10-07) กล่องที่ยังไม่คืน เบิกซ้ำไม่ได้จนกว่าจะบันทึกคืน — ตอนเลือก "เบิก" ติ๊กกล่องนั้นไม่ได้
   // (server ตรวจซ้ำอีกชั้นใน addOffHoursBoxLog_ กันหน้าเว็บค้างเวอร์ชันเก่า/ข้อมูลยังไม่ทันโหลด)
+  // (2026-10-23 ผู้ใช้สั่ง) กลับกัน: ตอนเลือก "คืน" ติ๊กได้เฉพาะกล่องที่ยังไม่คืน — กล่องที่คืนแล้ว/ไม่มีรายการเบิกค้างคืนซ้ำไม่ได้
+  // (เจอคืนซ้ำจริง 21/10 06:17 → 06:23 กลายเป็นแถว "คืน (ไม่พบรายการเบิก)") ล็อกเฉพาะเมื่อโหลดรายการค้างสำเร็จแล้ว
+  // (loaded) ไม่งั้นเน็ตหลุดจะล็อกทุกกล่อง — server ตรวจซ้ำอีกชั้นเหมือนฝั่งเบิก
   function applyBoxLocks(k) {
     const f = BOX_FORMS[k];
     document.querySelectorAll('input[name=' + f.input + ']').forEach(function (cb) {
       const isOut = f.open.some(function (b) { return String(b.boxNo) === cb.value; });
-      const lock = f.action === 'เบิก' && isOut;
+      const retLock = f.action === 'คืน' && f.loaded && !isOut;
+      const lock = (f.action === 'เบิก' && isOut) || retLock;
+      if (!isOut) document.getElementById(f.openPrefix + cb.value).textContent = retLock ? 'คืนแล้ว — ไม่มีรายการเบิกค้าง' : '';
       cb.disabled = lock;
       if (lock && cb.checked) { cb.checked = false; }
       cb.closest('.box-option').classList.toggle('locked', lock);
@@ -1363,6 +1368,13 @@
       const stillOut = boxes.filter(function (n) { return f.open.some(function (b) { return String(b.boxNo) === n; }); });
       if (stillOut.length) {
         showToast('กล่อง ' + stillOut.join(', ') + ' ยังไม่ได้บันทึกคืน — ต้องบันทึก "คืนกล่อง" ก่อนจึงจะเบิกได้', 'error');
+        return;
+      }
+    }
+    if (f.action === 'คืน' && f.loaded) {
+      const notOut = boxes.filter(function (n) { return !f.open.some(function (b) { return String(b.boxNo) === n; }); });
+      if (notOut.length) {
+        showToast('กล่อง ' + notOut.join(', ') + ' คืนแล้ว / ไม่มีรายการเบิกค้าง — คืนซ้ำไม่ได้', 'error');
         return;
       }
     }
