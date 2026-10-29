@@ -234,6 +234,8 @@
   .ov-refill { display: none; gap: 8px; margin-top: 8px; }
   .ov-refill.show { display: flex; }
   .ov-refill input { padding: 8px 10px; font-size: 14px; }
+  .ov-refill label.mini { flex: 1; min-width: 0; margin: 0; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+  .ov-refill label.mini input { margin-top: 3px; width: 100%; }
   .ov-cnt { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid #edf1ef; font-size: 13px; }
   .ov-cnt .n { flex: 1; min-width: 0; font-weight: 600; }
   .ov-cnt .e { color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -1693,6 +1695,7 @@
     document.getElementById('ovDrugs').style.display = ok === false ? 'block' : 'none';
     ovRefresh();
   }
+  function ovDmy(v) { const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(v).trim(); }
   function ovCloseForm() {
     ovCur = null;
     document.getElementById('ovForm').style.display = 'none';
@@ -1721,8 +1724,8 @@
     document.getElementById('ovRefill').innerHTML = fill.length ? fill.map(function (r) {
       const c = r.d.code;
       return '<div class="ov-fill"><div class="n">' + ovEsc(r.d.name) + ' <b>× ' + r.need + '</b> ' + ovEsc(r.d.uom) + '</div>'
-        + '<div class="ov-refill show"><input type="text" placeholder="Lot" data-key="' + c + '|lot" value="' + ovEsc(ovLot[c + '|lot'] || '') + '">'
-        + '<input type="text" placeholder="Exp. MM/YYYY" data-key="' + c + '|exp" value="' + ovEsc(ovLot[c + '|exp'] || '') + '"></div></div>';
+        + '<div class="ov-refill show"><label class="mini">Lot (ตัวอักษร/ตัวเลข)<input type="text" autocapitalize="characters" autocomplete="off" data-key="' + c + '|lot" value="' + ovEsc(ovLot[c + '|lot'] || '') + '"></label>'
+        + '<label class="mini">วันหมดอายุ (Exp.)<input type="date" data-key="' + c + '|exp" value="' + ovEsc(ovLot[c + '|exp'] || '') + '"></label></div></div>';
     }).join('') : '<div class="hint">ไม่มียาที่ต้องเติม</div>';
     document.getElementById('ovSealedRow').style.display = hold ? 'none' : 'flex';
     document.getElementById('ovSubmit').textContent = ovAllOk === null ? 'บันทึกการตรวจรับคืน'
@@ -1737,7 +1740,7 @@
     if (rows.some(function (r) { return r.counted === ''; })) { showToast('กรุณากรอกยอดนับให้ครบทุกรายการ', 'error'); return; }
     const items = rows.map(function (r) {
       return { code: r.d.code, counted: r.counted, refilled: r.need > 0 ? r.need : 0,
-               lot: ovLot[r.d.code + '|lot'] || '', exp: ovLot[r.d.code + '|exp'] || '' };
+               lot: (ovLot[r.d.code + '|lot'] || '').trim().toUpperCase(), exp: ovDmy(ovLot[r.d.code + '|exp'] || '') };
     });
     const body = { action: 'submitOrVerify', logId: ovCur.logId, items: items,
       pharmacist: document.getElementById('ovPharm').value, pin: document.getElementById('ovPin').value,
@@ -1800,38 +1803,45 @@
       .catch(function (e) { w.document.body.innerHTML = '<p style="font-family:sans-serif;color:#b3261e">พิมพ์ไม่ได้: ' + ovEsc(e.message) + '</p>'; });
   }
   function ovPrintHtml(d) {
-    const v = d.verify, td = 'border:1px solid #555;padding:3px 5px';
+    // (2026-10-29 ผู้ใช้กำหนด) 1 หน้า A4: ชื่อยา+รหัสบรรทัดเดียว แถวเตี้ย, ช่องลงชื่อเว้นที่เซ็นเหนือเส้นจุด
+    const v = d.verify, td = 'border:1px solid #666;padding:1px 4px';
     const rows = d.items.map(function (it, i) {
-      return '<tr><td style="' + td + ';text-align:center">' + (i + 1) + '</td><td style="' + td + '">' + ovEsc(it.name) + '<br><span style="font-size:9pt;color:#555">' + ovEsc(it.code) + '</span></td>'
+      return '<tr><td style="' + td + ';text-align:center">' + (i + 1) + '</td><td style="' + td + '">' + ovEsc(it.name)
+        + ' <span style="font-size:7.5pt;color:#666">' + ovEsc(it.code) + '</span></td>'
         + ['par', 'used', 'expected', 'counted'].map(function (k) { return '<td style="' + td + ';text-align:center">' + ovEsc(it[k]) + '</td>'; }).join('')
         + '<td style="' + td + ';text-align:center;' + (it.match === 'ตรง' ? '' : 'color:#b3261e;font-weight:bold') + '">' + ovEsc(it.match) + '</td>'
         + '<td style="' + td + ';text-align:center">' + ovEsc(it.refilled || '') + '</td>'
-        + '<td style="' + td + '">' + ovEsc([it.lot, it.exp].filter(Boolean).join(' / ')) + '</td></tr>';
+        + '<td style="' + td + ';white-space:nowrap">' + ovEsc([it.lot, it.exp].filter(Boolean).join(' / ')) + '</td></tr>';
     }).join('');
     const used = d.used.length ? d.used.map(function (u) { return ovEsc(u.name) + ' ' + u.qty + ' ' + ovEsc(u.uom); }).join(', ') : '-';
+    const sig = function (name, role) {
+      return '<td><div style="height:46px"></div><div style="white-space:nowrap">ลงชื่อ ........................................</div>'
+        + '<div style="margin-top:4px">(' + ovEsc(name) + ')</div><div>' + role + '</div></td>';
+    };
     return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>แบบตรวจรับคืนกล่องยา OR ' + ovEsc(d.logId) + '</title>'
       + '<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">'
       + '<style>'
       // (2026-10-29 ผู้ใช้กำหนด) ไทย = TH SarabunPSK (ขยาย 133% ให้สูงเท่า Arial), อังกฤษ/ตัวเลข = Arial — แยกด้วย unicode-range
       + '@font-face{font-family:LKThai;src:local("TH SarabunPSK"),local("THSarabunPSK"),local("TH Sarabun New");unicode-range:U+0E00-0E7F;size-adjust:133%}'
       + '@font-face{font-family:LKThai;font-weight:700;src:local("TH SarabunPSK Bold"),local("THSarabunPSK-Bold"),local("TH Sarabun New Bold");unicode-range:U+0E00-0E7F;size-adjust:133%}'
-      + '@page{size:A4;margin:14mm}body{font-family:LKThai,Arial,Sarabun,sans-serif;font-size:10.5pt;color:#000}table{border-collapse:collapse;width:100%}'
-      + 'h1{font-size:15pt;margin:0 0 2px;color:#0f613b}.sub{font-size:10pt;color:#555;margin-bottom:8px}.grid td{padding:2px 6px 2px 0;vertical-align:top}'
-      + '.sig td{padding-top:28px;text-align:center;width:33%}</style></head><body>'
+      + '@page{size:A4;margin:10mm 12mm}html,body{margin:0}body{font-family:LKThai,Arial,Sarabun,sans-serif;font-size:10pt;line-height:1.25;color:#000}'
+      + 'table{border-collapse:collapse;width:100%}tr{page-break-inside:avoid}'
+      + 'h1{font-size:13pt;margin:0;color:#0f613b}.sub{font-size:8pt;color:#555;margin:1px 0 5px}.grid td{padding:1px 6px 1px 0;vertical-align:top}'
+      + '.sig{margin-top:6px;page-break-inside:avoid}.sig td{text-align:center;width:33%;vertical-align:top}</style></head><body>'
       + '<h1>แบบตรวจรับคืนและเติมกล่องยา OR</h1><div class="sub">นโยบายการจัดการยาสำรองประจำห้องผ่าตัด (OR Floor Stock) ภาคผนวก ง · พิมพ์จากระบบ ' + new Date().toLocaleString('th-TH') + '</div>'
       + '<table class="grid"><tr><td><b>กล่อง</b> ' + ovEsc(boxLabel(d.box)) + ' ' + ovEsc(d.boxName) + '</td><td><b>Log ID</b> ' + ovEsc(d.logId) + '</td></tr>'
       + '<tr><td><b>เบิก</b> ' + ovEsc(d.checkoutTs) + ' โดย ' + ovEsc(d.checkoutBy) + '</td><td><b>คืน</b> ' + ovEsc(d.returnTs) + ' โดย ' + ovEsc(d.returnedBy) + (d.late ? ' (คืนเกิน 24 ชม.)' : '') + '</td></tr>'
       + '<tr><td colspan="2"><b>ยาที่ใช้ตามระบบ</b> ' + used + '</td></tr>'
       + '<tr><td><b>ซีลเดิม</b> ' + ovEsc(v.sealOld || '-') + '</td><td><b>ซีลใหม่</b> ' + ovEsc(v.sealNew || 'ยังไม่ปิดซีล') + '</td></tr></table>'
-      + '<table style="margin-top:8px"><tr style="background:#eef4f0">'
-      + ['ลำดับ', 'ชื่อยา', 'PAR', 'ใช้ตามระบบ', 'ควรเหลือ', 'นับได้', 'ผล', 'เติม', 'Lot / Exp.'].map(function (h) { return '<th style="' + td + '">' + h + '</th>'; }).join('')
+      + '<table style="margin-top:5px"><tr style="background:#eef4f0">'
+      + ['ลำดับ', 'ชื่อยา', 'PAR', 'ใช้', 'ควรเหลือ', 'นับได้', 'ผล', 'เติม', 'Lot / Exp.'].map(function (h) { return '<th style="' + td + ';white-space:nowrap">' + h + '</th>'; }).join('')
       + '</tr>' + rows + '</table>'
-      + '<p><b>ผลการกระทบยอด 3 ทาง:</b> ' + ovEsc(v.status) + (v.mismatch ? '<br><b>รายการไม่ตรง:</b> ' + ovEsc(v.mismatch) : '')
-      + (v.cause ? '<br><b>สาเหตุ / การดำเนินการ:</b> ' + ovEsc(v.cause) : '') + '</p>'
-      + '<p style="font-size:10pt">☐ ตรวจกับ anesthetic record และรายการค่ายาในระบบ HIS แล้ว &nbsp; ☐ กล่องที่ 2: ตรวจแบบ ยส.5 + ยส.2/วจ.2 บันทึกการทำลาย และ ampoule/vial เปล่าแล้ว</p>'
-      + '<table class="sig"><tr><td>ลงชื่อ ..................................................<br>(' + ovEsc(d.returnedBy) + ')<br>ผู้คืนกล่อง</td>'
-      + '<td>ลงชื่อ ..................................................<br>(' + ovEsc(v.resolvedBy || v.pharmacist) + ')<br>เภสัชกรผู้ตรวจ ' + ovEsc(v.resolvedAt || v.verifiedAt) + '</td>'
-      + '<td>ลงชื่อ ..................................................<br>(' + ovEsc(v.doubleChecker || '.................................') + ')<br>ผู้ตรวจสอบซ้ำ (ถ้ามี)</td></tr></table>'
+      + '<div style="margin-top:5px"><b>ผลการกระทบยอด 3 ทาง:</b> ' + ovEsc(v.status) + (v.mismatch ? '<br><b>รายการไม่ตรง:</b> ' + ovEsc(v.mismatch) : '')
+      + (v.cause ? '<br><b>สาเหตุ / การดำเนินการ:</b> ' + ovEsc(v.cause) : '') + '</div>'
+      + '<div style="margin-top:3px">☐ ตรวจกับ anesthetic record และรายการค่ายาในระบบ HIS แล้ว &nbsp; ☐ กล่องที่ 2: ตรวจแบบ ยส.5 + ยส.2/วจ.2 บันทึกการทำลาย และ ampoule/vial เปล่าแล้ว</div>'
+      + '<table class="sig"><tr>' + sig(d.returnedBy, 'ผู้คืนกล่อง')
+      + sig(v.resolvedBy || v.pharmacist, 'เภสัชกรผู้ตรวจ ' + ovEsc(v.resolvedAt || v.verifiedAt))
+      + sig(v.doubleChecker || '..................................', 'ผู้ตรวจสอบซ้ำ (ถ้ามี)') + '</tr></table>'
       + '</body></html>';
   }
   document.getElementById('boxForm').addEventListener('submit', function (ev) { submitBoxForm(ev, 'box'); });
