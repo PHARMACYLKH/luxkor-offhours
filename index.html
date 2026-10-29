@@ -216,6 +216,7 @@
     width: 30px; height: 30px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 700;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px;
   }
+  .box-num.set { width: auto; min-width: 30px; padding: 0 8px; border-radius: 15px; font-size: 13.5px; }
   .box-option span { font-size: 14px; font-weight: 600; }
   .box-option small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
   .box-option small.box-open { color: var(--danger); font-weight: 600; }
@@ -532,9 +533,13 @@
     <div class="card">
       <h2><span id="orBoxStepNo">3</span>. กล่องยา OR (เลือกได้มากกว่า 1 กล่อง)</h2>
       <div class="box-options">
-        <label class="box-option"><input type="checkbox" name="orbox" value="1" onchange="syncBoxOption(this)"><div class="box-num">1</div><span>General Anesthesia<small>ยาระงับความรู้สึกทั่วไป</small><small class="box-open" id="orBoxOpen1"></small></span></label>
-        <label class="box-option"><input type="checkbox" name="orbox" value="2" onchange="syncBoxOption(this)"><div class="box-num">2</div><span>Narcotics<small>ยาเสพติด</small><small class="box-open" id="orBoxOpen2"></small></span></label>
-        <label class="box-option"><input type="checkbox" name="orbox" value="3" onchange="syncBoxOption(this)"><div class="box-num">3</div><span>Temperature-controlled medications<small>ยาควบคุมอุณหภูมิ</small><small class="box-open" id="orBoxOpen3"></small></span></label>
+        <!-- (2026-10-29 ผู้ใช้สั่ง) ประเภทละ 2 กล่อง (ชุด A/B) ตามนโยบาย OR Floor Stock — value = 1A..3B -->
+        <label class="box-option"><input type="checkbox" name="orbox" value="1A" onchange="syncBoxOption(this)"><div class="box-num set">1-A</div><span>General Anesthesia ชุด A<small>ยาระงับความรู้สึกทั่วไป</small><small class="box-open" id="orBoxOpen1A"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="orbox" value="1B" onchange="syncBoxOption(this)"><div class="box-num set">1-B</div><span>General Anesthesia ชุด B<small>ยาระงับความรู้สึกทั่วไป</small><small class="box-open" id="orBoxOpen1B"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="orbox" value="2A" onchange="syncBoxOption(this)"><div class="box-num set">2-A</div><span>Narcotics ชุด A<small>ยาเสพติด</small><small class="box-open" id="orBoxOpen2A"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="orbox" value="2B" onchange="syncBoxOption(this)"><div class="box-num set">2-B</div><span>Narcotics ชุด B<small>ยาเสพติด</small><small class="box-open" id="orBoxOpen2B"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="orbox" value="3A" onchange="syncBoxOption(this)"><div class="box-num set">3-A</div><span>Temperature-controlled medications ชุด A<small>ยาควบคุมอุณหภูมิ</small><small class="box-open" id="orBoxOpen3A"></small></span></label>
+        <label class="box-option"><input type="checkbox" name="orbox" value="3B" onchange="syncBoxOption(this)"><div class="box-num set">3-B</div><span>Temperature-controlled medications ชุด B<small>ยาควบคุมอุณหภูมิ</small><small class="box-open" id="orBoxOpen3B"></small></span></label>
       </div>
     </div>
 
@@ -1220,6 +1225,9 @@
   // backend เวอร์ชันที่ยังไม่มี getOrBoxDrugs (ตอบ unknown action) → ซ่อนขั้นตอนยาที่ใช้ คืนกล่องได้แบบเดิม
   // พอ deploy backend ใหม่แล้วหน้าเว็บจะแสดงขั้นตอนนี้เองโดยไม่ต้องแก้หน้าเว็บอีก
   let orDrugsReady = false;
+  // (2026-10-29) กล่อง OR ประเภทละ 2 กล่อง: รหัส 1A..3B — รายการยาผูกตามประเภท (ตัวแรกของรหัส)
+  const OR_BOX_IDS = ['1A', '1B', '2A', '2B', '3A', '3B'];
+  function boxLabel(b) { return String(b).replace(/^(\d)([AB])$/, '$1-$2'); }
   function loadOrBoxDrugs() {
     if (orBoxDrugs) return;
     fetch(WEBAPP_URL + '?action=getOrBoxDrugs')
@@ -1236,11 +1244,11 @@
   function escHtml(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function renderOrDrugAcc() {
     const names = { '1': ['General Anesthesia', 'ยาระงับความรู้สึกทั่วไป'], '2': ['Narcotics', 'ยาเสพติด'], '3': ['Temperature-controlled medications', 'ยาควบคุมอุณหภูมิ'] };
-    document.getElementById('orDrugAcc').innerHTML = ['1', '2', '3'].map(function (b) {
-      const list = orBoxDrugs[b] || [];
+    document.getElementById('orDrugAcc').innerHTML = OR_BOX_IDS.map(function (b) {
+      const list = orBoxDrugs[b.charAt(0)] || [];
       return '<div class="drug-acc" id="orAcc' + b + '">'
         + '<button type="button" class="drug-acc-head" onclick="toggleOrAcc(\'' + b + '\')">'
-        + '<div class="box-num">' + b + '</div><span class="t">' + names[b][0] + '<small>' + names[b][1] + ' — ' + list.length + ' รายการ</small></span>'
+        + '<div class="box-num set">' + boxLabel(b) + '</div><span class="t">' + names[b.charAt(0)][0] + ' ชุด ' + b.charAt(1) + '<small>' + names[b.charAt(0)][1] + ' — ' + list.length + ' รายการ</small></span>'
         + '<span class="drug-acc-count" id="orAccCount' + b + '"></span><span class="drug-acc-chev">›</span></button>'
         + '<div class="drug-acc-body">' + list.map(function (d, i) {
           const id = 'orDrug_' + b + '_' + i;
@@ -1297,7 +1305,7 @@
   }
   function renderOpenBoxes(k) {
     const f = BOX_FORMS[k];
-    ['1', '2', '3'].forEach(function (n) {
+    (k === 'or' ? OR_BOX_IDS : ['1', '2', '3']).forEach(function (n) {
       const o = f.open.filter(function (b) { return String(b.boxNo) === n; }).pop();
       document.getElementById(f.openPrefix + n).textContent = o ? 'ยังไม่คืน — เบิกโดย ' + o.by + ' ' + o.checkoutTs : '';
     });
@@ -1326,6 +1334,9 @@
       if (lock && cb.checked) { cb.checked = false; }
       cb.closest('.box-option').classList.toggle('locked', lock);
       cb.closest('.box-option').classList.toggle('checked', cb.checked);
+      // (2026-10-29) คืนกล่อง OR: แสดงรายการยาเฉพาะกล่องที่ยังไม่คืน (6 กล่องยาวเกิน) — โหลดรายการค้างไม่ได้ให้แสดงครบ
+      const acc = k === 'or' && document.getElementById('orAcc' + cb.value);
+      if (acc) acc.style.display = (f.loaded && !isOut) ? 'none' : '';
     });
   }
   function syncBoxOption(cb) { cb.closest('.box-option').classList.toggle('checked', cb.checked); }
@@ -1362,19 +1373,19 @@
       if (drugUse.some(function (x) { return !(x.qty > 0); })) { showToast('กรุณาระบุจำนวนยาที่ใช้ให้ครบทุกรายการ', 'error'); return; }
       const notReturned = drugUse.map(function (x) { return x.box; })
         .filter(function (b, i, a) { return a.indexOf(b) === i && boxes.indexOf(b) < 0; });
-      if (notReturned.length) { showToast('มียาที่ใช้จากกล่อง ' + notReturned.join(', ') + ' — ต้องเลือกคืนกล่องนั้นในข้อ 4 ด้วย', 'error'); return; }
+      if (notReturned.length) { showToast('มียาที่ใช้จากกล่อง ' + notReturned.map(boxLabel).join(', ') + ' — ต้องเลือกคืนกล่องนั้นในข้อ 4 ด้วย', 'error'); return; }
     }
     if (f.action === 'เบิก') {
       const stillOut = boxes.filter(function (n) { return f.open.some(function (b) { return String(b.boxNo) === n; }); });
       if (stillOut.length) {
-        showToast('กล่อง ' + stillOut.join(', ') + ' ยังไม่ได้บันทึกคืน — ต้องบันทึก "คืนกล่อง" ก่อนจึงจะเบิกได้', 'error');
+        showToast('กล่อง ' + stillOut.map(boxLabel).join(', ') + ' ยังไม่ได้บันทึกคืน — ต้องบันทึก "คืนกล่อง" ก่อนจึงจะเบิกได้', 'error');
         return;
       }
     }
     if (f.action === 'คืน' && f.loaded) {
       const notOut = boxes.filter(function (n) { return !f.open.some(function (b) { return String(b.boxNo) === n; }); });
       if (notOut.length) {
-        showToast('กล่อง ' + notOut.join(', ') + ' คืนแล้ว / ไม่มีรายการเบิกค้าง — คืนซ้ำไม่ได้', 'error');
+        showToast('กล่อง ' + notOut.map(boxLabel).join(', ') + ' คืนแล้ว / ไม่มีรายการเบิกค้าง — คืนซ้ำไม่ได้', 'error');
         return;
       }
     }
