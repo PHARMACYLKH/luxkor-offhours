@@ -234,6 +234,15 @@
   .ov-refill { display: none; gap: 8px; margin-top: 8px; }
   .ov-refill.show { display: flex; }
   .ov-refill input { padding: 8px 10px; font-size: 14px; }
+  .ov-cnt { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid #edf1ef; font-size: 13px; }
+  .ov-cnt .n { flex: 1; min-width: 0; font-weight: 600; }
+  .ov-cnt .e { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .ov-cnt input { width: 60px; padding: 6px 4px; text-align: center; font-size: 15px; flex-shrink: 0; }
+  .ov-cnt.bad { background: #fff5f4; }
+  .ov-cnt.bad input { border-color: var(--danger); }
+  .ov-fill { padding: 8px 0; border-top: 1px solid #edf1ef; }
+  .ov-fill:first-child { border-top: none; padding-top: 0; }
+  .ov-fill .n { font-size: 13px; font-weight: 600; }
   .ov-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center;
     z-index: 60; padding: 16px; }
   .ov-modal.show { display: flex; }
@@ -630,9 +639,13 @@
       <div id="ovFormInfo" style="font-size:13px;line-height:1.6"></div>
     </div>
     <div class="card">
-      <h2>1. นับยอดคงเหลือจริงทุกรายการ <span class="req">*</span></h2>
-      <div class="hint" style="margin:-6px 0 10px">ควรเหลือ = PAR − ยาที่ใช้ตามที่ห้องผ่าตัดบันทึก · นับเองทุกรายการ อย่ากรอกตามตัวเลขที่ควรเหลือ</div>
-      <div id="ovDrugs"></div>
+      <h2>1. ยาที่เหลือในกล่องครบตามที่ควรเหลือไหม? <span class="req">*</span></h2>
+      <div class="hint" style="margin:-6px 0 10px">ควรเหลือ = PAR − ยาที่ห้องผ่าตัดบันทึกว่าใช้ · นับในกล่องจริงก่อนตอบ</div>
+      <div class="tier-toggle">
+        <button type="button" id="ovAllYes" onclick="ovAll(true)">✓ ครบ</button>
+        <button type="button" id="ovAllNo" onclick="ovAll(false)">✗ ไม่ครบ / ไม่ตรง</button>
+      </div>
+      <div id="ovDrugs" style="display:none;margin-top:10px"></div>
     </div>
     <div class="card" id="ovCauseCard" style="display:none">
       <h2 style="color:var(--danger)">ยอดไม่ตรง</h2>
@@ -640,22 +653,20 @@
       <label>สาเหตุ / การดำเนินการ (ข้อ 6.10)</label>
       <textarea id="ovCause" placeholder="เว้นว่าง = บันทึกเป็น &quot;รอติดตาม&quot; (ยังไม่เติมยา/ไม่ปิดซีล กล่องนี้เบิกไม่ได้) · ระบุแล้ว = เติมยาและปิดซีลได้" oninput="ovRefresh()"></textarea>
     </div>
-    <div class="card" id="ovSealCard">
-      <h2>2. ซีล</h2>
-      <label>หมายเลขซีลเดิม (ที่ติดกล่องตอนรับคืน)</label>
-      <input type="text" id="ovSealOld">
-      <div class="hint" id="ovSealHint"></div>
-      <div id="ovSealNewWrap"><label>หมายเลขซีลใหม่ <span class="req">*</span></label><input type="text" id="ovSealNew"></div>
+    <div class="card" id="ovRefillCard">
+      <h2>2. ยาที่เติมคืน</h2>
+      <div id="ovRefill"></div>
     </div>
     <div class="card">
-      <h2>3. ผู้ตรวจ</h2>
-      <label>เภสัชกรผู้ตรวจ <span class="req">*</span></label>
+      <h2>3. ซีล</h2>
+      <label class="checkbox-row" style="font-weight:400"><input type="checkbox" id="ovSealOldOk" checked><span>ซีลเดิมสมบูรณ์ตอนรับคืน (ไม่ขาด)</span></label>
+      <label class="checkbox-row" style="font-weight:400" id="ovSealedRow"><input type="checkbox" id="ovSealed"><span>ปิดซีลกล่องใหม่แล้ว <span class="req">*</span></span></label>
+    </div>
+    <div class="card">
+      <h2>4. เภสัชกรผู้ตรวจ</h2>
       <select id="ovPharm"></select>
-      <label>PIN เภสัชกร <span class="req">*</span></label>
-      <input type="password" id="ovPin" inputmode="numeric" maxlength="6" autocomplete="off">
-      <label>ผู้ตรวจสอบซ้ำ (บุคคลที่ 2) <span class="req">*</span></label>
-      <select id="ovDc"></select>
-      <div class="hint">พิมพ์แบบตรวจรับคืนแล้วลงนามมือทั้งสองคน</div>
+      <label>PIN 5 หลัก <span class="req">*</span></label>
+      <input type="password" id="ovPin" inputmode="numeric" maxlength="5" autocomplete="off" style="max-width:160px;letter-spacing:4px">
     </div>
     <button type="submit" class="submit-btn" id="ovSubmit">บันทึกการตรวจรับคืน</button>
     <button type="button" class="ov-btn ghost" style="width:100%;margin-top:10px;padding:12px" onclick="ovCloseForm()">ยกเลิก กลับไปรายการ</button>
@@ -665,10 +676,10 @@
     <div class="box">
       <h2 style="margin:0 0 6px;font-size:15px;color:var(--green-dark)">ตั้ง / เปลี่ยน PIN เภสัชกร</h2>
       <label>ชื่อเภสัชกร</label><select id="pmName"></select>
-      <label>PIN เดิม (ตั้งครั้งแรก/ลืม PIN ใช้ admin PIN)</label><input type="password" id="pmOld" inputmode="numeric" maxlength="6">
+      <label>PIN เดิม (ตั้งครั้งแรก/ลืม PIN ใช้ admin PIN)</label><input type="password" id="pmOld" inputmode="numeric" maxlength="5">
       <label style="font-weight:400"><input type="checkbox" id="pmIsAdmin" style="width:auto;margin-right:6px">ช่องด้านบนเป็น admin PIN</label>
-      <label>PIN ใหม่ (ตัวเลข 4–6 หลัก)</label><input type="password" id="pmNew" inputmode="numeric" maxlength="6">
-      <label>ยืนยัน PIN ใหม่</label><input type="password" id="pmNew2" inputmode="numeric" maxlength="6">
+      <label>PIN ใหม่ (ตัวเลข 5 หลัก)</label><input type="password" id="pmNew" inputmode="numeric" maxlength="5">
+      <label>ยืนยัน PIN ใหม่</label><input type="password" id="pmNew2" inputmode="numeric" maxlength="5">
       <div style="display:flex;gap:8px;margin-top:14px">
         <button type="button" class="ov-btn ghost" style="flex:1" onclick="document.getElementById('ovPinModal').classList.remove('show')">ยกเลิก</button>
         <button type="button" class="ov-btn" style="flex:1" id="pmSave" onclick="ovSavePin()">บันทึก PIN</button>
@@ -1641,89 +1652,98 @@
   }
   function ovFillPeople() {
     const keep = function (id) { return document.getElementById(id).value; };
-    const ph = keep('ovPharm'), dc = keep('ovDc'), pm = keep('pmName');
+    const ph = keep('ovPharm'), pm = keep('pmName');
     const opt = function (n, extra) { return '<option value="' + ovEsc(n) + '">' + ovEsc(n) + (extra || '') + '</option>'; };
     document.getElementById('ovPharm').innerHTML = '<option value="">— เลือกชื่อ —</option>' + ovData.pharmacists.map(function (p) {
       return opt(p.name, (p.name === ovData.onDuty ? ' (เวรนี้)' : '') + (p.hasPin ? '' : ' — ยังไม่ตั้ง PIN'));
     }).join('');
-    document.getElementById('ovDc').innerHTML = '<option value="">— เลือกชื่อ —</option>' + ovData.staff.map(function (n) { return opt(n); }).join('');
     document.getElementById('pmName').innerHTML = '<option value="">— เลือกชื่อ —</option>' + ovData.pharmacists.map(function (p) { return opt(p.name); }).join('');
     document.getElementById('ovPharm').value = ph || ovData.onDuty || '';
-    document.getElementById('ovDc').value = dc; document.getElementById('pmName').value = pm;
+    document.getElementById('pmName').value = pm;
   }
+  let ovAllOk = null, ovLot = {};
   function ovOpen(i) {
     ovCur = ovData[ovTabNow][i];
     const rec = ovCur, v = rec.verify;
+    ovAllOk = null; ovLot = {};
     document.getElementById('ovList').style.display = 'none';
     document.getElementById('ovForm').style.display = 'block';
     document.getElementById('ovFormTitle').textContent = (v ? 'เคลียร์รายการรอติดตาม — ' : 'ตรวจรับคืน — ') + 'กล่อง ' + boxLabel(rec.box);
-    document.getElementById('ovFormInfo').innerHTML = '<b>' + ovEsc(rec.boxName) + '</b><br>เบิก ' + ovEsc(rec.checkoutTs) + ' โดย ' + ovEsc(rec.checkoutBy)
-      + '<br>คืน ' + ovEsc(rec.returnTs) + ' โดย ' + ovEsc(rec.returnedBy) + '<br>Log ID ' + ovEsc(rec.logId)
+    document.getElementById('ovFormInfo').innerHTML = '<b>' + ovEsc(rec.boxName) + '</b> · คืน ' + ovEsc(rec.returnTs) + ' โดย ' + ovEsc(rec.returnedBy)
       + (v ? '<br><span style="color:var(--danger)">รอบก่อน: ' + ovEsc(v.mismatch) + ' (' + ovEsc(v.pharmacist) + ' ' + ovEsc(v.verifiedAt) + ')</span>' : '')
-      + '<div style="margin-top:6px"><b>ยาที่ใช้ตามระบบ</b>' + ovUsedHtml(rec) + '</div>';
-    document.getElementById('ovDrugs').innerHTML = rec.items.map(function (d, k) {
-      return '<div class="ov-drug" id="ovd' + k + '"><div class="n">' + ovEsc(d.name) + '<small>' + ovEsc(d.code) + '</small></div>'
-        + '<div class="nums">PAR <b>' + d.par + '</b> · ใช้ <b>' + d.used + '</b> · ควรเหลือ <b>' + d.expected + '</b> ' + ovEsc(d.uom) + '</div>'
-        + '<div class="ov-row"><input type="number" class="cnt" min="0" step="1" inputmode="numeric" placeholder="นับได้" oninput="ovRefresh()">'
-        + '<span class="res"></span></div>'
-        + '<div class="ov-refill"><input type="text" class="lot" placeholder="Lot ที่เติม"><input type="text" class="exp" placeholder="Exp. (MM/YYYY)"></div></div>';
-    }).join('');
-    const ls = ovData.lastSeal[rec.box] || '';
-    document.getElementById('ovSealOld').value = (v && v.sealOld) || ls;
-    document.getElementById('ovSealHint').textContent = ls ? 'ซีลที่บันทึกล่าสุดของกล่องนี้: ' + ls + ' — ตรวจว่าตรงกับซีลจริง' : 'ยังไม่มีซีลที่บันทึกของกล่องนี้ในระบบ';
-    document.getElementById('ovSealNew').value = '';
+      + '<div style="margin-top:4px"><b>ยาที่ใช้ตามที่ห้องผ่าตัดบันทึก</b>' + ovUsedHtml(rec) + '</div>';
+    // รายการนับ (แสดงเมื่อตอบ "ไม่ครบ") — ใส่ค่าควรเหลือไว้ให้ แก้เฉพาะรายการที่ไม่ตรง
+    document.getElementById('ovDrugs').innerHTML = '<div class="hint" style="margin-bottom:6px">แก้ตัวเลขเฉพาะรายการที่นับได้ไม่ตรง</div>'
+      + rec.items.map(function (d, k) {
+        return '<div class="ov-cnt" id="ovd' + k + '"><span class="n">' + ovEsc(d.name) + '</span>'
+          + '<span class="e">ควรเหลือ ' + d.expected + '</span><input type="number" class="cnt" min="0" step="1" inputmode="numeric" value="' + d.expected + '" oninput="ovRefresh()"></div>';
+      }).join('');
+    document.getElementById('ovDrugs').style.display = 'none';
     document.getElementById('ovCause').value = '';
+    document.getElementById('ovSealOldOk').checked = true;
+    document.getElementById('ovSealed').checked = false;
     document.getElementById('ovPin').value = '';
     ovRefresh();
     window.scrollTo(0, 0);
+  }
+  function ovAll(ok) {
+    ovAllOk = ok;
+    document.getElementById('ovAllYes').classList.toggle('active-a', ok === true);
+    document.getElementById('ovAllNo').classList.toggle('active-b', ok === false);
+    document.getElementById('ovDrugs').style.display = ok === false ? 'block' : 'none';
+    ovRefresh();
   }
   function ovCloseForm() {
     ovCur = null;
     document.getElementById('ovForm').style.display = 'none';
     document.getElementById('ovList').style.display = 'block';
   }
-  // คำนวณสถานะทุกครั้งที่กรอก: ตรง/ไม่ตรง, จำนวนเติม = PAR − นับได้, ช่อง Lot/Exp เฉพาะรายการที่ต้องเติม
+  // ยอดนับ: "ครบ" = ควรเหลือทุกรายการ / "ไม่ครบ" = ตามช่องที่แก้ — จำนวนเติม = PAR − นับได้
+  function ovCounts() {
+    return ovCur.items.map(function (d, k) {
+      const c = ovAllOk === false ? document.querySelector('#ovd' + k + ' .cnt').value : String(d.expected);
+      return { d: d, k: k, counted: c, need: c === '' ? 0 : d.par - Number(c), ok: c !== '' && Number(c) === d.expected };
+    });
+  }
   function ovRefresh() {
     if (!ovCur) return;
-    const mism = [];
-    let allCounted = true;
-    ovCur.items.forEach(function (d, k) {
-      const el = document.getElementById('ovd' + k), inp = el.querySelector('.cnt'), res = el.querySelector('.res');
-      const has = inp.value !== '', c = Number(inp.value);
-      if (!has) allCounted = false;
-      const ok = has && c === d.expected;
-      el.classList.toggle('ok', has && ok); el.classList.toggle('bad', has && !ok);
-      if (has && !ok) mism.push(d.name + ' (ควรเหลือ ' + d.expected + ' นับได้ ' + c + ')');
-      const need = has ? d.par - c : 0;
-      res.innerHTML = !has ? '' : (ok ? '<span style="color:var(--green)">✓ ตรง</span>' : '<span style="color:var(--danger)">✗ ไม่ตรง</span>')
-        + (need > 0 ? ' · เติม <b>' + need + '</b>' : '');
-      el.dataset.need = need;
-    });
+    document.querySelectorAll('#ovRefill input').forEach(function (inp) { ovLot[inp.dataset.key] = inp.value; });
+    const rows = ovCounts();
+    const mism = ovAllOk === false ? rows.filter(function (r) { return !r.ok; }) : [];
+    rows.forEach(function (r) { const el = document.getElementById('ovd' + r.k); el.classList.toggle('bad', ovAllOk === false && !r.ok); });
     const hold = mism.length > 0 && !document.getElementById('ovCause').value.trim();
     document.getElementById('ovCauseCard').style.display = mism.length ? 'block' : 'none';
-    document.getElementById('ovMismatch').innerHTML = mism.map(function (m) { return '• ' + ovEsc(m); }).join('<br>');
-    ovCur.items.forEach(function (d, k) {
-      const el = document.getElementById('ovd' + k);
-      el.querySelector('.ov-refill').classList.toggle('show', !hold && Number(el.dataset.need) > 0);
-    });
-    document.getElementById('ovSealNewWrap').style.display = hold ? 'none' : 'block';
-    document.getElementById('ovSubmit').textContent = !allCounted ? 'บันทึกการตรวจรับคืน'
+    document.getElementById('ovMismatch').innerHTML = mism.map(function (r) {
+      return '• ' + ovEsc(r.d.name) + ' (ควรเหลือ ' + r.d.expected + ' นับได้ ' + ovEsc(r.counted) + ')';
+    }).join('<br>');
+    const fill = rows.filter(function (r) { return r.need > 0; });
+    document.getElementById('ovRefillCard').style.display = hold ? 'none' : 'block';
+    document.getElementById('ovRefill').innerHTML = fill.length ? fill.map(function (r) {
+      const c = r.d.code;
+      return '<div class="ov-fill"><div class="n">' + ovEsc(r.d.name) + ' <b>× ' + r.need + '</b> ' + ovEsc(r.d.uom) + '</div>'
+        + '<div class="ov-refill show"><input type="text" placeholder="Lot" data-key="' + c + '|lot" value="' + ovEsc(ovLot[c + '|lot'] || '') + '">'
+        + '<input type="text" placeholder="Exp. MM/YYYY" data-key="' + c + '|exp" value="' + ovEsc(ovLot[c + '|exp'] || '') + '"></div></div>';
+    }).join('') : '<div class="hint">ไม่มียาที่ต้องเติม</div>';
+    document.getElementById('ovSealedRow').style.display = hold ? 'none' : 'flex';
+    document.getElementById('ovSubmit').textContent = ovAllOk === null ? 'บันทึกการตรวจรับคืน'
       : hold ? 'บันทึกเป็น "รอติดตาม" (ล็อกกล่อง)' : 'บันทึก — เติมยาและปิดซีลแล้ว';
   }
   document.getElementById('ovForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
     if (!ovCur) return;
-    const items = ovCur.items.map(function (d, k) {
-      const el = document.getElementById('ovd' + k);
-      return { code: d.code, counted: el.querySelector('.cnt').value, refilled: Number(el.dataset.need) || 0,
-               lot: el.querySelector('.lot').value, exp: el.querySelector('.exp').value };
+    if (ovAllOk === null) { showToast('กรุณาตอบข้อ 1 ว่ายาที่เหลือครบหรือไม่', 'error'); return; }
+    document.querySelectorAll('#ovRefill input').forEach(function (inp) { ovLot[inp.dataset.key] = inp.value; });
+    const rows = ovCounts();
+    if (rows.some(function (r) { return r.counted === ''; })) { showToast('กรุณากรอกยอดนับให้ครบทุกรายการ', 'error'); return; }
+    const items = rows.map(function (r) {
+      return { code: r.d.code, counted: r.counted, refilled: r.need > 0 ? r.need : 0,
+               lot: ovLot[r.d.code + '|lot'] || '', exp: ovLot[r.d.code + '|exp'] || '' };
     });
-    if (items.some(function (x) { return x.counted === ''; })) { showToast('กรุณานับยอดคงเหลือจริงให้ครบทุกรายการ', 'error'); return; }
     const body = { action: 'submitOrVerify', logId: ovCur.logId, items: items,
       pharmacist: document.getElementById('ovPharm').value, pin: document.getElementById('ovPin').value,
-      doubleChecker: document.getElementById('ovDc').value, sealOld: document.getElementById('ovSealOld').value,
-      sealNew: document.getElementById('ovSealNew').value, cause: document.getElementById('ovCause').value };
-    if (!body.pharmacist || !body.pin || !body.doubleChecker) { showToast('กรุณาเลือกเภสัชกร ใส่ PIN และเลือกผู้ตรวจสอบซ้ำ', 'error'); return; }
+      sealOldOk: document.getElementById('ovSealOldOk').checked, sealed: document.getElementById('ovSealed').checked,
+      cause: document.getElementById('ovCause').value };
+    if (!body.pharmacist || !/^\d{5}$/.test(body.pin)) { showToast('กรุณาเลือกชื่อเภสัชกรและใส่ PIN 5 หลัก', 'error'); return; }
     const btn = document.getElementById('ovSubmit');
     btn.disabled = true;
     showSaveOverlay();
@@ -1750,7 +1770,7 @@
     const name = document.getElementById('pmName').value, old = document.getElementById('pmOld').value;
     const n1 = document.getElementById('pmNew').value, n2 = document.getElementById('pmNew2').value;
     if (!name) { showToast('กรุณาเลือกชื่อ', 'error'); return; }
-    if (!/^\d{4,6}$/.test(n1)) { showToast('PIN ใหม่ต้องเป็นตัวเลข 4–6 หลัก', 'error'); return; }
+    if (!/^\d{5}$/.test(n1)) { showToast('PIN ต้องเป็นตัวเลข 5 หลัก', 'error'); return; }
     if (n1 !== n2) { showToast('PIN ใหม่ทั้งสองช่องไม่ตรงกัน', 'error'); return; }
     const isAdmin = document.getElementById('pmIsAdmin').checked;
     const body = { action: 'setPharmPin', name: name, newPin: n1 };
@@ -1798,7 +1818,7 @@
       + '<table class="grid"><tr><td><b>กล่อง</b> ' + ovEsc(boxLabel(d.box)) + ' ' + ovEsc(d.boxName) + '</td><td><b>Log ID</b> ' + ovEsc(d.logId) + '</td></tr>'
       + '<tr><td><b>เบิก</b> ' + ovEsc(d.checkoutTs) + ' โดย ' + ovEsc(d.checkoutBy) + '</td><td><b>คืน</b> ' + ovEsc(d.returnTs) + ' โดย ' + ovEsc(d.returnedBy) + (d.late ? ' (คืนเกิน 24 ชม.)' : '') + '</td></tr>'
       + '<tr><td colspan="2"><b>ยาที่ใช้ตามระบบ</b> ' + used + '</td></tr>'
-      + '<tr><td><b>ซีลเดิม</b> ' + ovEsc(v.sealOld || '-') + '</td><td><b>ซีลใหม่</b> ' + ovEsc(v.sealNew || '-') + '</td></tr></table>'
+      + '<tr><td><b>ซีลเดิม</b> ' + ovEsc(v.sealOld || '-') + '</td><td><b>ซีลใหม่</b> ' + ovEsc(v.sealNew || 'ยังไม่ปิดซีล') + '</td></tr></table>'
       + '<table style="margin-top:8px"><tr style="background:#eef4f0">'
       + ['ลำดับ', 'ชื่อยา', 'PAR', 'ใช้ตามระบบ', 'ควรเหลือ', 'นับได้', 'ผล', 'เติม', 'Lot / Exp.'].map(function (h) { return '<th style="' + td + '">' + h + '</th>'; }).join('')
       + '</tr>' + rows + '</table>'
@@ -1807,7 +1827,7 @@
       + '<p style="font-size:10pt">☐ ตรวจกับ anesthetic record และรายการค่ายาในระบบ HIS แล้ว &nbsp; ☐ กล่องที่ 2: ตรวจแบบ ยส.5 + ยส.2/วจ.2 บันทึกการทำลาย และ ampoule/vial เปล่าแล้ว</p>'
       + '<table class="sig"><tr><td>ลงชื่อ ..................................................<br>(' + ovEsc(d.returnedBy) + ')<br>ผู้คืนกล่อง</td>'
       + '<td>ลงชื่อ ..................................................<br>(' + ovEsc(v.resolvedBy || v.pharmacist) + ')<br>เภสัชกรผู้ตรวจ ' + ovEsc(v.resolvedAt || v.verifiedAt) + '</td>'
-      + '<td>ลงชื่อ ..................................................<br>(' + ovEsc(v.doubleChecker) + ')<br>ผู้ตรวจสอบซ้ำ</td></tr></table>'
+      + '<td>ลงชื่อ ..................................................<br>(' + ovEsc(v.doubleChecker || '.................................') + ')<br>ผู้ตรวจสอบซ้ำ (ถ้ามี)</td></tr></table>'
       + '</body></html>';
   }
   document.getElementById('boxForm').addEventListener('submit', function (ev) { submitBoxForm(ev, 'box'); });
