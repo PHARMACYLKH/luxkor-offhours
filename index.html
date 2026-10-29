@@ -198,6 +198,46 @@
   .landing-arrow { margin-left: auto; font-size: 22px; color: #b7c4bd; }
   /* การ์ด OR: ขนาดเท่าการ์ดอื่น (ผู้ใช้สั่ง 2026-10-13) — แยกด้วยกรอบ/พื้นน้ำเงิน + ป้าย "สำหรับ OR เท่านั้น" ในบรรทัด */
   .landing-card.or-only { border: 2px solid #1d4ed8; background: #f3f6ff; }
+  /* (2026-10-29) เภสัชกรตรวจรับคืนกล่อง OR (#orverify) */
+  .landing-card.pharm { border: 2px solid var(--gold); background: #fffaf0; }
+  .landing-card.pharm .landing-icon { background: #f5eedd; }
+  .landing-card.pharm .landing-text b { color: #7a5c17; }
+  .ov-badge { display: inline-block; min-width: 22px; padding: 1px 8px; border-radius: 11px; background: var(--danger);
+    color: #fff; font-size: 12.5px; font-weight: 700; text-align: center; margin-left: 6px; vertical-align: 2px; }
+  .ov-badge.zero { background: #9bb0a5; }
+  .ov-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .ov-tabs button { flex: 1; padding: 9px 4px; border: 1.5px solid #dbe3df; border-radius: var(--radius-sm); background: #fff;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--green-dark); cursor: pointer; }
+  .ov-tabs button.on { background: var(--green); border-color: var(--green); color: #fff; }
+  .ov-item { border: 1.5px solid #e3ebe6; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px; background: #fff; }
+  .ov-item.hold { border-color: var(--danger); background: #fff5f4; }
+  .ov-item-head { display: flex; align-items: center; gap: 10px; }
+  .ov-item-head .t { flex: 1; font-size: 14px; font-weight: 700; color: var(--green-dark); }
+  .ov-item-head .t small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+  .ov-item ul { margin: 8px 0 0 18px; padding: 0; font-size: 13px; }
+  .ov-btn { padding: 8px 14px; border: none; border-radius: var(--radius-sm); background: var(--green); color: #fff;
+    font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .ov-btn.gold { background: var(--gold); }
+  .ov-btn.ghost { background: #fff; color: var(--green-dark); border: 1.5px solid #dbe3df; }
+  .ov-empty { text-align: center; color: var(--muted); font-size: 13.5px; padding: 18px 0; }
+  .ov-drug { border: 1.5px solid #e5ebe8; border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 8px; }
+  .ov-drug.ok { border-color: #8cc7a6; background: #f3faf6; }
+  .ov-drug.bad { border-color: var(--danger); background: #fff5f4; }
+  .ov-drug .n { font-size: 13.5px; font-weight: 700; }
+  .ov-drug .n small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+  .ov-drug .nums { font-size: 12.5px; color: var(--muted); margin: 4px 0 6px; }
+  .ov-drug .nums b { color: var(--text); }
+  .ov-row { display: flex; gap: 8px; align-items: center; }
+  .ov-row input { padding: 8px 10px; font-size: 15px; }
+  .ov-row .cnt { width: 90px; flex-shrink: 0; }
+  .ov-row .res { font-size: 12.5px; font-weight: 700; }
+  .ov-refill { display: none; gap: 8px; margin-top: 8px; }
+  .ov-refill.show { display: flex; }
+  .ov-refill input { padding: 8px 10px; font-size: 14px; }
+  .ov-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center;
+    z-index: 60; padding: 16px; }
+  .ov-modal.show { display: flex; }
+  .ov-modal .box { background: #fff; border-radius: var(--radius); padding: 18px; width: 100%; max-width: 380px; }
   .landing-card.or-only:hover, .landing-card.or-only:focus-visible { border-color: #1e3a8a; }
   .landing-card.or-only .landing-icon { background: #dbe5ff; }
   .landing-card.or-only .landing-text b { color: #1e3a8a; }
@@ -454,6 +494,15 @@
     </div>
     <div class="landing-arrow">›</div>
   </button>
+  <!-- (2026-10-29) เภสัชกรตรวจรับคืนกล่อง OR — ป้ายแดงแสดงจำนวนงานค้าง -->
+  <button type="button" class="landing-card pharm" onclick="goView('orverify')">
+    <div class="landing-icon">🧾</div>
+    <div class="landing-text">
+      <b>เภสัชกร: ตรวจรับคืนกล่อง OR <span class="ov-badge zero" id="ovLandingBadge">–</span></b>
+      <span>นับยอด กระทบยอด เติมยา ปิดซีล และพิมพ์แบบตรวจรับคืน (ใช้ PIN เภสัชกร)</span>
+    </div>
+    <div class="landing-arrow">›</div>
+  </button>
   <button type="button" class="landing-card" onclick="goView('record')">
     <div class="landing-icon">💊</div>
     <div class="landing-text">
@@ -546,6 +595,74 @@
     <button type="submit" class="submit-btn" id="orBoxSubmitBtn">บันทึกข้อมูล</button>
     <div class="badge-required-note">ช่องที่มี <span class="req">*</span> ต้องกรอกให้ครบ</div>
   </form>
+</main>
+
+<!-- ═══ VIEW: เภสัชกรตรวจรับคืนกล่อง OR (2026-10-29) ═══ -->
+<main id="viewOrVerify" class="view">
+  <div id="ovList">
+    <div class="ov-tabs">
+      <button type="button" id="ovTabPending" class="on" onclick="ovTab('pending')">รอตรวจ <span class="ov-badge zero" id="ovCntPending">0</span></button>
+      <button type="button" id="ovTabFollowup" onclick="ovTab('followup')">รอติดตาม <span class="ov-badge zero" id="ovCntFollowup">0</span></button>
+      <button type="button" id="ovTabRecent" onclick="ovTab('recent')">ตรวจแล้ว</button>
+    </div>
+    <div id="ovItems"><div class="ov-empty">— กำลังโหลด —</div></div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:6px">
+      <button type="button" class="ov-btn ghost" onclick="loadOrVerify()">↻ รีเฟรช</button>
+      <button type="button" class="ov-btn ghost" onclick="ovOpenPin()">ตั้ง/เปลี่ยน PIN</button>
+    </div>
+  </div>
+
+  <form id="ovForm" style="display:none" autocomplete="off">
+    <div class="card">
+      <h2 id="ovFormTitle">ตรวจรับคืน</h2>
+      <div id="ovFormInfo" style="font-size:13px;line-height:1.6"></div>
+    </div>
+    <div class="card">
+      <h2>1. นับยอดคงเหลือจริงทุกรายการ <span class="req">*</span></h2>
+      <div class="hint" style="margin:-6px 0 10px">ควรเหลือ = PAR − ยาที่ใช้ตามที่ห้องผ่าตัดบันทึก · นับเองทุกรายการ อย่ากรอกตามตัวเลขที่ควรเหลือ</div>
+      <div id="ovDrugs"></div>
+    </div>
+    <div class="card" id="ovCauseCard" style="display:none">
+      <h2 style="color:var(--danger)">ยอดไม่ตรง</h2>
+      <div id="ovMismatch" style="font-size:13px;margin-bottom:8px"></div>
+      <label>สาเหตุ / การดำเนินการ (ข้อ 6.10)</label>
+      <textarea id="ovCause" placeholder="เว้นว่าง = บันทึกเป็น &quot;รอติดตาม&quot; (ยังไม่เติมยา/ไม่ปิดซีล กล่องนี้เบิกไม่ได้) · ระบุแล้ว = เติมยาและปิดซีลได้" oninput="ovRefresh()"></textarea>
+    </div>
+    <div class="card" id="ovSealCard">
+      <h2>2. ซีล</h2>
+      <label>หมายเลขซีลเดิม (ที่ติดกล่องตอนรับคืน)</label>
+      <input type="text" id="ovSealOld">
+      <div class="hint" id="ovSealHint"></div>
+      <div id="ovSealNewWrap"><label>หมายเลขซีลใหม่ <span class="req">*</span></label><input type="text" id="ovSealNew"></div>
+    </div>
+    <div class="card">
+      <h2>3. ผู้ตรวจ</h2>
+      <label>เภสัชกรผู้ตรวจ <span class="req">*</span></label>
+      <select id="ovPharm"></select>
+      <label>PIN เภสัชกร <span class="req">*</span></label>
+      <input type="password" id="ovPin" inputmode="numeric" maxlength="6" autocomplete="off">
+      <label>ผู้ตรวจสอบซ้ำ (บุคคลที่ 2) <span class="req">*</span></label>
+      <select id="ovDc"></select>
+      <div class="hint">พิมพ์แบบตรวจรับคืนแล้วลงนามมือทั้งสองคน</div>
+    </div>
+    <button type="submit" class="submit-btn" id="ovSubmit">บันทึกการตรวจรับคืน</button>
+    <button type="button" class="ov-btn ghost" style="width:100%;margin-top:10px;padding:12px" onclick="ovCloseForm()">ยกเลิก กลับไปรายการ</button>
+  </form>
+
+  <div class="ov-modal" id="ovPinModal">
+    <div class="box">
+      <h2 style="margin:0 0 6px;font-size:15px;color:var(--green-dark)">ตั้ง / เปลี่ยน PIN เภสัชกร</h2>
+      <label>ชื่อเภสัชกร</label><select id="pmName"></select>
+      <label>PIN เดิม (ตั้งครั้งแรก/ลืม PIN ใช้ admin PIN)</label><input type="password" id="pmOld" inputmode="numeric" maxlength="6">
+      <label style="font-weight:400"><input type="checkbox" id="pmIsAdmin" style="width:auto;margin-right:6px">ช่องด้านบนเป็น admin PIN</label>
+      <label>PIN ใหม่ (ตัวเลข 4–6 หลัก)</label><input type="password" id="pmNew" inputmode="numeric" maxlength="6">
+      <label>ยืนยัน PIN ใหม่</label><input type="password" id="pmNew2" inputmode="numeric" maxlength="6">
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button type="button" class="ov-btn ghost" style="flex:1" onclick="document.getElementById('ovPinModal').classList.remove('show')">ยกเลิก</button>
+        <button type="button" class="ov-btn" style="flex:1" id="pmSave" onclick="ovSavePin()">บันทึก PIN</button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <!-- ═══ VIEW: Medication Management Records (หน้าเดิม) ═══ -->
@@ -1175,6 +1292,7 @@
     '':       { id: 'viewLanding', title: 'Off-Hours Medication (24.00-08.00)', sub: 'เลือกรายการที่ต้องการบันทึก' },
     'box':    { id: 'viewBox',     title: 'บันทึกผู้เบิก / คืนกล่องยา', sub: 'กล่องยา Tier A — เบิก 24.00 น. / คืนไม่เกิน 08.30 น.' },
     'orbox':  { id: 'viewOrBox',   title: 'บันทึกผู้เบิก / คืนกล่องยา OR', sub: 'ห้องผ่าตัด — บันทึกทุกครั้งที่เบิก-คืน / คืนภายใน 24 ชม. หลังเบิก' },
+    'orverify': { id: 'viewOrVerify', title: 'เภสัชกร: ตรวจรับคืนกล่องยา OR', sub: 'นับยอด กระทบยอด 3 ทาง เติมยา ปิดซีล — เคลียร์งานค้างให้จบ' },
     'record': { id: 'viewRecord',  title: 'Medication Management Records (Special Hour 24.00-08.00)', sub: '24.00–08.00 น. — กรอกให้ครบก่อนหยิบยาทุกครั้ง' }
   };
   function goView(v) {
@@ -1192,6 +1310,8 @@
     document.getElementById('backBtn').classList.toggle('show', v !== '');
     if (v === '' || v === 'box') loadOpenBoxes();
     if (v === 'orbox') { loadOpenBoxes('or'); loadOrBoxDrugs(); }
+    if (v === 'orverify') { ovCloseForm(); loadOrVerify(); }
+    if (v === '') loadOrVerify(true);
     window.scrollTo(0, 0);
   }
   window.addEventListener('hashchange', renderView);
@@ -1423,6 +1543,227 @@
       })
       .catch(function () { hideSaveOverlay(); showToast('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง', 'error'); })
       .finally(function () { btn.disabled = false; btn.textContent = 'บันทึกข้อมูล'; });
+  }
+  // ══ (2026-10-29) เภสัชกรตรวจรับคืนกล่อง OR — คิวจาก ?action=getOrVerifyQueue, บันทึก POST submitOrVerify (PIN รายบุคคล) ══
+  let ovData = null, ovCur = null, ovTabNow = 'pending';
+  const ovEsc = function (t) { return escHtml(t == null ? '' : t); };
+  function loadOrVerify(badgeOnly) {
+    fetch(WEBAPP_URL + '?action=getOrVerifyQueue')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.status !== 'ok') throw new Error(d.msg || 'โหลดไม่สำเร็จ');
+        ovData = d;
+        const n = d.pending.length + d.followup.length;
+        const lb = document.getElementById('ovLandingBadge');
+        lb.textContent = n; lb.classList.toggle('zero', n === 0);
+        if (badgeOnly) return;
+        [['ovCntPending', d.pending.length], ['ovCntFollowup', d.followup.length]].forEach(function (x) {
+          const el = document.getElementById(x[0]); el.textContent = x[1]; el.classList.toggle('zero', x[1] === 0);
+        });
+        ovFillPeople();
+        ovRenderList();
+      })
+      .catch(function (e) {
+        if (!badgeOnly) document.getElementById('ovItems').innerHTML = '<div class="ov-empty" style="color:var(--danger)">โหลดไม่สำเร็จ — ' + ovEsc(e.message) + '</div>';
+      });
+  }
+  function ovTab(t) {
+    ovTabNow = t;
+    ['Pending', 'Followup', 'Recent'].forEach(function (k) { document.getElementById('ovTab' + k).classList.toggle('on', k.toLowerCase() === t); });
+    ovRenderList();
+  }
+  function ovUsedHtml(rec) {
+    return rec.used.length ? '<ul>' + rec.used.map(function (u) { return '<li>' + ovEsc(u.name) + ' — <b>' + u.qty + '</b> ' + ovEsc(u.uom) + '</li>'; }).join('') + '</ul>'
+      : '<div class="hint">ไม่มีรายการยาที่ใช้</div>';
+  }
+  function ovRenderList() {
+    if (!ovData) return;
+    const list = ovData[ovTabNow] || [];
+    const empty = { pending: 'ไม่มีกล่องรอตรวจ 🎉', followup: 'ไม่มีรายการรอติดตาม', recent: 'ยังไม่มีรายการที่ตรวจแล้ว (14 วัน)' }[ovTabNow];
+    document.getElementById('ovItems').innerHTML = list.length ? list.map(function (rec, i) {
+      const v = rec.verify;
+      const btn = ovTabNow === 'recent'
+        ? '<button type="button" class="ov-btn ghost" onclick="ovPrint(\'' + ovEsc(rec.logId) + '\')">🖨 พิมพ์</button>'
+        : '<button type="button" class="ov-btn' + (ovTabNow === 'followup' ? ' gold' : '') + '" onclick="ovOpen(' + i + ')">' + (ovTabNow === 'followup' ? 'เคลียร์' : 'ตรวจรับ') + '</button>';
+      return '<div class="ov-item' + (ovTabNow === 'followup' ? ' hold' : '') + '"><div class="ov-item-head">'
+        + '<div class="box-num set">' + boxLabel(rec.box) + '</div>'
+        + '<div class="t">' + ovEsc(rec.boxName) + '<small>คืน ' + ovEsc(rec.returnTs) + ' โดย ' + ovEsc(rec.returnedBy)
+        + (rec.late ? ' · <b style="color:var(--danger)">คืนเกิน 24 ชม.</b>' : '') + '<br>Log ID ' + ovEsc(rec.logId) + '</small></div>' + btn + '</div>'
+        + (v ? '<div class="hint" style="margin-top:6px">' + ovEsc(v.status) + ' · ' + ovEsc(v.pharmacist) + ' ' + ovEsc(v.verifiedAt)
+            + (v.mismatch ? '<br><span style="color:var(--danger)">' + ovEsc(v.mismatch) + '</span>' : '') + '</div>' : '')
+        + (ovTabNow !== 'recent' ? ovUsedHtml(rec) : '') + '</div>';
+    }).join('') : '<div class="ov-empty">' + empty + '</div>';
+  }
+  function ovFillPeople() {
+    const keep = function (id) { return document.getElementById(id).value; };
+    const ph = keep('ovPharm'), dc = keep('ovDc'), pm = keep('pmName');
+    const opt = function (n, extra) { return '<option value="' + ovEsc(n) + '">' + ovEsc(n) + (extra || '') + '</option>'; };
+    document.getElementById('ovPharm').innerHTML = '<option value="">— เลือกชื่อ —</option>' + ovData.pharmacists.map(function (p) {
+      return opt(p.name, (p.name === ovData.onDuty ? ' (เวรนี้)' : '') + (p.hasPin ? '' : ' — ยังไม่ตั้ง PIN'));
+    }).join('');
+    document.getElementById('ovDc').innerHTML = '<option value="">— เลือกชื่อ —</option>' + ovData.staff.map(function (n) { return opt(n); }).join('');
+    document.getElementById('pmName').innerHTML = '<option value="">— เลือกชื่อ —</option>' + ovData.pharmacists.map(function (p) { return opt(p.name); }).join('');
+    document.getElementById('ovPharm').value = ph || ovData.onDuty || '';
+    document.getElementById('ovDc').value = dc; document.getElementById('pmName').value = pm;
+  }
+  function ovOpen(i) {
+    ovCur = ovData[ovTabNow][i];
+    const rec = ovCur, v = rec.verify;
+    document.getElementById('ovList').style.display = 'none';
+    document.getElementById('ovForm').style.display = 'block';
+    document.getElementById('ovFormTitle').textContent = (v ? 'เคลียร์รายการรอติดตาม — ' : 'ตรวจรับคืน — ') + 'กล่อง ' + boxLabel(rec.box);
+    document.getElementById('ovFormInfo').innerHTML = '<b>' + ovEsc(rec.boxName) + '</b><br>เบิก ' + ovEsc(rec.checkoutTs) + ' โดย ' + ovEsc(rec.checkoutBy)
+      + '<br>คืน ' + ovEsc(rec.returnTs) + ' โดย ' + ovEsc(rec.returnedBy) + '<br>Log ID ' + ovEsc(rec.logId)
+      + (v ? '<br><span style="color:var(--danger)">รอบก่อน: ' + ovEsc(v.mismatch) + ' (' + ovEsc(v.pharmacist) + ' ' + ovEsc(v.verifiedAt) + ')</span>' : '')
+      + '<div style="margin-top:6px"><b>ยาที่ใช้ตามระบบ</b>' + ovUsedHtml(rec) + '</div>';
+    document.getElementById('ovDrugs').innerHTML = rec.items.map(function (d, k) {
+      return '<div class="ov-drug" id="ovd' + k + '"><div class="n">' + ovEsc(d.name) + '<small>' + ovEsc(d.code) + '</small></div>'
+        + '<div class="nums">PAR <b>' + d.par + '</b> · ใช้ <b>' + d.used + '</b> · ควรเหลือ <b>' + d.expected + '</b> ' + ovEsc(d.uom) + '</div>'
+        + '<div class="ov-row"><input type="number" class="cnt" min="0" step="1" inputmode="numeric" placeholder="นับได้" oninput="ovRefresh()">'
+        + '<span class="res"></span></div>'
+        + '<div class="ov-refill"><input type="text" class="lot" placeholder="Lot ที่เติม"><input type="text" class="exp" placeholder="Exp. (MM/YYYY)"></div></div>';
+    }).join('');
+    const ls = ovData.lastSeal[rec.box] || '';
+    document.getElementById('ovSealOld').value = (v && v.sealOld) || ls;
+    document.getElementById('ovSealHint').textContent = ls ? 'ซีลที่บันทึกล่าสุดของกล่องนี้: ' + ls + ' — ตรวจว่าตรงกับซีลจริง' : 'ยังไม่มีซีลที่บันทึกของกล่องนี้ในระบบ';
+    document.getElementById('ovSealNew').value = '';
+    document.getElementById('ovCause').value = '';
+    document.getElementById('ovPin').value = '';
+    ovRefresh();
+    window.scrollTo(0, 0);
+  }
+  function ovCloseForm() {
+    ovCur = null;
+    document.getElementById('ovForm').style.display = 'none';
+    document.getElementById('ovList').style.display = 'block';
+  }
+  // คำนวณสถานะทุกครั้งที่กรอก: ตรง/ไม่ตรง, จำนวนเติม = PAR − นับได้, ช่อง Lot/Exp เฉพาะรายการที่ต้องเติม
+  function ovRefresh() {
+    if (!ovCur) return;
+    const mism = [];
+    let allCounted = true;
+    ovCur.items.forEach(function (d, k) {
+      const el = document.getElementById('ovd' + k), inp = el.querySelector('.cnt'), res = el.querySelector('.res');
+      const has = inp.value !== '', c = Number(inp.value);
+      if (!has) allCounted = false;
+      const ok = has && c === d.expected;
+      el.classList.toggle('ok', has && ok); el.classList.toggle('bad', has && !ok);
+      if (has && !ok) mism.push(d.name + ' (ควรเหลือ ' + d.expected + ' นับได้ ' + c + ')');
+      const need = has ? d.par - c : 0;
+      res.innerHTML = !has ? '' : (ok ? '<span style="color:var(--green)">✓ ตรง</span>' : '<span style="color:var(--danger)">✗ ไม่ตรง</span>')
+        + (need > 0 ? ' · เติม <b>' + need + '</b>' : '');
+      el.dataset.need = need;
+    });
+    const hold = mism.length > 0 && !document.getElementById('ovCause').value.trim();
+    document.getElementById('ovCauseCard').style.display = mism.length ? 'block' : 'none';
+    document.getElementById('ovMismatch').innerHTML = mism.map(function (m) { return '• ' + ovEsc(m); }).join('<br>');
+    ovCur.items.forEach(function (d, k) {
+      const el = document.getElementById('ovd' + k);
+      el.querySelector('.ov-refill').classList.toggle('show', !hold && Number(el.dataset.need) > 0);
+    });
+    document.getElementById('ovSealNewWrap').style.display = hold ? 'none' : 'block';
+    document.getElementById('ovSubmit').textContent = !allCounted ? 'บันทึกการตรวจรับคืน'
+      : hold ? 'บันทึกเป็น "รอติดตาม" (ล็อกกล่อง)' : 'บันทึก — เติมยาและปิดซีลแล้ว';
+  }
+  document.getElementById('ovForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (!ovCur) return;
+    const items = ovCur.items.map(function (d, k) {
+      const el = document.getElementById('ovd' + k);
+      return { code: d.code, counted: el.querySelector('.cnt').value, refilled: Number(el.dataset.need) || 0,
+               lot: el.querySelector('.lot').value, exp: el.querySelector('.exp').value };
+    });
+    if (items.some(function (x) { return x.counted === ''; })) { showToast('กรุณานับยอดคงเหลือจริงให้ครบทุกรายการ', 'error'); return; }
+    const body = { action: 'submitOrVerify', logId: ovCur.logId, items: items,
+      pharmacist: document.getElementById('ovPharm').value, pin: document.getElementById('ovPin').value,
+      doubleChecker: document.getElementById('ovDc').value, sealOld: document.getElementById('ovSealOld').value,
+      sealNew: document.getElementById('ovSealNew').value, cause: document.getElementById('ovCause').value };
+    if (!body.pharmacist || !body.pin || !body.doubleChecker) { showToast('กรุณาเลือกเภสัชกร ใส่ PIN และเลือกผู้ตรวจสอบซ้ำ', 'error'); return; }
+    const btn = document.getElementById('ovSubmit');
+    btn.disabled = true;
+    showSaveOverlay();
+    fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.status !== 'ok') { hideSaveOverlay(); showToast(res.msg || 'บันทึกไม่สำเร็จ', 'error'); return; }
+        showSaveSuccess();
+        const logId = ovCur.logId, done = res.verifyStatus !== 'ไม่ตรง — รอติดตาม';
+        setTimeout(function () { showToast(res.msg, done ? 'ok' : 'error'); }, 2100);
+        ovCloseForm();
+        loadOrVerify();
+        if (done && confirm('บันทึกแล้ว — พิมพ์แบบตรวจรับคืนเพื่อลงนามเลยไหม?')) ovPrint(logId);
+      })
+      .catch(function () { hideSaveOverlay(); showToast('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง', 'error'); })
+      .finally(function () { btn.disabled = false; });
+  });
+  function ovOpenPin() {
+    ['pmOld', 'pmNew', 'pmNew2'].forEach(function (id) { document.getElementById(id).value = ''; });
+    document.getElementById('pmIsAdmin').checked = false;
+    document.getElementById('ovPinModal').classList.add('show');
+  }
+  function ovSavePin() {
+    const name = document.getElementById('pmName').value, old = document.getElementById('pmOld').value;
+    const n1 = document.getElementById('pmNew').value, n2 = document.getElementById('pmNew2').value;
+    if (!name) { showToast('กรุณาเลือกชื่อ', 'error'); return; }
+    if (!/^\d{4,6}$/.test(n1)) { showToast('PIN ใหม่ต้องเป็นตัวเลข 4–6 หลัก', 'error'); return; }
+    if (n1 !== n2) { showToast('PIN ใหม่ทั้งสองช่องไม่ตรงกัน', 'error'); return; }
+    const isAdmin = document.getElementById('pmIsAdmin').checked;
+    const body = { action: 'setPharmPin', name: name, newPin: n1 };
+    if (isAdmin) body.adminPin = old; else body.oldPin = old;
+    const btn = document.getElementById('pmSave'); btn.disabled = true;
+    fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        showToast(res.msg || (res.status === 'ok' ? 'บันทึกแล้ว' : 'ไม่สำเร็จ'), res.status === 'ok' ? 'ok' : 'error');
+        if (res.status === 'ok') { document.getElementById('ovPinModal').classList.remove('show'); loadOrVerify(); }
+      })
+      .catch(function () { showToast('เชื่อมต่อไม่สำเร็จ', 'error'); })
+      .finally(function () { btn.disabled = false; });
+  }
+  // พิมพ์แบบตรวจรับคืนรายครั้ง (A4) — เปิดหน้าต่างก่อน fetch กัน popup blocker แล้วสั่ง print (บันทึกเป็น PDF ได้)
+  function ovPrint(logId) {
+    const w = window.open('', '_blank');
+    if (!w) { showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — กรุณาอนุญาต pop-up', 'error'); return; }
+    w.document.write('<p style="font-family:sans-serif">กำลังโหลด…</p>');
+    fetch(WEBAPP_URL + '?action=getOrVerifyRecord&logId=' + encodeURIComponent(logId))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.status !== 'ok') throw new Error(d.msg);
+        w.document.open(); w.document.write(ovPrintHtml(d)); w.document.close();
+        setTimeout(function () { w.focus(); w.print(); }, 500);
+      })
+      .catch(function (e) { w.document.body.innerHTML = '<p style="font-family:sans-serif;color:#b3261e">พิมพ์ไม่ได้: ' + ovEsc(e.message) + '</p>'; });
+  }
+  function ovPrintHtml(d) {
+    const v = d.verify, td = 'border:1px solid #555;padding:3px 5px';
+    const rows = d.items.map(function (it, i) {
+      return '<tr><td style="' + td + ';text-align:center">' + (i + 1) + '</td><td style="' + td + '">' + ovEsc(it.name) + '<br><span style="font-size:9pt;color:#555">' + ovEsc(it.code) + '</span></td>'
+        + ['par', 'used', 'expected', 'counted'].map(function (k) { return '<td style="' + td + ';text-align:center">' + ovEsc(it[k]) + '</td>'; }).join('')
+        + '<td style="' + td + ';text-align:center;' + (it.match === 'ตรง' ? '' : 'color:#b3261e;font-weight:bold') + '">' + ovEsc(it.match) + '</td>'
+        + '<td style="' + td + ';text-align:center">' + ovEsc(it.refilled || '') + '</td>'
+        + '<td style="' + td + '">' + ovEsc([it.lot, it.exp].filter(Boolean).join(' / ')) + '</td></tr>';
+    }).join('');
+    const used = d.used.length ? d.used.map(function (u) { return ovEsc(u.name) + ' ' + u.qty + ' ' + ovEsc(u.uom); }).join(', ') : '-';
+    return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>แบบตรวจรับคืนกล่องยา OR ' + ovEsc(d.logId) + '</title>'
+      + '<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">'
+      + '<style>@page{size:A4;margin:14mm}body{font-family:Sarabun,sans-serif;font-size:11.5pt;color:#000}table{border-collapse:collapse;width:100%}'
+      + 'h1{font-size:15pt;margin:0 0 2px;color:#0f613b}.sub{font-size:10pt;color:#555;margin-bottom:8px}.grid td{padding:2px 6px 2px 0;vertical-align:top}'
+      + '.sig td{padding-top:28px;text-align:center;width:33%}</style></head><body>'
+      + '<h1>แบบตรวจรับคืนและเติมกล่องยา OR</h1><div class="sub">นโยบายการจัดการยาสำรองประจำห้องผ่าตัด (OR Floor Stock) ภาคผนวก ง · พิมพ์จากระบบ ' + new Date().toLocaleString('th-TH') + '</div>'
+      + '<table class="grid"><tr><td><b>กล่อง</b> ' + ovEsc(boxLabel(d.box)) + ' ' + ovEsc(d.boxName) + '</td><td><b>Log ID</b> ' + ovEsc(d.logId) + '</td></tr>'
+      + '<tr><td><b>เบิก</b> ' + ovEsc(d.checkoutTs) + ' โดย ' + ovEsc(d.checkoutBy) + '</td><td><b>คืน</b> ' + ovEsc(d.returnTs) + ' โดย ' + ovEsc(d.returnedBy) + (d.late ? ' (คืนเกิน 24 ชม.)' : '') + '</td></tr>'
+      + '<tr><td colspan="2"><b>ยาที่ใช้ตามระบบ</b> ' + used + '</td></tr>'
+      + '<tr><td><b>ซีลเดิม</b> ' + ovEsc(v.sealOld || '-') + '</td><td><b>ซีลใหม่</b> ' + ovEsc(v.sealNew || '-') + '</td></tr></table>'
+      + '<table style="margin-top:8px"><tr style="background:#eef4f0">'
+      + ['ลำดับ', 'ชื่อยา', 'PAR', 'ใช้ตามระบบ', 'ควรเหลือ', 'นับได้', 'ผล', 'เติม', 'Lot / Exp.'].map(function (h) { return '<th style="' + td + '">' + h + '</th>'; }).join('')
+      + '</tr>' + rows + '</table>'
+      + '<p><b>ผลการกระทบยอด 3 ทาง:</b> ' + ovEsc(v.status) + (v.mismatch ? '<br><b>รายการไม่ตรง:</b> ' + ovEsc(v.mismatch) : '')
+      + (v.cause ? '<br><b>สาเหตุ / การดำเนินการ:</b> ' + ovEsc(v.cause) : '') + '</p>'
+      + '<p style="font-size:10pt">☐ ตรวจกับ anesthetic record และรายการค่ายาในระบบ HIS แล้ว &nbsp; ☐ กล่องที่ 2: ตรวจแบบ ยส.5 + ยส.2/วจ.2 บันทึกการทำลาย และ ampoule/vial เปล่าแล้ว</p>'
+      + '<table class="sig"><tr><td>ลงชื่อ ..................................................<br>(' + ovEsc(d.returnedBy) + ')<br>ผู้คืนกล่อง</td>'
+      + '<td>ลงชื่อ ..................................................<br>(' + ovEsc(v.resolvedBy || v.pharmacist) + ')<br>เภสัชกรผู้ตรวจ ' + ovEsc(v.resolvedAt || v.verifiedAt) + '</td>'
+      + '<td>ลงชื่อ ..................................................<br>(' + ovEsc(v.doubleChecker) + ')<br>ผู้ตรวจสอบซ้ำ</td></tr></table>'
+      + '</body></html>';
   }
   document.getElementById('boxForm').addEventListener('submit', function (ev) { submitBoxForm(ev, 'box'); });
   document.getElementById('orBoxForm').addEventListener('submit', function (ev) { submitBoxForm(ev, 'or'); });
