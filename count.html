@@ -160,7 +160,7 @@
 
 <div class="modal" id="pinModal" hidden>
   <form class="card" id="pinForm" autocomplete="off">
-    <div class="title">ยืนยันการยกเลิก</div>
+    <div class="title" id="pinTitle">ยืนยันการยกเลิก</div>
     <div class="sub" id="pinWhat" style="margin-top:4px"></div>
     <label class="f" for="pinInput">รหัสพนักงาน</label>
     <input class="t" id="pinInput" type="password" inputmode="numeric" maxlength="12">
@@ -474,7 +474,10 @@
     ['fLot', 'fD', 'fM', 'fY', 'fQty', 'fLoc', 'fName'].forEach(function (id) {
       var el = $(id); if (el) el.addEventListener('input', function () { form.confirmed = ''; $('fWarn').hidden = true; });
     });
-    $('fNoLot').addEventListener('change', function (e) { $('fLot').disabled = e.target.checked; if (e.target.checked) $('fLot').value = ''; });
+    $('fNoLot').addEventListener('change', function (e) {
+      if (e.target.checked) { e.target.checked = false; askNoLot(); return; }   // ต้องยืนยันด้วยรหัสพนักงาน กันกดพลาด
+      $('fLot').disabled = false;
+    });
     $('calcToggle').addEventListener('click', function () { $('calc').hidden = !$('calc').hidden; });
     ['cBox', 'cPer', 'cLoose'].forEach(function (id) {
       $(id).addEventListener('input', function () {
@@ -547,19 +550,27 @@
   function hideSheet() { $('sheet').hidden = true; form = null; render(); }
 
   // ยกเลิกต้องใส่รหัสพนักงานก่อน กันกดพลาด
-  var cancelId = '', cancelTarget = null;
+  var cancelId = '', cancelTarget = null, pinMode = 'cancel';
+  function openPin(mode, title, what, noText) {
+    pinMode = mode; $('pinTitle').textContent = title; $('pinWhat').textContent = what; $('pinNo').textContent = noText;
+    $('pinInput').value = ''; $('pinErr').hidden = true; $('pinModal').hidden = false; $('pinInput').focus();
+  }
+  function askNoLot() { openPin('nolot', 'ยืนยันว่าไม่มีเลข Lot', 'ใส่รหัสพนักงานเพื่อยืนยันว่ากล่องนี้ไม่มีเลข Lot', 'ไม่ยืนยัน'); }
   function cancelRow(id) {
     var typed = /^row:(\d+)$/.exec(id);
     var r = (typed ? rowsOf(form.d.c)[Number(typed[1])] : allRows().filter(function (x) { return x.id === id; })[0]) || {};
     cancelId = id; cancelTarget = r;
-    $('pinWhat').textContent = 'Lot ' + (r.lot || '-') + ' · EXP ' + (r.exp || '-') + ' · จำนวน ' + num(r.q);
-    $('pinInput').value = ''; $('pinErr').hidden = true; $('pinModal').hidden = false; $('pinInput').focus();
+    openPin('cancel', 'ยืนยันการยกเลิก', 'Lot ' + (r.lot || '-') + ' · EXP ' + (r.exp || '-') + ' · จำนวน ' + num(r.q), 'ไม่ยกเลิก');
   }
   function closePin() { $('pinModal').hidden = true; cancelId = ''; }
   function pinFail(m) { $('pinErr').textContent = m; $('pinErr').hidden = false; $('pinYes').disabled = false; }
   function confirmCancel() {
     var id = cancelId, pin = $('pinInput').value.trim();
     if (!pin) return pinFail('กรุณาใส่รหัสพนักงาน');
+    if (pinMode === 'nolot') {
+      if (pin !== S.pin) return pinFail('รหัสพนักงานไม่ถูกต้อง');
+      $('fNoLot').checked = true; $('fLot').value = ''; $('fLot').disabled = true; form.confirmed = ''; closePin(); return;
+    }
     var q = S.queue.filter(function (x) { return x.id === id; })[0];
     if (q) {
       if (pin !== S.pin) return pinFail('รหัสพนักงานไม่ถูกต้อง');
