@@ -457,10 +457,10 @@
     var box = $('lotsBox'); if (!box || !form || !form.d) return;
     var r = rowsOf(form.d.c, S.mode);
     if ($('saveNone')) $('saveNone').hidden = r.length > 0;   // มี Lot แล้ว ไม่ต้องกด "ไม่มีของ"
-    box.innerHTML = r.length ? '<div class="sub" style="margin-top:10px">นับแล้วที่นี่</div>' + r.map(function (x) {
+    box.innerHTML = r.length ? '<div class="sub" style="margin-top:10px">นับแล้วที่นี่</div>' + r.map(function (x, i) {
       return '<div class="lot"><div><b>' + esc(x.lot || 'ไม่มี Lot') + '</b> · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(form.d.u) +
         '<div class="sub">' + esc(x.loc) + (x.by ? ' · ' + esc(x.by) : '') + (x.failed ? ' · ' + esc(x.failed) : (x.pending ? ' · รอส่ง' : '')) + '</div></div>' +
-        (x.id ? '<button type="button" data-cancel="' + esc(x.id) + '">ยกเลิก</button>' : '') + '</div>';
+        '<button type="button" data-cancel="' + esc(x.id || 'row:' + i) + '">ยกเลิก</button></div>';
     }).join('') : '';
   }
   function wireForm() {
@@ -539,10 +539,11 @@
   function hideSheet() { $('sheet').hidden = true; form = null; render(); }
 
   // ยกเลิกต้องใส่รหัสพนักงานก่อน กันกดพลาด
-  var cancelId = '';
+  var cancelId = '', cancelTarget = null;
   function cancelRow(id) {
-    var r = allRows().filter(function (x) { return x.id === id; })[0] || {};
-    cancelId = id;
+    var typed = /^row:(\d+)$/.exec(id);
+    var r = (typed ? rowsOf(form.d.c)[Number(typed[1])] : allRows().filter(function (x) { return x.id === id; })[0]) || {};
+    cancelId = id; cancelTarget = r;
     $('pinWhat').textContent = 'Lot ' + (r.lot || '-') + ' · EXP ' + (r.exp || '-') + ' · จำนวน ' + num(r.q);
     $('pinInput').value = ''; $('pinErr').hidden = true; $('pinModal').hidden = false; $('pinInput').focus();
   }
@@ -558,10 +559,13 @@
       S.queue = S.queue.filter(function (x) { return x.id !== id; }); save(K_QUEUE, S.queue); pill(); drawLots(); closePin(); success('ยกเลิกแล้ว'); return;
     }
     $('pinYes').disabled = true;
-    post({ action: 'cancelStockCount', pin: pin, id: id }).then(function (r) {
+    var target = cancelTarget, req = target && !target.id
+      ? { action: 'cancelStockCount', pin: pin, code: target.c, lot: target.lot, qty: target.q }
+      : { action: 'cancelStockCount', pin: pin, id: id };
+    post(req).then(function (r) {
       $('pinYes').disabled = false;
       if (r.status !== 'ok') return pinFail(r.msg || 'ยกเลิกไม่สำเร็จ');
-      S.rows = S.rows.filter(function (x) { return x.id !== id; }); drawLots(); closePin(); success('ยกเลิกแล้ว');
+      S.rows = S.rows.filter(function (x) { return x !== target && (!id || x.id !== id); }); save(K_PLAN, { drugs: S.drugs, rows: S.rows, off: S.off }); drawLots(); closePin(); success('ยกเลิกแล้ว');
     }).catch(function () { pinFail('ยกเลิกไม่ได้ ต้องต่ออินเทอร์เน็ต'); });
   }
 
