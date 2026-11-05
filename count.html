@@ -121,7 +121,7 @@
   'use strict';
   var WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzuBl87e9Xc61jtFItkslSeJMsIMt8LaJQ4gmLO6_JxaarnCA5m2EecnqNIjNbwSaKP/exec";
   var K_USER = 'lkh_count_user_v2', K_QUEUE = 'lkh_count_queue_v1', K_LOC = 'lkh_count_loc_v1';
-  var UNKNOWN = 'ยังไม่ทราบตู้';
+  var UNKNOWN = 'ยังไม่มีตำแหน่ง';
 
   var S = { pin: '', by: '', mode: 'slot', group: null, q: '', drugs: [], byCode: {}, rows: [], off: [], queue: [], loc: '', loading: false, flushing: false };
   var form = null;
@@ -199,17 +199,18 @@
   window.addEventListener('offline', pill);
 
   // ── กลุ่ม ──
-  function slotGroup(l) { var m = /^[A-Z]+/.exec(l); return m ? m[0] : l; }
+  function slotGroup(l) { if (/^CODE/.test(l)) return l; var m = /^[A-Z]+/.exec(l); return m ? m[0] : l; }
   function natural(a, b) { return String(a).localeCompare(String(b), 'en', { numeric: true }); }
   function modeDrugs() { return S.mode === 'slot' ? S.drugs.filter(function (d) { return d.slot; }) : S.drugs; }
+  // Location มาจาก Index col L เท่านั้น: ยาที่มี Location = ช่องจ่าย, โหมดชั้น stock แสดงเฉพาะยาที่ยังไม่มี Location (ยาอื่นค้นหาได้)
+  function workDrugs() { return modeDrugs().filter(function (d) { return S.mode === 'slot' || !d.slot; }); }
   function groupsOf(d) {
-    if (S.mode === 'slot') return [slotGroup(d.slot)];
-    return d.cabs.length ? d.cabs : [UNKNOWN];
+    return S.mode === 'slot' ? [slotGroup(d.slot)] : [UNKNOWN];
   }
   function isDone(d) { return rowsOf(d.c, S.mode).length > 0; }
   function groups() {
     var g = {};
-    modeDrugs().forEach(function (d) {
+    workDrugs().forEach(function (d) {
       groupsOf(d).forEach(function (k) { (g[k] = g[k] || []).push(d); });
     });
     return Object.keys(g).sort(function (a, b) {
@@ -217,7 +218,7 @@
     }).map(function (k) { return { k: k, list: g[k] }; });
   }
   function groupList(k) {
-    var l = modeDrugs().filter(function (d) { return groupsOf(d).indexOf(k) >= 0; });
+    var l = workDrugs().filter(function (d) { return groupsOf(d).indexOf(k) >= 0; });
     return l.sort(function (a, b) { return S.mode === 'slot' ? natural(a.slot, b.slot) : natural(a.sl || 'zz', b.sl || 'zz'); });
   }
 
@@ -225,11 +226,11 @@
   function render() {
     var v = $('view'), back = $('backBtn');
     back.hidden = !S.group;
-    $('topTitle').textContent = S.group ? (S.mode === 'slot' ? 'ช่องจ่าย ' + S.group : (S.group === UNKNOWN ? UNKNOWN : 'ตู้ ' + S.group)) : 'นับ Stock ห้องยา';
+    $('topTitle').textContent = S.group ? (S.mode === 'slot' ? 'ช่องจ่าย ' + S.group : S.group) : 'นับ Stock ห้องยา';
     if (S.group) { v.innerHTML = listHtml(groupList(S.group)); return; }
-    var all = modeDrugs(), done = all.filter(isDone).length, pct = all.length ? Math.round(done * 100 / all.length) : 0, keep = S.q;
+    var all = workDrugs(), done = all.filter(isDone).length, pct = all.length ? Math.round(done * 100 / all.length) : 0, keep = S.q;
     var h = '<div class="seg"><button type="button" data-mode="slot" class="' + (S.mode === 'slot' ? 'on' : '') + '">ช่องจ่าย</button>' +
-      '<button type="button" data-mode="shelf" class="' + (S.mode === 'shelf' ? 'on' : '') + '">ตู้ / ชั้น stock</button></div>' +
+      '<button type="button" data-mode="shelf" class="' + (S.mode === 'shelf' ? 'on' : '') + '">ชั้น stock</button></div>' +
       '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + all.length + ' รายการ</span><span>' + pct + '%</span></div>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div></div>' +
       '<div class="search"><input class="t" id="q" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(keep) + '" autocomplete="off"></div>' +
@@ -257,7 +258,7 @@
     return '<div class="list">' + list.map(function (d) {
       var r = rowsOf(d.c, S.mode), tot = r.reduce(function (s, x) { return s + Number(x.q || 0); }, 0);
       return '<button type="button" class="item' + (r.length ? ' done' : '') + '" data-code="' + esc(d.c) + '">' +
-        ((S.mode === 'slot' || d.sl) ? '<span class="loc">' + esc(S.mode === 'slot' ? d.slot : d.sl) + '</span>' : '') +
+        ((d.sl || d.slot) ? '<span class="loc">' + esc(S.mode === 'slot' ? d.slot : (d.sl || d.slot)) + '</span>' : '') +
         '<span class="nm">' + esc(d.n) + (isHad(d.n) ? '<span class="had">HAD</span>' : '') + '</span>' +
         '<span class="st">' + (r.length ? num(tot) + ' ' + esc(d.u) + '<br>' + r.length + ' Lot' : '') + '</span></button>';
     }).join('') + '</div>';
@@ -277,7 +278,7 @@
   function openEntry(code, off, replace) {
     var d = off ? null : S.byCode[code];
     form = { d: d, off: !!off, confirmed: '' };
-    $('sheetTitle').textContent = off ? 'ยาไม่อยู่ในรายการ' : (S.mode === 'slot' ? 'ช่อง ' + d.slot : 'ตู้ / ชั้น stock');
+    $('sheetTitle').textContent = off ? 'ยาไม่อยู่ในรายการ' : (S.mode === 'slot' ? 'ช่อง ' + d.slot : 'ชั้น stock');
     var locVal = (d && d.sl) || S.loc || (S.group && S.group !== UNKNOWN ? S.group : '');
     var lots = {};
     if (d) allRows().forEach(function (r) { if (r.c === d.c && r.lot) lots[r.lot] = r.exp; });
@@ -291,7 +292,7 @@
         '<div id="lotsBox"></div>' +
       '</div>' +
       '<form class="card" id="entry" autocomplete="off">' +
-        ((off || S.mode === 'shelf') ? '<label class="f" for="fLoc">ตำแหน่ง (เช่น K2)</label><input class="t" id="fLoc" maxlength="20" autocapitalize="characters" value="' + esc(locVal) + '">' : '') +
+        ((off || S.mode === 'shelf') ? '<label class="f" for="fLoc">ตำแหน่งที่นับ</label><input class="t" id="fLoc" maxlength="20" autocapitalize="characters" value="' + esc(locVal) + '">' : '') +
         '<label class="f" for="fLot">Lot</label><input class="t" id="fLot" maxlength="40" autocapitalize="characters" autocorrect="off" spellcheck="false">' +
         (chips ? '<div class="chips">' + chips + '</div>' : '') +
         '<label class="check"><input type="checkbox" id="fNoLot"> กล่องนี้ไม่มีเลข Lot</label>' +
