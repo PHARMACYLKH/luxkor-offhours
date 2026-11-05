@@ -69,6 +69,7 @@
   .item .st { flex: 0 0 auto; font-size: 14px; color: var(--green-dark); font-weight: 600; text-align: right; }
   .had { color: #fff; background: var(--danger); font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: 5px; margin-left: 4px; white-space: nowrap; }
   .had.exp { background: var(--gold); }
+  .had.near { background: #fbf3df; color: #7a5d1c; box-shadow: inset 0 0 0 1px var(--gold); }
   .sub { color: var(--muted); font-size: 15px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .chip { min-height: 40px; padding: 6px 12px; border-radius: 99px; background: var(--gold-soft); color: #6d5317; font-size: 15px; font-weight: 600; }
@@ -264,7 +265,7 @@
   function num(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
   function isHad(n) { return /\(HAD\)/i.test(n); }
   function tags(d) {
-    return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + ((S.expInv || {})[d.c] ? '<span class="had exp">EXP</span>' : '');
+    return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags((S.expInv || {})[d.c] || []);
   }
   var toastT;
   function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600); }
@@ -410,7 +411,19 @@
   // รายการในคลัง EXP มาจาก EXP Inventory เท่านั้น เปลี่ยนตามยาที่ย้ายเข้ามา
   function expDays(s) {
     var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s || '');
-    return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])).getTime() : Infinity;
+    if (!m) return Infinity;
+    var a = Number(m[1]), b = Number(m[2]);   // บางแถวใน EXP Inventory เป็น เดือน/วัน/ปี เช่น 7/31/2026
+    return b > 12 ? new Date(Number(m[3]), a - 1, b).getTime() : new Date(Number(m[3]), b - 1, a).getTime();
+  }
+  // หมดอายุตั้งแต่วันถัดจากวันที่ระบุ ตรงกับ syncStockCountExpired_ ถ้าอ่านวันที่ไม่ได้ให้ถือว่าหมดอายุไว้ก่อน
+  function isExpired(l) {
+    var t = expDays(l.exp), now = new Date();
+    return t === Infinity || t < new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  }
+  function expTag(expired) { return expired ? '<span class="had exp">EXP</span>' : '<span class="had near">NEAR EXP</span>'; }
+  function expTags(lots) {
+    var out = lots.some(isExpired) ? expTag(true) : '';
+    return lots.some(function (l) { return !isExpired(l); }) ? out + expTag(false) : out;
   }
   function expHtml() {
     var inv = S.expInv || {}, items = Object.keys(inv).map(function (c) {
@@ -419,8 +432,9 @@
     }).sort(function (a, b) { return expDays(a.lots[0].exp) - expDays(b.lots[0].exp); });
     if (!items.length) return '<div class="empty">ยังไม่มียาในคลัง EXP</div>';
     return '<div class="list">' + items.map(function (x) {
-      return '<div class="item static"><div class="nm">' + esc(x.name) + '<span class="had exp">EXP</span></div>' + x.lots.map(function (l) {
-        return '<div class="sub">' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp || '-') + ' · ' + num(l.q) + (x.u ? ' ' + esc(x.u) : '') + '</div>';
+      var mixed = x.lots.some(isExpired) && !x.lots.every(isExpired);   // ยาตัวเดียวมีทั้งสองสถานะ ให้ติดแท็กราย Lot
+      return '<div class="item static"><div class="nm">' + esc(x.name) + (mixed ? '' : expTags(x.lots)) + '</div>' + x.lots.map(function (l) {
+        return '<div class="sub">' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp || '-') + ' · ' + num(l.q) + (x.u ? ' ' + esc(x.u) : '') + (mixed ? expTag(isExpired(l)) : '') + '</div>';
       }).join('') + '</div>';
     }).join('') + '</div>';
   }
