@@ -89,10 +89,8 @@
   <div class="top"><div class="top-in"><h1>นับ Stock ห้องยา</h1></div></div>
   <div class="wrap">
     <form class="card" id="loginForm" autocomplete="off">
-      <label class="f" for="inName">ชื่อผู้นับ</label>
-      <input class="t" id="inName" maxlength="40" required>
-      <label class="f" for="inPin">PIN สำหรับการนับ</label>
-      <input class="t" id="inPin" type="password" inputmode="numeric" required>
+      <label class="f" for="inPin" style="margin-top:0">รหัสพนักงาน</label>
+      <input class="t" id="inPin" type="password" inputmode="numeric" maxlength="12" required>
       <div class="warn red" id="loginErr" hidden></div>
       <div class="btns"><button class="btn pri" id="loginBtn" type="submit">เข้าสู่ระบบ</button></div>
     </form>
@@ -122,7 +120,7 @@
 (function () {
   'use strict';
   var WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzuBl87e9Xc61jtFItkslSeJMsIMt8LaJQ4gmLO6_JxaarnCA5m2EecnqNIjNbwSaKP/exec";
-  var K_USER = 'lkh_count_user_v1', K_QUEUE = 'lkh_count_queue_v1', K_LOC = 'lkh_count_loc_v1';
+  var K_USER = 'lkh_count_user_v2', K_QUEUE = 'lkh_count_queue_v1', K_LOC = 'lkh_count_loc_v1';
   var UNKNOWN = 'ยังไม่ทราบตู้';
 
   var S = { pin: '', by: '', mode: 'slot', group: null, q: '', drugs: [], byCode: {}, rows: [], off: [], queue: [], loc: '', loading: false, flushing: false };
@@ -180,7 +178,7 @@
     var next = S.queue.filter(function (x) { return !x.failed; })[0];
     if (!next) { pill(); return; }
     S.flushing = true; pill();
-    post(Object.assign({ action: 'submitStockCount', pin: S.pin }, next)).then(function (r) {
+    post(Object.assign({ action: 'submitStockCount' }, next)).then(function (r) {
       S.flushing = false;
       if (r.status === 'ok') {
         S.queue = S.queue.filter(function (x) { return x.id !== next.id; });
@@ -220,7 +218,7 @@
   }
   function groupList(k) {
     var l = modeDrugs().filter(function (d) { return groupsOf(d).indexOf(k) >= 0; });
-    return S.mode === 'slot' ? l.sort(function (a, b) { return natural(a.slot, b.slot); }) : l;
+    return l.sort(function (a, b) { return S.mode === 'slot' ? natural(a.slot, b.slot) : natural(a.sl || 'zz', b.sl || 'zz'); });
   }
 
   // ── หน้าจอ ──
@@ -235,7 +233,8 @@
       '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + all.length + ' รายการ</span><span>' + pct + '%</span></div>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div></div>' +
       '<div class="search"><input class="t" id="q" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(keep) + '" autocomplete="off"></div>' +
-      '<div id="res"></div>';
+      '<div id="res"></div>' +
+      '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
     v.innerHTML = h;
     drawResults();
     $('q').addEventListener('input', function (e) { S.q = e.target.value; drawResults(); });
@@ -258,7 +257,7 @@
     return '<div class="list">' + list.map(function (d) {
       var r = rowsOf(d.c, S.mode), tot = r.reduce(function (s, x) { return s + Number(x.q || 0); }, 0);
       return '<button type="button" class="item' + (r.length ? ' done' : '') + '" data-code="' + esc(d.c) + '">' +
-        (S.mode === 'slot' ? '<span class="loc">' + esc(d.slot) + '</span>' : '') +
+        ((S.mode === 'slot' || d.sl) ? '<span class="loc">' + esc(S.mode === 'slot' ? d.slot : d.sl) + '</span>' : '') +
         '<span class="nm">' + esc(d.n) + (isHad(d.n) ? '<span class="had">HAD</span>' : '') + '</span>' +
         '<span class="st">' + (r.length ? num(tot) + ' ' + esc(d.u) + '<br>' + r.length + ' Lot' : '') + '</span></button>';
     }).join('') + '</div>';
@@ -279,7 +278,7 @@
     var d = off ? null : S.byCode[code];
     form = { d: d, off: !!off, confirmed: '' };
     $('sheetTitle').textContent = off ? 'ยาไม่อยู่ในรายการ' : (S.mode === 'slot' ? 'ช่อง ' + d.slot : 'ตู้ / ชั้น stock');
-    var locVal = S.loc || (S.group && S.group !== UNKNOWN ? S.group : '');
+    var locVal = (d && d.sl) || S.loc || (S.group && S.group !== UNKNOWN ? S.group : '');
     var lots = {};
     if (d) allRows().forEach(function (r) { if (r.c === d.c && r.lot) lots[r.lot] = r.exp; });
     var chips = Object.keys(lots).map(function (l) {
@@ -376,7 +375,7 @@
       return;
     }
     if (locEl) { S.loc = loc; save(K_LOC, loc); }
-    S.queue.push({ id: uid(), by: S.by, place: off ? 'off' : S.mode, loc: loc, code: d ? d.c : '', name: name, lot: lot, exp: exp, qty: qty, noLot: noLot,
+    S.queue.push({ id: uid(), pin: S.pin, by: S.by, place: off ? 'off' : S.mode, loc: loc, code: d ? d.c : '', name: name, lot: lot, exp: exp, qty: qty, noLot: noLot,
       note: none ? 'ไม่มีของ' : $('fNote').value.trim(), clientTime: new Date().toISOString() });
     save(K_QUEUE, S.queue); pill(); flush();
     toast(none ? 'บันทึกว่าไม่มีของแล้ว' : 'บันทึกแล้ว');
@@ -399,7 +398,7 @@
       if (S.flushing && !q.failed) { toast('กำลังส่งรายการนี้ ลองใหม่อีกครู่'); return; }
       S.queue = S.queue.filter(function (x) { return x.id !== id; }); save(K_QUEUE, S.queue); pill(); drawLots(); return;
     }
-    post({ action: 'cancelStockCount', pin: S.pin, id: id, by: S.by }).then(function (r) {
+    post({ action: 'cancelStockCount', pin: S.pin, id: id }).then(function (r) {
       if (r.status !== 'ok') { toast(r.msg || 'ยกเลิกไม่สำเร็จ'); return; }
       S.rows = S.rows.filter(function (x) { return x.id !== id; }); drawLots(); toast('ยกเลิกแล้ว');
     }).catch(function () { toast('ยกเลิกไม่ได้ ต้องต่ออินเทอร์เน็ต'); });
@@ -408,7 +407,8 @@
   // ── เหตุการณ์ ──
   document.addEventListener('click', function (e) {
     var t = e.target.closest('button'); if (!t) return;
-    if (t.dataset.mode) { S.mode = t.dataset.mode; S.q = ''; render(); }
+    if (t.id === 'logout') { S.pin = ''; S.by = ''; save(K_USER, null); $('inPin').value = ''; $('app').hidden = true; $('login').hidden = false; }
+    else if (t.dataset.mode) { S.mode = t.dataset.mode; S.q = ''; render(); }
     else if (t.dataset.group) { S.group = t.dataset.group; history.pushState({ g: 1 }, ''); render(); scrollTo(0, 0); }
     else if (t.dataset.code) openEntry(t.dataset.code);
     else if (t.dataset.off) openEntry('', true);
@@ -433,13 +433,13 @@
   function enter() { $('login').hidden = true; $('app').hidden = false; render(); pill(); flush(); }
   $('loginForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    var name = $('inName').value.trim(), pin = $('inPin').value.trim(), btn = $('loginBtn'), er = $('loginErr');
-    if (!name || !pin) return;
+    var pin = $('inPin').value.trim(), btn = $('loginBtn'), er = $('loginErr');
+    if (!pin) return;
     btn.disabled = true; btn.textContent = 'กำลังโหลดรายการยา…'; er.hidden = true;
     fetchPlan(pin).then(function (d) {
       btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
       if (d.status !== 'ok') { er.textContent = d.msg || 'เข้าสู่ระบบไม่สำเร็จ'; er.hidden = false; return; }
-      S.pin = pin; S.by = name; save(K_USER, { pin: pin, by: name }); applyPlan(d); enter();
+      S.pin = pin; S.by = d.me; save(K_USER, { pin: pin, by: d.me }); applyPlan(d); enter();
     }).catch(function () { btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ'; er.textContent = 'เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ต'; er.hidden = false; });
   });
 
@@ -447,9 +447,9 @@
     S.queue = load(K_QUEUE, []); S.loc = load(K_LOC, '');
     var u = load(K_USER, null);
     if (u && u.pin) {
-      S.pin = u.pin; S.by = u.by; $('inName').value = u.by; $('inPin').value = u.pin;
+      S.pin = u.pin; S.by = u.by; $('inPin').value = u.pin;
       fetchPlan(u.pin).then(function (d) {
-        if (d.status === 'ok') { applyPlan(d); enter(); } else { S.pin = ''; $('login').hidden = false; }
+        if (d.status === 'ok') { S.by = d.me; applyPlan(d); enter(); } else { S.pin = ''; $('login').hidden = false; }
       }).catch(function () { S.pin = ''; $('login').hidden = false; $('loginErr').textContent = 'เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ต'; $('loginErr').hidden = false; });
     } else { $('login').hidden = false; }
   }
