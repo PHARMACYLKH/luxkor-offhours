@@ -60,6 +60,8 @@
   .tile.done { background: var(--green-soft); }
   .tile.exp { background: var(--danger); }
   .tile.exp b, .tile.exp span { color: #fff; }
+  .tile.gold { background: var(--gold); }
+  .tile.gold b, .tile.gold span { color: #fff; }
   .item.static { cursor: default; display: block; }
   .list { margin-top: 14px; display: grid; gap: 8px; }
   .item { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: #fff; border-radius: var(--radius-sm); padding: 11px 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); min-height: 62px; }
@@ -302,8 +304,10 @@
   }
   function applyPlan(d) {
     S.drugs = d.drugs; S.rows = d.rows; S.off = d.off || []; S.expInv = d.expInv || {}; S.byCode = {};
+    if (d.closed !== undefined) { S.closed = !!d.closed; S.pharm = !!d.pharm; }
     d.drugs.forEach(function (x) { S.byCode[x.c] = x; });
-    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [], expInv: d.expInv || {} });   // เปิดครั้งถัดไปแสดงได้ทันที
+    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [], expInv: d.expInv || {}, closed: S.closed, pharm: S.pharm });   // เปิดครั้งถัดไปแสดงได้ทันที
+    loadDaily();
   }
   function refresh(quiet) {
     if (S.loading) return Promise.resolve();
@@ -381,6 +385,7 @@
     back.hidden = !S.group;
     $('topTitle').textContent = S.group === 'EXP' ? 'คลัง EXP' : (S.group ? 'ช่องจ่าย ' + S.group : 'นับ Stock ห้องยา');
     if (S.group === 'EXP') { v.innerHTML = expHtml(); return; }
+    if (dailyOn()) { renderDaily(v); return; }
     if (S.group) { v.innerHTML = listHtml(groupList(S.group)); return; }
     var all = workDrugs(), done = all.filter(isDone).length, pct = all.length ? Math.round(done * 100 / all.length) : 0, keep = S.q;
     var h = 
@@ -449,6 +454,156 @@
         ((d.sl || d.slot) ? '<span class="loc">' + esc(S.mode === 'slot' ? d.slot : (d.sl || d.slot)) + '</span>' : '') +
         '<span class="nm">' + esc(d.n) + tags(d) + '</span>' +
         '<span class="st">' + (r.length ? num(tot) + ' ' + esc(d.u) + '<br>' + r.length + ' Lot' : '') + '</span></button>';
+    }).join('') + '</div>';
+  }
+
+  // ── นับประจำวัน: ใช้หน้าตาเดียวกับการนับรอบใหญ่ แสดงเฉพาะยาที่เคลื่อนไหวหลังนับครั้งล่าสุด ──
+  function dailyOn() { return !!(S.closed || S.dTest); }
+  function getJson(q) { return fetch(WEBAPP_URL + '?action=' + q + '&pin=' + encodeURIComponent(S.pin) + (S.dTest ? '&test=1' : '')).then(function (r) { return r.json(); }); }
+  function loadDaily() {
+    if (!dailyOn() || !S.pin) return Promise.resolve();
+    return getJson('getDailyCountPlan').then(function (d) {
+      if (d.status === 'ok' && d.open) { S.daily = d; if ($('sheet').hidden) render(); }
+    }).catch(function () { /* ใช้รายการเดิม */ });
+  }
+  function dailyItems() { return (S.daily && S.daily.items) || []; }
+  function dailyGroups() {
+    var g = {};
+    dailyItems().forEach(function (d) { var k = slotGroup(d.loc || '-'); (g[k] = g[k] || []).push(d); });
+    return Object.keys(g).sort(natural).map(function (k) { return { k: k, list: g[k].sort(function (a, b) { return natural(a.loc, b.loc); }) }; });
+  }
+  function dailyListHtml(list) {
+    if (!list.length) return '<div class="empty">ไม่มีรายการในกลุ่มนี้</div>';
+    return '<div class="list">' + list.map(function (d) {
+      var mark = d.recount ? '<span class="had near">นับซ้ำ</span>' : (d.check ? '<span class="had near">ตรวจคลัง</span>' : '');
+      return '<button type="button" class="item' + (d.done ? ' done' : '') + '"' + (d.done ? '' : ' data-daily="' + esc(d.c) + '"') + '>' +
+        '<span class="loc">' + esc(d.loc || '-') + '</span><span class="nm">' + esc(d.n) + tags(d) + mark + '</span>' +
+        '<span class="st">' + (d.done ? esc(d.done) : '') + '</span></button>';
+    }).join('') + '</div>';
+  }
+  function renderDaily(v) {
+    if (S.group === 'REVIEW') { $('topTitle').textContent = 'รอเภสัชกรตรวจ'; v.innerHTML = reviewHtml(); return; }
+    if (S.group === 'STOCK') { $('topTitle').textContent = 'ยอดคงเหลือ'; v.innerHTML = '<div class="search"><input class="t" id="sq" type="search" placeholder="ค้นหาชื่อยา รหัส หรือช่อง" value="' + esc(S.sq || '') + '" autocomplete="off"></div><div id="sres"></div>'; drawStock(); $('sq').addEventListener('input', function (e) { S.sq = e.target.value; drawStock(); }); return; }
+    if (S.group) {
+      var key = S.group.slice(2), g = dailyGroups().filter(function (x) { return x.k === key; })[0];
+      $('topTitle').textContent = 'นับประจำวัน ' + key; v.innerHTML = dailyListHtml(g ? g.list : []); return;
+    }
+    $('topTitle').textContent = 'นับประจำวัน';
+    var items = dailyItems(), done = items.filter(function (d) { return d.done; }).length, pct = items.length ? Math.round(done * 100 / items.length) : 0, q = (S.dq || '').trim().toLowerCase();
+    var expCodes = Object.keys(S.expInv || {});
+    v.innerHTML = (S.daily ? '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + items.length + ' รายการ</span><span>' + pct + '%</span></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '<div class="empty">กำลังโหลดรายการ</div>') +
+      '<div class="search"><input class="t" id="dq" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(S.dq || '') + '" autocomplete="off"></div><div id="dres"></div>' +
+      '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
+    var draw = function () {
+      var t = (S.dq || '').trim().toLowerCase();
+      if (t) { $('dres').innerHTML = dailyListHtml(items.filter(function (d) { return d.n.toLowerCase().indexOf(t) >= 0 || d.c.indexOf(t) >= 0; })); return; }
+      $('dres').innerHTML = '<div class="grid">' +
+        (expCodes.length ? '<button type="button" class="tile exp" data-group="EXP"><b>EXP</b><span>' + expCodes.length + ' รายการ</span></button>' : '') +
+        (S.pharm ? '<button type="button" class="tile gold small" data-group="REVIEW"><b>รอตรวจ</b><span>' + ((S.daily && S.daily.review) || 0) + ' รายการ</span></button><button type="button" class="tile small" data-group="STOCK"><b>ยอดคงเหลือ</b><span>ดูยอด</span></button>' : '') +
+        dailyGroups().map(function (g) {
+          var d = g.list.filter(function (x) { return x.done; }).length, ok = d === g.list.length;
+          return '<button type="button" class="tile' + (ok ? ' done' : '') + (g.k.length > 3 ? ' small' : '') + '" data-group="D:' + esc(g.k) + '"><b>' + esc(g.k) + '</b><span>' + d + '/' + g.list.length + '</span></button>';
+        }).join('') + '</div>' + (S.daily && !items.length ? '<div class="empty">ไม่มีรายการที่ต้องนับ</div>' : '');
+    };
+    draw();
+    $('dq').addEventListener('input', function (e) { S.dq = e.target.value; draw(); });
+  }
+  function openDaily(code) {
+    var d = dailyItems().filter(function (x) { return x.c === code; })[0]; if (!d) return;
+    form = { daily: d, id: uid(), extra: 0 };
+    $('sheetTitle').textContent = 'ช่อง ' + (d.loc || '-');
+    $('sheetBody').innerHTML = '<div class="card"><div class="title">' + esc(d.n) + tags(d) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
+      (d.recount ? '<div class="warn" style="margin-top:10px">ยอดไม่ตรงกับระบบ กรุณานับซ้ำอีกครั้ง</div>' : '') +
+      (d.check ? '<div class="warn" style="margin-top:10px">รายการนี้เป็นของใช้หน่วยงาน แต่คีย์จากคลังห้องยา กรุณาตรวจคลังที่ตัด</div>' : '') + '</div>' +
+      '<form class="card" id="dEntry" autocomplete="off">' + d.lots.map(function (l, i) {
+        return '<label class="f" for="dl' + i + '">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + '</label><input class="t" id="dl' + i + '" type="number" inputmode="decimal" min="0" step="any" placeholder="จำนวนที่นับได้ (' + esc(d.u) + ')">';
+      }).join('') +
+      '<div id="dExtra"></div><button type="button" class="link" id="dAdd">เพิ่ม Lot ที่พบใหม่</button>' +
+      '<label class="f" for="dNote">หมายเหตุ</label><input class="t" id="dNote" maxlength="120">' +
+      '<div class="warn" id="fWarn" hidden></div>' +
+      '<div class="btns"><button class="btn pri" type="submit" id="dSave">บันทึก</button><button class="btn ghost" type="button" id="dNone">ไม่มีของ</button></div></form>';
+    $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
+    $('dAdd').addEventListener('click', function () {
+      var i = form.extra++, w = document.createElement('div');
+      w.innerHTML = '<label class="f" for="xl' + i + '">Lot ใหม่</label><input class="t" id="xl' + i + '" maxlength="40" autocapitalize="characters" autocorrect="off" spellcheck="false">' +
+        '<label class="f">EXP</label><div class="row3"><select class="t" id="xd' + i + '" aria-label="วันหมดอายุ">' + dayOptions() + '</select><select class="t" id="xm' + i + '" aria-label="เดือนหมดอายุ">' + monthOptions() + '</select><select class="t" id="xy' + i + '" aria-label="ปีหมดอายุ">' + yearOptions() + '</select></div>' +
+        '<label class="f" for="xq' + i + '">จำนวน (' + esc(d.u) + ')</label><input class="t" id="xq' + i + '" type="number" inputmode="decimal" min="0" step="any">';
+      $('dExtra').appendChild(w);
+    });
+    $('dEntry').addEventListener('submit', function (e) { e.preventDefault(); saveDaily(false); });
+    $('dNone').addEventListener('click', function () { saveDaily(true); });
+  }
+  function saveDaily(none) {
+    var d = form.daily, lots = [], i;
+    if (!none) {
+      for (i = 0; i < d.lots.length; i++) {
+        var v = $('dl' + i).value.trim();
+        if (v === '' || !isFinite(Number(v)) || Number(v) < 0) return showWarn('กรุณาระบุจำนวนทุก Lot ถ้าไม่มีให้ใส่ 0', 1);
+        lots.push({ lot: d.lots[i].lot, exp: d.lots[i].exp, q: Number(v) });
+      }
+      for (i = 0; i < form.extra; i++) {
+        var lot = $('xl' + i).value.trim().toUpperCase(), m = $('xm' + i).value, y = $('xy' + i).value, dd = $('xd' + i).value, q = Number($('xq' + i).value);
+        if (!lot || !m || !y || !(q > 0)) return showWarn('กรุณาระบุ Lot EXP และจำนวนของ Lot ใหม่ให้ครบ', 1);
+        lots.push({ lot: lot, exp: (dd ? dd + '/' : '') + m + '/' + y, q: q });
+      }
+      if (!lots.length) return showWarn('ถ้าไม่พบยานี้ให้กด ไม่มีของ', 1);
+    }
+    var btn = $('dSave'), note = $('dNote').value.trim();
+    btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
+    post({ action: 'submitDailyCount', pin: S.pin, code: d.c, lots: lots, id: form.id, note: (S.dTest ? 'TEST ' : '') + note, clientTime: new Date().toISOString(), test: S.dTest ? 1 : 0 }).then(function (r) {
+      btn.disabled = false; btn.textContent = 'บันทึก';
+      if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ กรุณาลองใหม่', 1);
+      if (r.result === 'นับซ้ำ') {
+        d.recount = true; form.id = uid();
+        for (i = 0; i < d.lots.length; i++) $('dl' + i).value = '';
+        showWarn('ยอดไม่ตรงกับระบบ กรุณานับซ้ำอีกครั้ง', 1); return;
+      }
+      d.recount = false; d.done = r.result === 'ยอดตรง' ? 'ยอดตรง' : 'รอตรวจ';
+      success(r.result === 'ยอดตรง' ? 'ยอดตรง' : 'ส่งเภสัชกรตรวจแล้ว', d.loc || '');
+      closeSheet(); loadDaily();
+    }).catch(function () { btn.disabled = false; btn.textContent = 'บันทึก'; showWarn('เชื่อมต่อไม่ได้ กดบันทึกอีกครั้งเมื่อมีอินเทอร์เน็ต', 1); });
+  }
+  function reviewHtml() {
+    if (!S.review) return '<div class="empty">กำลังโหลดรายการ</div>';
+    if (!S.review.rows.length) return '<div class="empty">ไม่มีรายการรอตรวจ</div>';
+    return '<div class="list">' + S.review.rows.map(function (x) {
+      return '<button type="button" class="item" data-rev="' + esc(x.id) + '"><span class="loc">' + esc(x.loc) + '</span><span class="nm">' + esc(x.n) + '</span><span class="st">ต่าง ' + (x.diff > 0 ? '+' : '') + num(x.diff) + '<br>' + esc(x.u) + '</span></button>';
+    }).join('') + '</div>';
+  }
+  function loadReview() { S.review = null; getJson('getDailyReview').then(function (d) { if (d.status === 'ok') { S.review = d; if ($('sheet').hidden) render(); } else toast(d.msg || 'โหลดไม่สำเร็จ'); }); }
+  function openReview(id) {
+    var x = S.review.rows.filter(function (r) { return r.id === id; })[0]; if (!x) return;
+    form = { review: x };
+    $('sheetTitle').textContent = 'ตรวจผลต่าง';
+    $('sheetBody').innerHTML = '<div class="card"><div class="title">' + esc(x.n) + '</div><div class="sub">' + esc(x.loc) + ' · นับโดย ' + esc(x.by) + ' · ' + esc(x.at) + '</div>' +
+      '<div class="lot"><div><b>นับได้ ' + num(x.counted) + ' · ระบบ ' + num(x.system) + ' ' + esc(x.u) + '</b><div class="sub">ผลต่าง ' + (x.diff > 0 ? '+' : '') + num(x.diff) + '</div></div></div>' +
+      x.lots.map(function (l) { return '<div class="sub">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + ' · ' + num(l.q) + '</div>'; }).join('') +
+      '<div class="sub" style="margin-top:8px">รับเข้า ' + num(x.inQty) + ' · จ่ายสุทธิ ' + num(x.outQty) + ' · โอนออก ' + num(x.transfer) + ' · ย้ายเข้า EXP ' + num(x.expQty) + '</div></div>' +
+      '<form class="card" id="rForm" autocomplete="off"><label class="f" for="rCause">สาเหตุ</label><select class="t" id="rCause"><option value="">เลือกสาเหตุ</option>' +
+      S.review.causes.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '<option value="__new">เพิ่มสาเหตุใหม่</option></select>' +
+      '<input class="t" id="rNew" maxlength="60" placeholder="ระบุสาเหตุใหม่" style="margin-top:8px" hidden>' +
+      '<label class="f" for="rNote">หมายเหตุ</label><input class="t" id="rNote" maxlength="120" value="' + esc(x.note) + '"><div class="warn" id="fWarn" hidden></div>' +
+      '<div class="btns"><button class="btn pri" type="submit">อนุมัติยอดนับ</button><button class="btn ghost" type="button" id="rAgain">ให้นับใหม่</button></div></form>';
+    $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
+    $('rCause').addEventListener('change', function (e) { $('rNew').hidden = e.target.value !== '__new'; });
+    var send = function (decision) {
+      var c = $('rCause').value === '__new' ? $('rNew').value.trim() : $('rCause').value;
+      if (decision === 'approve' && !c) return showWarn('กรุณาเลือกสาเหตุ', 1);
+      post({ action: 'decideDailyCount', pin: S.pin, id: x.id, decision: decision, cause: c, note: $('rNote').value.trim() }).then(function (r) {
+        if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
+        success(decision === 'approve' ? 'อนุมัติแล้ว' : 'ส่งกลับให้นับใหม่'); closeSheet(); loadReview(); loadDaily();
+      }).catch(function () { showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
+    };
+    $('rForm').addEventListener('submit', function (e) { e.preventDefault(); send('approve'); });
+    $('rAgain').addEventListener('click', function () { send('recount'); });
+  }
+  function loadStock() { S.stock = null; getJson('getStockRealtime').then(function (d) { if (d.status === 'ok') { S.stock = d; if (S.group === 'STOCK') drawStock(); } else toast(d.msg || 'โหลดไม่สำเร็จ'); }); }
+  function drawStock() {
+    var box = $('sres'); if (!box) return;
+    if (!S.stock) { box.innerHTML = '<div class="empty">กำลังคำนวณยอด</div>'; return; }
+    var q = (S.sq || '').trim().toLowerCase(), list = S.stock.items.filter(function (d) { return !q || d.n.toLowerCase().indexOf(q) >= 0 || d.c.indexOf(q) >= 0 || String(d.loc).toLowerCase().indexOf(q) >= 0; }).sort(function (a, b) { return natural(a.loc, b.loc); }).slice(0, 60);
+    box.innerHTML = '<div class="sub" style="margin-bottom:8px">อัปเดต ' + esc(S.stock.generatedAt) + ' · ยอดราย Lot ประมาณตาม FEFO</div><div class="list">' + list.map(function (d) {
+      return '<div class="item static"><div class="nm">' + esc(d.loc) + ' · ' + esc(d.n) + tags(d) + '</div><div class="sub"><b>คงเหลือ ' + num(d.total) + ' ' + esc(d.u) + '</b></div>' + d.lots.map(function (l) { return '<div class="sub">' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp || '-') + ' · ' + num(l.q) + '</div>'; }).join('') + '</div>';
     }).join('') + '</div>';
   }
 
@@ -638,7 +793,9 @@
     var t = e.target.closest('button'); if (!t) return;
     if (t.id === 'logout') { S.pin = ''; S.by = ''; save(K_USER, null); save(K_PLAN, null); $('inPin').value = ''; showLogin(); }
     else if (t.dataset.mode) { S.mode = t.dataset.mode; S.q = ''; render(); }
-    else if (t.dataset.group) { S.group = t.dataset.group; history.pushState({ g: 1 }, ''); render(); scrollTo(0, 0); }
+    else if (t.dataset.group) { S.group = t.dataset.group; if (S.group === 'REVIEW') loadReview(); if (S.group === 'STOCK') loadStock(); history.pushState({ g: 1 }, ''); render(); scrollTo(0, 0); }
+    else if (t.dataset.daily) openDaily(t.dataset.daily);
+    else if (t.dataset.rev) openReview(t.dataset.rev);
     else if (t.dataset.code) openEntry(t.dataset.code);
     else if (t.dataset.off) openEntry('', true);
     else if (t.dataset.cancel) cancelRow(t.dataset.cancel);
@@ -676,6 +833,7 @@
   });
 
   function boot() {
+    S.dTest = /[?&]daily=1/.test(location.search);   // ทดสอบก่อนปิดยอด ใช้ได้เฉพาะรหัสผู้ดูแลระบบ
     S.queue = load(K_QUEUE, []); S.loc = load(K_LOC, '');
     S.queue.forEach(function (x) { delete x.failed; });   // เปิดแอปใหม่ ลองส่งรายการที่ค้างอีกครั้ง (ID กันบันทึกซ้ำ)
     var u = load(K_USER, null), cached = load(K_PLAN, null);
