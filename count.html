@@ -632,6 +632,7 @@
 
   function boot() {
     S.queue = load(K_QUEUE, []); S.loc = load(K_LOC, '');
+    S.queue.forEach(function (x) { delete x.failed; });   // เปิดแอปใหม่ ลองส่งรายการที่ค้างอีกครั้ง (ID กันบันทึกซ้ำ)
     var u = load(K_USER, null), cached = load(K_PLAN, null);
     if (!u || !u.pin) { showLogin(); return; }
     S.pin = u.pin; S.by = u.by; $('inPin').value = u.pin;
