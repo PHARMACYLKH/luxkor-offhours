@@ -58,6 +58,9 @@
   .tile.small b { font-size: 16px; line-height: 1.3; }
   .tile span { font-size: 14px; color: var(--muted); }
   .tile.done { background: var(--green-soft); }
+  .tile.exp { background: var(--danger); }
+  .tile.exp b, .tile.exp span { color: #fff; }
+  .item.static { cursor: default; display: block; }
   .list { margin-top: 14px; display: grid; gap: 8px; }
   .item { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; background: #fff; border-radius: var(--radius-sm); padding: 11px 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); min-height: 62px; }
   .item.done { background: var(--green-soft); }
@@ -65,6 +68,7 @@
   .item .nm { flex: 1; min-width: 0; font-size: 16px; overflow-wrap: anywhere; }
   .item .st { flex: 0 0 auto; font-size: 14px; color: var(--green-dark); font-weight: 600; text-align: right; }
   .had { color: #fff; background: var(--danger); font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: 5px; margin-left: 4px; white-space: nowrap; }
+  .had.exp { background: var(--gold); }
   .sub { color: var(--muted); font-size: 15px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .chip { min-height: 40px; padding: 6px 12px; border-radius: 99px; background: var(--gold-soft); color: #6d5317; font-size: 15px; font-weight: 600; }
@@ -259,6 +263,9 @@
   function uid() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'c' + Date.now() + Math.random().toString(16).slice(2); }
   function num(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
   function isHad(n) { return /\(HAD\)/i.test(n); }
+  function tags(d) {
+    return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + ((S.expInv || {})[d.c] ? '<span class="had exp">EXP</span>' : '');
+  }
   var toastT;
   function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600); }
 
@@ -292,9 +299,9 @@
     return fetch(WEBAPP_URL + '?action=getStockCountPlan&pin=' + encodeURIComponent(pin)).then(function (r) { return r.json(); });
   }
   function applyPlan(d) {
-    S.drugs = d.drugs; S.rows = d.rows; S.off = d.off || []; S.byCode = {};
+    S.drugs = d.drugs; S.rows = d.rows; S.off = d.off || []; S.expInv = d.expInv || {}; S.byCode = {};
     d.drugs.forEach(function (x) { S.byCode[x.c] = x; });
-    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [] });   // เปิดครั้งถัดไปแสดงได้ทันที
+    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [], expInv: d.expInv || {} });   // เปิดครั้งถัดไปแสดงได้ทันที
   }
   function refresh(quiet) {
     if (S.loading) return Promise.resolve();
@@ -370,7 +377,8 @@
   function render() {
     var v = $('view'), back = $('backBtn');
     back.hidden = !S.group;
-    $('topTitle').textContent = S.group ? (S.mode === 'slot' ? 'ช่องจ่าย ' + S.group : S.group) : 'นับ Stock ห้องยา';
+    $('topTitle').textContent = S.group === 'EXP' ? 'คลัง EXP' : (S.group ? 'ช่องจ่าย ' + S.group : 'นับ Stock ห้องยา');
+    if (S.group === 'EXP') { v.innerHTML = expHtml(); return; }
     if (S.group) { v.innerHTML = listHtml(groupList(S.group)); return; }
     var all = workDrugs(), done = all.filter(isDone).length, pct = all.length ? Math.round(done * 100 / all.length) : 0, keep = S.q;
     var h = 
@@ -393,9 +401,27 @@
       return;
     }
     if (!groups().length) { box.innerHTML = '<div class="empty">ค้นหาชื่อยาเพื่อบันทึกของสำรองบนชั้น stock</div>'; return; }
-    box.innerHTML = '<div class="grid">' + groups().map(function (g) {
+    var expCodes = Object.keys(S.expInv || {});
+    box.innerHTML = '<div class="grid">' + (expCodes.length ? '<button type="button" class="tile exp" data-group="EXP"><b>EXP</b><span>' + expCodes.length + ' รายการ</span></button>' : '') + groups().map(function (g) {
       var d = g.list.filter(isDone).length, ok = d === g.list.length;
       return '<button type="button" class="tile' + (ok ? ' done' : '') + (g.k.length > 3 ? ' small' : '') + '" data-group="' + esc(g.k) + '"><b>' + esc(g.k) + '</b><span>' + d + '/' + g.list.length + '</span></button>';
+    }).join('') + '</div>';
+  }
+  // รายการในคลัง EXP มาจาก EXP Inventory เท่านั้น เปลี่ยนตามยาที่ย้ายเข้ามา
+  function expDays(s) {
+    var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s || '');
+    return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])).getTime() : Infinity;
+  }
+  function expHtml() {
+    var inv = S.expInv || {}, items = Object.keys(inv).map(function (c) {
+      var d = S.byCode[c] || {};
+      return { name: d.n || (inv[c][0] && inv[c][0].n) || c, u: d.u || '', lots: inv[c].slice().sort(function (a, b) { return expDays(a.exp) - expDays(b.exp); }) };
+    }).sort(function (a, b) { return expDays(a.lots[0].exp) - expDays(b.lots[0].exp); });
+    if (!items.length) return '<div class="empty">ยังไม่มียาในคลัง EXP</div>';
+    return '<div class="list">' + items.map(function (x) {
+      return '<div class="item static"><div class="nm">' + esc(x.name) + '<span class="had exp">EXP</span></div>' + x.lots.map(function (l) {
+        return '<div class="sub">' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp || '-') + ' · ' + num(l.q) + (x.u ? ' ' + esc(x.u) : '') + '</div>';
+      }).join('') + '</div>';
     }).join('') + '</div>';
   }
   function listHtml(list) {
@@ -403,7 +429,7 @@
       var r = rowsOf(d.c, S.mode), tot = r.reduce(function (s, x) { return s + Number(x.q || 0); }, 0);
       return '<button type="button" class="item' + (r.length ? ' done' : '') + '" data-code="' + esc(d.c) + '">' +
         ((d.sl || d.slot) ? '<span class="loc">' + esc(S.mode === 'slot' ? d.slot : (d.sl || d.slot)) + '</span>' : '') +
-        '<span class="nm">' + esc(d.n) + (isHad(d.n) ? '<span class="had">HAD</span>' : '') + '</span>' +
+        '<span class="nm">' + esc(d.n) + tags(d) + '</span>' +
         '<span class="st">' + (r.length ? num(tot) + ' ' + esc(d.u) + '<br>' + r.length + ' Lot' : '') + '</span></button>';
     }).join('') + '</div>';
   }
@@ -437,7 +463,8 @@
     $('sheetBody').innerHTML =
       '<div class="card">' +
         (off ? '<label class="f" for="fName">ชื่อยา</label><input class="t" id="fName" maxlength="120">'
-             : '<div class="title">' + esc(d.n) + (isHad(d.n) ? '<span class="had">HAD</span>' : '') + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>') +
+             : '<div class="title">' + esc(d.n) + tags(d) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
+              ((S.expInv || {})[d.c] ? '<div class="warn" style="margin-top:10px">คลัง EXP: ' + S.expInv[d.c].map(function (x) { return esc(x.lot || '-') + ' · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(d.u); }).join(' / ') + '</div>' : '')) +
         '<div id="lotsBox"></div>' +
       '</div>' +
       '<form class="card" id="entry" autocomplete="off">' +
@@ -584,7 +611,7 @@
     post(req).then(function (r) {
       $('pinYes').disabled = false;
       if (r.status !== 'ok') return pinFail(r.msg || 'ยกเลิกไม่สำเร็จ');
-      S.rows = S.rows.filter(function (x) { return x !== target && (!id || x.id !== id); }); save(K_PLAN, { drugs: S.drugs, rows: S.rows, off: S.off }); drawLots(); closePin(); success('ยกเลิกแล้ว');
+      S.rows = S.rows.filter(function (x) { return x !== target && (!id || x.id !== id); }); save(K_PLAN, { drugs: S.drugs, rows: S.rows, off: S.off, expInv: S.expInv }); drawLots(); closePin(); success('ยกเลิกแล้ว');
     }).catch(function () { pinFail('ยกเลิกไม่ได้ ต้องต่ออินเทอร์เน็ต'); });
   }
 
