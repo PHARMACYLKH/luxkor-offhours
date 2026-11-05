@@ -97,10 +97,15 @@
   .save-success-text { font-size: 18px; font-weight: 700; color: var(--green-dark); opacity: 0; animation: fadeIn .3s ease .55s forwards; }
   .modal { position: fixed; inset: 0; z-index: 35; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15,30,22,.55); }
   .modal .card { width: 100%; max-width: 420px; margin: 0; }
+  .boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--muted); }
+  .spin { width: 44px; height: 44px; border: 4px solid #dbe3df; border-top-color: var(--green); border-radius: 50%; animation: spinBig .8s linear infinite; }
+  @keyframes spinBig { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
+
+<div class="boot" id="boot"><div class="spin"></div><div>กำลังเปิดแอป…</div></div>
 
 <div id="login" hidden>
   <div class="top"><div class="top-in"><h1>นับ Stock ห้องยา</h1></div></div>
@@ -223,7 +228,7 @@
 (function () {
   'use strict';
   var WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzuBl87e9Xc61jtFItkslSeJMsIMt8LaJQ4gmLO6_JxaarnCA5m2EecnqNIjNbwSaKP/exec";
-  var K_USER = 'lkh_count_user_v2', K_QUEUE = 'lkh_count_queue_v1', K_LOC = 'lkh_count_loc_v1';
+  var K_PLAN = 'lkh_count_plan_v1', K_USER = 'lkh_count_user_v2', K_QUEUE = 'lkh_count_queue_v1', K_LOC = 'lkh_count_loc_v1';
   var UNKNOWN = 'ยังไม่มีตำแหน่ง';
 
   var S = { pin: '', by: '', mode: 'slot', group: null, q: '', drugs: [], byCode: {}, rows: [], off: [], queue: [], loc: '', loading: false, flushing: false };
@@ -270,6 +275,7 @@
   function applyPlan(d) {
     S.drugs = d.drugs; S.rows = d.rows; S.off = d.off || []; S.byCode = {};
     d.drugs.forEach(function (x) { S.byCode[x.c] = x; });
+    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [] });   // เปิดครั้งถัดไปแสดงได้ทันที
   }
   function refresh(quiet) {
     if (S.loading) return Promise.resolve();
@@ -545,7 +551,7 @@
   // ── เหตุการณ์ ──
   document.addEventListener('click', function (e) {
     var t = e.target.closest('button'); if (!t) return;
-    if (t.id === 'logout') { S.pin = ''; S.by = ''; save(K_USER, null); $('inPin').value = ''; $('app').hidden = true; $('login').hidden = false; }
+    if (t.id === 'logout') { S.pin = ''; S.by = ''; save(K_USER, null); save(K_PLAN, null); $('inPin').value = ''; showLogin(); }
     else if (t.dataset.mode) { S.mode = t.dataset.mode; S.q = ''; render(); }
     else if (t.dataset.group) { S.group = t.dataset.group; history.pushState({ g: 1 }, ''); render(); scrollTo(0, 0); }
     else if (t.dataset.code) openEntry(t.dataset.code);
@@ -570,7 +576,8 @@
     if (S.group) { S.group = null; render(); }
   });
 
-  function enter() { $('login').hidden = true; $('app').hidden = false; render(); pill(); flush(); }
+  function showLogin() { $('boot').hidden = true; $('app').hidden = true; $('login').hidden = false; }
+  function enter() { $('boot').hidden = true; $('login').hidden = true; $('app').hidden = false; render(); pill(); flush(); }
   $('loginForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var pin = $('inPin').value.trim(), btn = $('loginBtn'), er = $('loginErr');
@@ -585,13 +592,19 @@
 
   function boot() {
     S.queue = load(K_QUEUE, []); S.loc = load(K_LOC, '');
-    var u = load(K_USER, null);
-    if (u && u.pin) {
-      S.pin = u.pin; S.by = u.by; $('inPin').value = u.pin;
-      fetchPlan(u.pin).then(function (d) {
-        if (d.status === 'ok') { S.by = d.me; applyPlan(d); enter(); } else { S.pin = ''; $('login').hidden = false; }
-      }).catch(function () { S.pin = ''; $('login').hidden = false; $('loginErr').textContent = 'เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ต'; $('loginErr').hidden = false; });
-    } else { $('login').hidden = false; }
+    var u = load(K_USER, null), cached = load(K_PLAN, null);
+    if (!u || !u.pin) { showLogin(); return; }
+    S.pin = u.pin; S.by = u.by; $('inPin').value = u.pin;
+    if (cached && cached.drugs) { applyPlan(cached); enter(); }   // แสดงทันที แล้วอัปเดตเบื้องหลัง
+    fetchPlan(u.pin).then(function (d) {
+      if (d.status === 'ok') {
+        S.by = d.me; applyPlan(d);
+        if ($('app').hidden) enter(); else if ($('sheet').hidden) { render(); pill(); }
+      } else { S.pin = ''; save(K_USER, null); save(K_PLAN, null); showLogin(); }
+    }).catch(function () {
+      if (!$('app').hidden) { toast('เชื่อมต่อไม่ได้ ใช้ข้อมูลล่าสุดในเครื่อง'); pill(); return; }
+      S.pin = ''; showLogin(); $('loginErr').textContent = 'เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ต'; $('loginErr').hidden = false;
+    });
   }
   boot();
 })();
