@@ -333,7 +333,12 @@
     }).catch(function () { S.flushing = false; pill(); });
   }
   setInterval(function () { if (S.pin) flush(); }, 20000);
-  setInterval(function () { if (S.pin && $('sheet').hidden && !S.queue.length && navigator.onLine) refresh(true); }, 60000);
+  // อัปเดตจากชีตเป็นระยะ แม้เปิดฟอร์มนับค้างอยู่ และทุกครั้งที่กลับมาเปิดหน้าแอป
+  function autoRefresh() {
+    if (S.pin && navigator.onLine && !S.queue.some(function (x) { return !x.failed; })) refresh(true);
+  }
+  setInterval(autoRefresh, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) autoRefresh(); });
   window.addEventListener('online', function () { pill(); flush(); });
   window.addEventListener('offline', pill);
 
