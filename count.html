@@ -177,6 +177,7 @@
     <svg class="check-circle" viewBox="0 0 80 80"><circle class="check-circle-bg" cx="40" cy="40" r="36"></circle><path class="check-mark" d="M24 41 L35 52 L57 28"></path></svg>
     <svg class="save-success-logo" viewBox="0 0 960.55 484.69" aria-label="Lux Kor Hospital"><use href="#luxkorLogo"></use></svg>
     <div class="save-success-text" id="saveText">บันทึกสำเร็จ</div>
+    <div class="save-success-text" id="saveDetail" style="font-size:26px"></div>
   </div>
 </div>
 
@@ -262,14 +263,15 @@
   function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600); }
 
   var saveT;
-  function success(text) {
+  function success(text, detail) {
     var o = $('saveOverlay');
     $('saveText').textContent = text;
+    $('saveDetail').textContent = detail || '';
     $('saveSuccess').querySelectorAll('.check-circle-bg, .check-mark, .save-success-logo, .save-success-text').forEach(function (el) {
       el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
     });
     o.classList.add('show');
-    clearTimeout(saveT); saveT = setTimeout(function () { o.classList.remove('show'); }, 1300);
+    clearTimeout(saveT); saveT = setTimeout(function () { o.classList.remove('show'); }, detail ? 1800 : 1300);
   }
 
   function post(payload) {
@@ -471,8 +473,9 @@
     $('calcToggle').addEventListener('click', function () { $('calc').hidden = !$('calc').hidden; });
     ['cBox', 'cPer', 'cLoose'].forEach(function (id) {
       $(id).addEventListener('input', function () {
-        var v = (Number($('cBox').value) || 0) * (Number($('cPer').value) || 0) + (Number($('cLoose').value) || 0);
-        $('fQty').value = v; form.confirmed = '';
+        var box = $('cBox').value, per = $('cPer').value;
+        if (box === '' || per === '') return;
+        $('fQty').value = Number(box) * Number(per) + (Number($('cLoose').value) || 0); form.confirmed = '';
       });
     });
     $('entry').addEventListener('submit', function (e) { e.preventDefault(); submit(form.off ? 'close' : 'next'); });
@@ -524,7 +527,7 @@
     S.queue.push({ id: uid(), pin: S.pin, by: S.by, place: off ? 'off' : S.mode, loc: loc, code: d ? d.c : '', name: name, lot: lot, exp: exp, qty: qty, noLot: noLot,
       note: none ? 'ไม่มีของ' : $('fNote').value.trim(), clientTime: new Date().toISOString() });
     save(K_QUEUE, S.queue); pill(); flush();
-    success(none ? 'บันทึกว่าไม่มีของแล้ว' : 'บันทึกสำเร็จ');
+    success(none ? 'บันทึกว่าไม่มีของแล้ว' : 'บันทึกสำเร็จ', none ? '' : (lot ? lot + ' · ' : '') + num(qty) + ' ' + (d ? d.u : ''));
     if (go === 'more') { reopen(d.c); return; }
     if (go === 'next' && S.group) {
       var list = groupList(S.group), i = list.indexOf(d), nx = null;
