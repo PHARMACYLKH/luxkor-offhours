@@ -231,8 +231,8 @@
     var all = workDrugs(), done = all.filter(isDone).length, pct = all.length ? Math.round(done * 100 / all.length) : 0, keep = S.q;
     var h = '<div class="seg"><button type="button" data-mode="slot" class="' + (S.mode === 'slot' ? 'on' : '') + '">ช่องจ่าย</button>' +
       '<button type="button" data-mode="shelf" class="' + (S.mode === 'shelf' ? 'on' : '') + '">ชั้น stock</button></div>' +
-      '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + all.length + ' รายการ</span><span>' + pct + '%</span></div>' +
-      '<div class="bar"><i style="width:' + pct + '%"></i></div></div>' +
+      (all.length ? '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + all.length + ' รายการ</span><span>' + pct + '%</span></div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '') +
       '<div class="search"><input class="t" id="q" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(keep) + '" autocomplete="off"></div>' +
       '<div id="res"></div>' +
       '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
@@ -249,6 +249,7 @@
         '<div class="btns"><button class="btn ghost" type="button" data-off="1">ยาไม่อยู่ในรายการ</button></div>';
       return;
     }
+    if (!groups().length) { box.innerHTML = '<div class="empty">ค้นหาชื่อยาเพื่อบันทึกของสำรองบนชั้น stock</div>'; return; }
     box.innerHTML = '<div class="grid">' + groups().map(function (g) {
       var d = g.list.filter(isDone).length, ok = d === g.list.length;
       return '<button type="button" class="tile' + (ok ? ' done' : '') + (g.k.length > 3 ? ' small' : '') + '" data-group="' + esc(g.k) + '"><b>' + esc(g.k) + '</b><span>' + d + '/' + g.list.length + '</span></button>';
