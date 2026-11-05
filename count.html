@@ -74,8 +74,8 @@
   .lot button { min-width: 62px; min-height: 40px; border-radius: 8px; background: var(--danger-soft); color: var(--danger); font-size: 15px; font-weight: 600; }
   .warn { margin-top: 14px; padding: 11px 13px; border-radius: var(--radius-sm); background: var(--gold-soft); color: #6d5317; font-weight: 600; }
   .warn.red { background: var(--danger-soft); color: var(--danger); }
-  .check { display: flex; align-items: center; gap: 9px; margin-top: 9px; font-size: 16px; min-height: 36px; }
-  .check input { width: 22px; height: 22px; accent-color: var(--green); }
+  .check { display: inline-flex; width: fit-content; align-items: center; gap: 9px; margin-top: 9px; font-size: 16px; min-height: 36px; }
+  .check input { width: 26px; height: 26px; margin: 0; accent-color: var(--green); }
   .link { color: var(--green-dark); font-weight: 600; text-decoration: underline; padding: 8px 0; min-height: 40px; font-size: 16px; }
   .calc { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 6px; align-items: center; margin-top: 8px; }
   .calc input { min-width: 0; text-align: center; }
@@ -444,7 +444,7 @@
         ((off || S.mode === 'shelf') ? '<label class="f" for="fLoc">ตำแหน่งที่นับ</label><input class="t" id="fLoc" maxlength="20" autocapitalize="characters" value="' + esc(locVal) + '">' : '') +
         '<label class="f" for="fLot">Lot</label><input class="t" id="fLot" maxlength="40" autocapitalize="characters" autocorrect="off" spellcheck="false">' +
         (chips ? '<div class="chips">' + chips + '</div>' : '') +
-        '<label class="check"><input type="checkbox" id="fNoLot"> กล่องนี้ไม่มีเลข Lot</label>' +
+        '<div class="check"><input type="checkbox" id="fNoLot" aria-label="กล่องนี้ไม่มีเลข Lot"><span>กล่องนี้ไม่มีเลข Lot</span></div>' +
         '<label class="f">EXP</label><div class="row3"><select class="t" id="fD" aria-label="วันหมดอายุ">' + dayOptions() + '</select><select class="t" id="fM" aria-label="เดือนหมดอายุ">' + monthOptions() + '</select><select class="t" id="fY" aria-label="ปีหมดอายุ">' + yearOptions() + '</select></div>' +
         '<div class="sub" style="margin-top:6px">ถ้ากล่องระบุแค่เดือนและปี ไม่ต้องเลือกวัน</div>' +
         '<label class="f" for="fQty">จำนวน' + (d ? ' (' + esc(d.u) + ')' : '') + '</label><input class="t" id="fQty" type="number" inputmode="decimal" min="0" step="any">' +
