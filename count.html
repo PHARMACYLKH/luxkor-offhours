@@ -310,9 +310,9 @@
   function applyPlan(d) {
     S.drugs = d.drugs; S.rows = d.rows; S.off = d.off || []; S.expInv = d.expInv || {}; S.byCode = {};
     if (d.closed !== undefined) { S.closed = !!d.closed; S.pharm = !!d.pharm; }
-    S.boxes = d.boxes || S.boxes || [];
+    S.boxes = d.boxes || S.boxes || []; S.boxItems = d.boxItems || S.boxItems || [];
     d.drugs.forEach(function (x) { S.byCode[x.c] = x; });
-    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [], expInv: d.expInv || {}, closed: S.closed, pharm: S.pharm, boxes: S.boxes });   // เปิดครั้งถัดไปแสดงได้ทันที
+    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [], expInv: d.expInv || {}, closed: S.closed, pharm: S.pharm, boxes: S.boxes, boxItems: S.boxItems });   // เปิดครั้งถัดไปแสดงได้ทันที
     loadDaily();
   }
   function refresh(quiet) {
@@ -649,20 +649,29 @@
   var BOXES = ['YELLOW', 'IPD INJ', 'IPD TAB', 'EMER 1', 'EMER 2', 'EMER 3', 'EMER 4', 'EMER 5', 'EMER 6', 'CPR 1', 'CPR 2', 'CPR 3', 'CPR 4', 'CPR 5', 'OR'];
   function boxLabel(b) { return b === 'YELLOW' ? 'Yellow Box' : b; }
   function boxRowsOf(b) { return (S.boxes || []).filter(function (x) { return x.box === b; }); }
+  function boxItemsOf(b) { return (S.boxItems || []).filter(function (x) { return x.box === b; }); }
+  function boxCount(b) {
+    var items = boxItemsOf(b), rows = boxRowsOf(b);
+    if (!items.length) return rows.length + ' รายการ';
+    return items.filter(function (i) { return rows.some(function (r) { return r.c === i.c; }); }).length + '/' + items.length;
+  }
   function boxTiles() {
     return BOXES.map(function (b) {
-      return '<button type="button" class="tile box-t small" data-group="BOX:' + esc(b) + '"><b>' + esc(boxLabel(b)) + '</b><span>' + boxRowsOf(b).length + ' รายการ</span></button>';
+      return '<button type="button" class="tile box-t small" data-group="BOX:' + esc(b) + '"><b>' + esc(boxLabel(b)) + '</b><span>' + boxCount(b) + '</span></button>';
     }).join('');
   }
   function boxHtml(b) {
-    var rows = boxRowsOf(b);
-    return '<div class="btns" style="margin-bottom:12px"><button class="btn pri" type="button" data-boxadd="' + esc(b) + '">เพิ่มยาในกล่อง</button></div>' +
-      (rows.length ? '<div class="list">' + rows.map(function (x) {
-        return '<div class="item static"><div class="nm">' + esc(x.n) + lotTag(x) + '</div><div class="sub">' + esc(x.lot || 'ไม่มี Lot') + ' · ' + esc(x.exp) + ' · ' + num(x.q) + ' ' + esc(x.u) + '</div>' +
-          '<div class="btns"><button class="btn ghost" type="button" data-boxdel="' + esc(x.id) + '">ยกเลิก</button></div></div>';
+    var rows = boxRowsOf(b), items = boxItemsOf(b), seen = {}, list = items.map(function (i) { seen[i.c] = 1; var d = S.byCode[i.c] || {}; return { c: i.c, n: d.n || i.n, u: d.u || '' }; });
+    rows.forEach(function (r) { if (!seen[r.c]) { seen[r.c] = 1; list.push({ c: r.c, n: r.n, u: r.u }); } });
+    return '<div class="btns" style="margin-bottom:12px"><button class="btn sec" type="button" data-boxadd="' + esc(b) + '">เพิ่มยานอกรายการ</button></div>' +
+      (list.length ? '<div class="list">' + list.map(function (d, i) {
+        var mine = rows.filter(function (r) { return r.c === d.c; });
+        return '<div class="item static' + (mine.length ? ' done' : '') + '"><div class="nm">' + (i + 1) + '. ' + esc(d.n) + tags({ c: d.c, n: d.n }) + '</div>' + mine.map(function (x) {
+          return '<div class="sub">' + esc(x.lot || 'ไม่มี Lot') + ' · ' + esc(x.exp) + ' · ' + num(x.q) + ' ' + esc(x.u) + lotTag(x) + ' <button type="button" class="link" data-boxdel="' + esc(x.id) + '">ยกเลิก</button></div>';
+        }).join('') + '<div class="btns"><button class="btn ghost" type="button" data-boxitem="' + esc(b) + '|' + esc(d.c) + '">' + (mine.length ? 'เพิ่ม Lot' : 'กรอก Lot และจำนวน') + '</button></div></div>';
       }).join('') + '</div>' : '<div class="empty">ยังไม่มียาในกล่องนี้</div>');
   }
-  function openBox(b) {
+  function openBox(b, code) {
     form = { box: b, id: uid() };
     $('sheetTitle').textContent = 'เพิ่มยา ' + boxLabel(b);
     $('sheetBody').innerHTML = '<form class="card" id="bEntry" autocomplete="off"><label class="f" for="bDrug">ยา</label><input class="t" id="bDrug" list="bDrugs" placeholder="พิมพ์ชื่อยาแล้วเลือก"><datalist id="bDrugs">' +
@@ -672,6 +681,7 @@
       '<label class="f" for="bQty">จำนวนมาตรฐานในกล่อง</label><input class="t" id="bQty" type="number" inputmode="decimal" min="0" step="any">' +
       '<div class="warn" id="fWarn" hidden></div><div class="btns"><button class="btn pri" type="submit" id="bSave">บันทึก</button></div></form>';
     $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
+    if (code && S.byCode[code]) { $('bDrug').value = S.byCode[code].n; $('bDrug').readOnly = true; }
     $('bEntry').addEventListener('submit', function (e) {
       e.preventDefault();
       var name = $('bDrug').value.trim(), d = S.drugs.filter(function (x) { return x.n === name; })[0], m = $('bM').value, y = $('bY').value, dd = $('bD').value, q = Number($('bQty').value), lot = $('bLot').value.trim().toUpperCase();
@@ -909,6 +919,7 @@
     else if (t.dataset.daily) openDaily(t.dataset.daily);
     else if (t.dataset.toexp !== undefined) askToExp(t.dataset.toexp);
     else if (t.dataset.boxadd) openBox(t.dataset.boxadd);
+    else if (t.dataset.boxitem) { var bi = t.dataset.boxitem.split('|'); openBox(bi[0], bi[1]); }
     else if (t.dataset.boxdel) askBoxDel(t.dataset.boxdel);
     else if (t.dataset.back) askBack(t.dataset.back);
     else if (t.dataset.rev) openReview(t.dataset.rev);
