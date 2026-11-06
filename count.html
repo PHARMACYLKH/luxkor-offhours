@@ -660,16 +660,37 @@
       return '<button type="button" class="tile box-t small" data-group="BOX:' + esc(b) + '"><b>' + esc(boxLabel(b)) + '</b><span>' + boxCount(b) + '</span></button>';
     }).join('');
   }
+  function boxList(b) {
+    var rows = boxRowsOf(b), seen = {}, list = boxItemsOf(b).map(function (i) { seen[i.c] = 1; return S.byCode[i.c] || { c: i.c, n: i.n, u: '' }; });
+    rows.forEach(function (r) { if (!seen[r.c]) { seen[r.c] = 1; list.push(S.byCode[r.c] || { c: r.c, n: r.n, u: r.u }); } });
+    return list;
+  }
   function boxHtml(b) {
-    var rows = boxRowsOf(b), items = boxItemsOf(b), seen = {}, list = items.map(function (i) { seen[i.c] = 1; var d = S.byCode[i.c] || {}; return { c: i.c, n: d.n || i.n, u: d.u || '' }; });
-    rows.forEach(function (r) { if (!seen[r.c]) { seen[r.c] = 1; list.push({ c: r.c, n: r.n, u: r.u }); } });
-    return '<div class="btns" style="margin-bottom:12px"><button class="btn sec" type="button" data-boxadd="' + esc(b) + '">เพิ่มยานอกรายการ</button></div>' +
-      (list.length ? '<div class="list">' + list.map(function (d, i) {
-        var mine = rows.filter(function (r) { return r.c === d.c; });
-        return '<div class="item static' + (mine.length ? ' done' : '') + '"><div class="nm">' + (i + 1) + '. ' + esc(d.n) + tags({ c: d.c, n: d.n }) + '</div>' + mine.map(function (x) {
-          return '<div class="sub">' + esc(x.lot || 'ไม่มี Lot') + ' · ' + esc(x.exp) + ' · ' + num(x.q) + ' ' + esc(x.u) + lotTag(x) + ' <button type="button" class="link" data-boxdel="' + esc(x.id) + '">ยกเลิก</button></div>';
-        }).join('') + '<div class="btns"><button class="btn ghost" type="button" data-boxitem="' + esc(b) + '|' + esc(d.c) + '">' + (mine.length ? 'เพิ่ม Lot' : 'กรอก Lot และจำนวน') + '</button></div></div>';
-      }).join('') + '</div>' : '<div class="empty">ยังไม่มียาในกล่องนี้</div>');
+    var rows = boxRowsOf(b), list = boxList(b);
+    return (list.length ? '<div class="list">' + list.map(function (d) {
+      var mine = rows.filter(function (r) { return r.c === d.c; }), tot = mine.reduce(function (t, x) { return t + Number(x.q || 0); }, 0);
+      return '<button type="button" class="item' + (mine.length ? ' done' : '') + '" data-boxcode="' + esc(b) + '|' + esc(d.c) + '">' +
+        (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + tags(d) + '</span>' +
+        '<span class="st">' + (mine.length ? num(tot) + ' ' + esc(d.u) + '<br>' + mine.length + ' Lot' : '') + '</span></button>';
+    }).join('') + '</div>' : '<div class="empty">ยังไม่มียาในกล่องนี้</div>') +
+      '<div class="btns" style="margin-top:12px"><button class="btn ghost" type="button" data-boxadd="' + esc(b) + '">ยาไม่อยู่ในรายการ</button></div>';
+  }
+  function saveBoxLot(go, lot, exp, qty, note) {
+    var f = form, d = f.d, b = f.box;
+    if (f.saving) return;
+    if (!(qty > 0)) return showWarn('กรุณาระบุจำนวน', 1);
+    f.saving = true;
+    var id = uid();
+    post({ action: 'submitBoxStock', pin: S.pin, id: id, box: b, code: d.c, name: d.n, uom: d.u, lot: lot, exp: exp, qty: qty, note: note }).then(function (r) {
+      f.saving = false;
+      if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
+      S.boxes = (S.boxes || []).concat([{ id: r.id, box: b, c: d.c, n: d.n, u: d.u, lot: lot, exp: exp, q: qty }]);
+      success('บันทึกสำเร็จ', (lot ? lot + ' · ' : '') + num(qty) + ' ' + d.u);
+      if (go === 'more') { reopen(d.c); return; }
+      var list = boxList(b), i = list.map(function (x) { return x.c; }).indexOf(d.c), rows = boxRowsOf(b);
+      for (var k = 1; k < list.length; k++) { var c = list[(i + k) % list.length]; if (!rows.some(function (x) { return x.c === c.c; })) { reopen(c.c); return; } }
+      closeSheet();
+    }).catch(function () { f.saving = false; showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
   }
   function openBox(b, code) {
     form = { box: b, id: uid() };
@@ -702,7 +723,7 @@
   function askBoxDel(id) {
     var x = (S.boxes || []).filter(function (r) { return r.id === id; })[0]; if (!x) return;
     askMove({ action: 'cancelBoxStock', id: id }, 'ยกเลิกยาในกล่อง', x.n + ' · Lot ' + (x.lot || '-') + ' · ' + num(x.q) + ' ' + x.u, 1, true);
-    $('pinQtyBox').hidden = true;
+    $('pinQtyBox').hidden = true; $('pinNo').textContent = 'ไม่ยกเลิก';
   }
 
   // ── ฟอร์มนับ ──
@@ -721,13 +742,13 @@
     for (var i = 1; i <= 12; i++) { var m = ('0' + i).slice(-2); o += '<option>' + m + '</option>'; }
     return o;
   }
-  function openEntry(code, off, replace) {
+  function openEntry(code, off, replace, box) {
     var d = off ? null : S.byCode[code];
-    form = { d: d, off: !!off, confirmed: '' };
-    $('sheetTitle').textContent = off ? 'ยาไม่อยู่ในรายการ' : (S.mode === 'slot' ? 'ช่อง ' + d.slot : 'ชั้น stock');
+    form = { d: d, off: !!off, confirmed: '', box: box || '' };
+    $('sheetTitle').textContent = off ? 'ยาไม่อยู่ในรายการ' : (box ? boxLabel(box) : (S.mode === 'slot' ? 'ช่อง ' + d.slot : 'ชั้น stock'));
     var locVal = (d && d.sl) || S.loc || (S.group && S.group !== UNKNOWN ? S.group : '');
     var lots = {};
-    if (d) allRows().forEach(function (r) { if (r.c === d.c && r.lot) lots[r.lot] = r.exp; });
+    if (d) allRows().concat(S.boxes || []).forEach(function (r) { if (r.c === d.c && r.lot) lots[r.lot] = r.exp; });
     var chips = Object.keys(lots).map(function (l) {
       return '<button type="button" class="chip" data-lot="' + esc(l) + '" data-exp="' + esc(lots[l]) + '">' + esc(l) + (lots[l] ? ' · ' + esc(lots[l]) : '') + '</button>';
     }).join('');
@@ -745,7 +766,7 @@
         '<div class="check"><input type="checkbox" id="fNoLot" aria-label="กล่องนี้ไม่มีเลข Lot"><span>กล่องนี้ไม่มีเลข Lot</span></div>' +
         '<label class="f">EXP</label><div class="row3"><select class="t" id="fD" aria-label="วันหมดอายุ">' + dayOptions() + '</select><select class="t" id="fM" aria-label="เดือนหมดอายุ">' + monthOptions() + '</select><select class="t" id="fY" aria-label="ปีหมดอายุ">' + yearOptions() + '</select></div>' +
         '<div class="sub" style="margin-top:6px">ถ้ากล่องระบุแค่เดือนและปี ไม่ต้องเลือกวัน</div>' +
-        '<label class="f" for="fQty">จำนวน' + (d ? ' (' + esc(d.u) + ')' : '') + '</label><input class="t" id="fQty" type="number" inputmode="decimal" min="0" step="any">' +
+        '<label class="f" for="fQty">จำนวน' + (box === 'EMER' || box === 'CPR' ? 'รวมทุกกล่อง' : '') + (d ? ' (' + esc(d.u) + ')' : '') + '</label><input class="t" id="fQty" type="number" inputmode="decimal" min="0" step="any">' +
         '<button type="button" class="link" id="calcToggle">คำนวณจากจำนวนกล่อง</button>' +
         '<div class="calc" id="calc" hidden><input class="t" id="cBox" type="number" inputmode="numeric" placeholder="กล่อง" aria-label="จำนวนกล่อง"><span>×</span><input class="t" id="cPer" type="number" inputmode="numeric" placeholder="ต่อกล่อง" aria-label="จำนวนต่อกล่อง"><span>+</span><input class="t" id="cLoose" type="number" inputmode="numeric" placeholder="เศษ" aria-label="จำนวนเศษ"></div>' +
         '<label class="f" for="fNote">หมายเหตุ</label><input class="t" id="fNote" maxlength="120">' +
@@ -760,6 +781,14 @@
   }
   function drawLots() {
     var box = $('lotsBox'); if (!box || !form || !form.d) return;
+    if (form.box) {
+      var br = boxRowsOf(form.box).filter(function (x) { return x.c === form.d.c; });
+      if ($('saveNone')) $('saveNone').hidden = true;
+      box.innerHTML = br.length ? '<div class="sub" style="margin-top:10px">บันทึกแล้วในกล่องนี้</div>' + br.map(function (x) {
+        return '<div class="lot"><div><b>' + esc(x.lot || 'ไม่มี Lot') + '</b> · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(form.d.u) + lotTag(x) + '</div><button type="button" data-boxdel="' + esc(x.id) + '">ยกเลิก</button></div>';
+      }).join('') : '';
+      return;
+    }
     var r = rowsOf(form.d.c, S.mode);
     if ($('saveNone')) $('saveNone').hidden = r.length > 0;   // มี Lot แล้ว ไม่ต้องกด "ไม่มีของ"
     box.innerHTML = r.length ? '<div class="sub" style="margin-top:10px">นับแล้วที่นี่</div>' + r.map(function (x, i) {
@@ -816,19 +845,20 @@
     var qv = none ? '0' : $('fQty').value.trim(), qty = Number(qv);
     var name = off ? $('fName').value.trim() : d.n;
     if (off && !name) return showWarn('กรุณาระบุชื่อยา', 1);
-    if (!loc) return showWarn('กรุณาระบุตำแหน่ง', 1);
+    if (!loc && !form.box) return showWarn('กรุณาระบุตำแหน่ง', 1);
     if (!none) {
       if (qv === '' || !isFinite(qty) || qty < 0) return showWarn('กรุณาระบุจำนวน', 1);
       if (qty > 0 && !lot && !noLot) return showWarn('กรุณาระบุ Lot', 1);
       if (qty > 0 && !exp) return showWarn('กรุณาเลือกเดือนและปีหมดอายุ', 1);
       if (dd && m && y && new Date(Number(y), Number(m), 0).getDate() < Number(dd)) return showWarn('วันที่นี้ไม่มีในเดือนที่เลือก', 1);
     }
-    var ws = none ? [] : warnings(lot, exp, qty), key = ws.map(function (w) { return w.t; }).join('|');
+    var ws = (none || form.box) ? [] : warnings(lot, exp, qty), key = ws.map(function (w) { return w.t; }).join('|');
     if (ws.length && form.confirmed !== key) {
       form.confirmed = key;
       showWarn(ws.map(function (w) { return w.t; }).join(' / ') + ' — กดบันทึกอีกครั้งเพื่อยืนยัน', ws.some(function (w) { return w.red; }));
       return;
     }
+    if (form.box) { saveBoxLot(go, lot, exp, qty, $('fNote').value.trim()); return; }
     if (locEl) { S.loc = loc; save(K_LOC, loc); }
     S.queue.push({ id: uid(), pin: S.pin, by: S.by, place: off ? 'off' : S.mode, loc: loc, code: d ? d.c : '', name: name, lot: lot, exp: exp, qty: qty, noLot: noLot,
       note: none ? 'ไม่มีของ' : $('fNote').value.trim(), clientTime: new Date().toISOString() });
@@ -843,7 +873,7 @@
     }
     closeSheet();
   }
-  function reopen(code) { openEntry(code, false, true); }
+  function reopen(code) { openEntry(code, false, true, form && form.box); }
   function closeSheet() { if (!$('sheet').hidden) history.back(); }
   function hideSheet() { $('sheet').hidden = true; form = null; render(); }
 
@@ -885,6 +915,7 @@
       post(Object.assign({}, moveReq, { pin: pin, qty: mq })).then(function (r) {
         $('pinYes').disabled = false;
         if (r.status !== 'ok') return pinFail(r.msg || 'บันทึกไม่สำเร็จ');
+        if (moveReq.action === 'cancelBoxStock') { var did = moveReq.id; S.boxes = (S.boxes || []).filter(function (x) { return x.id !== did; }); drawLots(); }
         closePin(); success('บันทึกสำเร็จ', r.warn || ''); S.loading = false; refresh(true);
       }).catch(function () { pinFail('บันทึกไม่ได้ ต้องต่ออินเทอร์เน็ต'); });
       return;
@@ -919,7 +950,7 @@
     else if (t.dataset.daily) openDaily(t.dataset.daily);
     else if (t.dataset.toexp !== undefined) askToExp(t.dataset.toexp);
     else if (t.dataset.boxadd) openBox(t.dataset.boxadd);
-    else if (t.dataset.boxitem) { var bi = t.dataset.boxitem.split('|'); openBox(bi[0], bi[1]); }
+    else if (t.dataset.boxcode) { var bi = t.dataset.boxcode.split('|'); openEntry(bi[1], false, false, bi[0]); }
     else if (t.dataset.boxdel) askBoxDel(t.dataset.boxdel);
     else if (t.dataset.back) askBack(t.dataset.back);
     else if (t.dataset.rev) openReview(t.dataset.rev);
