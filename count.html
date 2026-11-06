@@ -273,7 +273,8 @@
   function num(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
   function isHad(n) { return /\(HAD\)/i.test(n); }
   function tags(d) {
-    return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags(expLots(d.c).concat(nearOf(d.c)));
+    var shown = expLots(d.c).concat(nearOf(d.c));
+    return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags(shown) + (shown.some(function (l) { return !isExpired(l); }) ? '' : farDays(d));
   }
   var toastT;
   function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600); }
@@ -451,6 +452,12 @@
       var d = S.byCode[r.c] || {}; return { c: r.c, n: d.n || r.c, u: d.u || '', loc: r.loc, lot: r.lot, exp: r.exp, q: Number(r.q) };
     });
     return src.filter(function (l) { return expDays(l.exp) !== Infinity && daysLeft(l) <= NEAR_DAYS; }).sort(function (a, b) { return expDays(a.exp) - expDays(b.exp); });
+  }
+  // ยาที่ยังไม่ถึง 180 วัน แสดงจำนวนวันของ Lot ที่หมดอายุก่อน
+  function farDays(d) {
+    var lots = dailyOn() ? (d.lots || []) : (S.rows || []).filter(function (r) { return r.c === d.c && Number(r.q) > 0; });
+    var days = lots.filter(function (l) { return l.exp && expDays(l.exp) !== Infinity && !isExpired(l); }).map(daysLeft);
+    return days.length ? expTag(false, Math.min.apply(null, days)) : '';
   }
   function nearOf(c) { return nearList().filter(function (l) { return l.c === c; }); }
   function nearTile() { var n = nearList().length; return boxTilesAfter(n ? '<button type="button" class="tile near-t small" data-group="NEAR"><b>NEAR EXP</b><span>' + n + ' Lot</span></button>' : ''); }
