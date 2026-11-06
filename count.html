@@ -61,6 +61,8 @@
   .tile.exp { background: var(--danger); }
   .tile.exp b, .tile.exp span { color: #fff; }
   .tile.gold { background: var(--gold); }
+  .tile.near-t { background: #f5a623; }
+  .tile.near-t b, .tile.near-t span { color: #2b2111; }
   .tile.gold b, .tile.gold span { color: #fff; }
   .item.static { cursor: default; display: block; }
   .list { margin-top: 14px; display: grid; gap: 8px; }
@@ -172,6 +174,7 @@
     <div class="sub" id="pinWhat" style="margin-top:4px"></div>
     <label class="f" for="pinInput">รหัสพนักงาน</label>
     <input class="t" id="pinInput" type="password" inputmode="numeric" maxlength="12">
+    <div id="pinQtyBox" hidden><label class="f" for="pinQty">จำนวน</label><input class="t" id="pinQty" type="number" inputmode="decimal" min="0" step="any"></div>
     <div class="warn red" id="pinErr" hidden></div>
     <div class="btns two">
       <button class="btn ghost" type="button" id="pinNo">ไม่ยกเลิก</button>
@@ -268,7 +271,7 @@
   function num(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
   function isHad(n) { return /\(HAD\)/i.test(n); }
   function tags(d) {
-    return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags(expLots(d.c));
+    return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags(expLots(d.c).concat(nearOf(d.c)));
   }
   var toastT;
   function toast(m) { var t = $('toast'); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2600); }
@@ -385,6 +388,7 @@
     back.hidden = !S.group;
     $('topTitle').textContent = S.group === 'EXP' ? 'คลัง EXP' : (S.group ? 'ช่องจ่าย ' + S.group : 'นับ Stock ห้องยา');
     if (S.group === 'EXP') { v.innerHTML = expHtml(); return; }
+    if (S.group === 'NEAR') { $('topTitle').textContent = 'ใกล้หมดอายุ'; v.innerHTML = nearHtml(); return; }
     if (dailyOn()) { renderDaily(v); return; }
     if (S.group) { v.innerHTML = listHtml(groupList(S.group)); return; }
     var all = workDrugs(), done = all.filter(isDone).length, pct = all.length ? Math.round(done * 100 / all.length) : 0, keep = S.q;
@@ -409,13 +413,15 @@
     }
     if (!groups().length) { box.innerHTML = '<div class="empty">ค้นหาชื่อยาเพื่อบันทึกของสำรองบนชั้น stock</div>'; return; }
     var expCodes = Object.keys(S.expInv || {});
-    box.innerHTML = '<div class="grid">' + (expCodes.length ? '<button type="button" class="tile exp" data-group="EXP"><b>EXP</b><span>' + expCodes.length + ' รายการ</span></button>' : '') + groups().map(function (g) {
+    box.innerHTML = '<div class="grid">' + (expCodes.length ? '<button type="button" class="tile exp" data-group="EXP"><b>EXP</b><span>' + expCodes.length + ' รายการ</span></button>' : '') + nearTile() + groups().map(function (g) {
       var d = g.list.filter(isDone).length, ok = d === g.list.length;
       return '<button type="button" class="tile' + (ok ? ' done' : '') + (g.k.length > 3 ? ' small' : '') + '" data-group="' + esc(g.k) + '"><b>' + esc(g.k) + '</b><span>' + d + '/' + g.list.length + '</span></button>';
     }).join('') + '</div>';
   }
   // รายการในคลัง EXP มาจาก EXP Inventory เท่านั้น เปลี่ยนตามยาที่ย้ายเข้ามา
   function expDays(s) {
+    var my = /^(\d{1,2})\/(\d{4})$/.exec(s || '');
+    if (my) return new Date(Number(my[2]), Number(my[1]), 0).getTime();   // ระบุแค่เดือน นับถึงวันสุดท้ายของเดือน
     var m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s || '');
     if (!m) return Infinity;
     var a = Number(m[1]), b = Number(m[2]);   // บางแถวใน EXP Inventory เป็น เดือน/วัน/ปี เช่น 7/31/2026
@@ -430,7 +436,28 @@
     var now = new Date();
     return Math.round((expDays(l.exp) - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000);
   }
-  function expTag(expired, days) { return expired ? '<span class="had exp">EXP</span>' : '<span class="had near">NEAR EXP</span><span class="had near">' + num(days) + ' วัน</span>'; }
+  var NEAR_DAYS = 180;   // เริ่มติด NEAR EXP ก่อนหมดอายุ 180 วัน
+  function expTag(expired, days) {
+    if (expired) return '<span class="had exp">EXP</span>';
+    return (days <= NEAR_DAYS ? '<span class="had near">NEAR EXP</span>' : '') + '<span class="had near">' + num(days) + ' วัน</span>';
+  }
+  // Lot ในคลังปกติที่เหลือไม่เกิน 180 วัน หลังปิดยอดใช้รายการจากระบบ ไม่มียอดเพื่อให้ยังนับแบบไม่เห็นยอด
+  function nearList() {
+    var src = dailyOn() ? ((S.daily && S.daily.near) || []) : S.rows.filter(function (r) { return Number(r.q) > 0 && r.exp; }).map(function (r) {
+      var d = S.byCode[r.c] || {}; return { c: r.c, n: d.n || r.c, u: d.u || '', loc: r.loc, lot: r.lot, exp: r.exp, q: Number(r.q) };
+    });
+    return src.filter(function (l) { return expDays(l.exp) !== Infinity && daysLeft(l) <= NEAR_DAYS; }).sort(function (a, b) { return expDays(a.exp) - expDays(b.exp); });
+  }
+  function nearOf(c) { return nearList().filter(function (l) { return l.c === c; }); }
+  function nearTile() { var n = nearList().length; return n ? '<button type="button" class="tile near-t small" data-group="NEAR"><b>NEAR EXP</b><span>' + n + ' Lot</span></button>' : ''; }
+  function nearHtml() {
+    var list = nearList();
+    if (!list.length) return '<div class="empty">ไม่มี Lot ที่เหลือไม่เกิน 180 วัน</div>';
+    return '<div class="list">' + list.map(function (l, i) {
+      return '<div class="item static"><div class="nm">' + esc(l.n) + lotTag(l) + '</div><div class="sub">' + esc(l.loc || '-') + ' · ' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp) + (l.q ? ' · ' + num(l.q) + ' ' + esc(l.u) : '') + '</div>' +
+        '<div class="btns"><button class="btn sec" type="button" data-toexp="' + i + '">เข้าคลัง EXP</button></div></div>';
+    }).join('') + '</div>';
+  }
   function lotTag(l) { return l.x ? '<span class="had xl">EXCHANGE LOSS</span>' : expTag(isExpired(l), daysLeft(l)); }
   // Lot ที่ยังอยู่ในคลัง EXP จริง ไม่รวมแถว Exchange Loss ที่ส่งคืนบริษัทแล้ว
   function expLots(c) { return ((S.expInv || {})[c] || []).filter(function (l) { return !l.x; }); }
@@ -442,13 +469,14 @@
   function expHtml() {
     var inv = S.expInv || {}, items = Object.keys(inv).map(function (c) {
       var d = S.byCode[c] || {};
-      return { name: d.n || (inv[c][0] && inv[c][0].n) || c, u: d.u || '', lots: inv[c].slice().sort(function (a, b) { return expDays(a.exp) - expDays(b.exp); }) };
+      return { c: c, name: d.n || (inv[c][0] && inv[c][0].n) || c, u: d.u || '', lots: inv[c].slice().sort(function (a, b) { return expDays(a.exp) - expDays(b.exp); }) };
     }).sort(function (a, b) { return expDays(a.lots[0].exp) - expDays(b.lots[0].exp); });
     if (!items.length) return '<div class="empty">ยังไม่มียาในคลัง EXP</div>';
     return '<div class="list">' + items.map(function (x) {
       var mixed = x.lots.some(function (l) { return lotTag(l) !== lotTag(x.lots[0]); });   // ยาตัวเดียวมีหลายสถานะ ให้ติดแท็กราย Lot
       return '<div class="item static"><div class="nm">' + esc(x.name) + (mixed ? '' : lotTag(x.lots[0])) + '</div>' + x.lots.map(function (l) {
-        return '<div class="sub">' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp || '-') + ' · ' + num(l.q) + (x.u ? ' ' + esc(x.u) : '') + (l.x ? ' · ส่งคืนบริษัทแล้ว' : '') + (mixed ? lotTag(l) : '') + '</div>';
+        return '<div class="sub">' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp || '-') + ' · ' + num(l.q) + (x.u ? ' ' + esc(x.u) : '') + (l.x ? ' · ส่งคืนบริษัทแล้ว' : '') + (mixed ? lotTag(l) : '') + '</div>' +
+          (!l.x && !isExpired(l) ? '<div class="btns"><button class="btn ghost" type="button" data-back="' + esc(x.c) + '|' + esc(l.row) + '">คืนมาคลังปกติ</button></div>' : '');
       }).join('') + '</div>';
     }).join('') + '</div>';
   }
@@ -503,7 +531,7 @@
       var t = (S.dq || '').trim().toLowerCase();
       if (t) { $('dres').innerHTML = dailyListHtml(items.filter(function (d) { return d.n.toLowerCase().indexOf(t) >= 0 || d.c.indexOf(t) >= 0; })); return; }
       $('dres').innerHTML = '<div class="grid">' +
-        (expCodes.length ? '<button type="button" class="tile exp" data-group="EXP"><b>EXP</b><span>' + expCodes.length + ' รายการ</span></button>' : '') +
+        (expCodes.length ? '<button type="button" class="tile exp" data-group="EXP"><b>EXP</b><span>' + expCodes.length + ' รายการ</span></button>' : '') + nearTile() +
         (S.pharm ? '<button type="button" class="tile gold small" data-group="REVIEW"><b>รอตรวจ</b><span>' + ((S.daily && S.daily.review) || 0) + ' รายการ</span></button><button type="button" class="tile small" data-group="STOCK"><b>ยอดคงเหลือ</b><span>ดูยอด</span></button>' : '') +
         dailyGroups().map(function (g) {
           var d = g.list.filter(function (x) { return x.done; }).length, ok = d === g.list.length;
@@ -758,7 +786,20 @@
   var cancelId = '', cancelTarget = null, pinMode = 'cancel';
   function openPin(mode, title, what, noText) {
     pinMode = mode; $('pinTitle').textContent = title; $('pinWhat').textContent = what; $('pinNo').textContent = noText;
-    $('pinInput').value = ''; $('pinErr').hidden = true; $('pinModal').hidden = false; $('pinInput').focus();
+    $('pinInput').value = ''; $('pinErr').hidden = true; $('pinModal').hidden = false; $('pinQtyBox').hidden = true; $('pinQty').disabled = false; $('pinInput').focus();
+  }
+  var moveReq = null;
+  function askMove(req, title, what, qty, lockQty) {
+    moveReq = req; openPin('move', title, what, 'ไม่ย้าย');
+    $('pinQtyBox').hidden = false; $('pinQty').value = qty == null ? '' : qty; $('pinQty').disabled = !!lockQty;
+  }
+  function askToExp(i) {
+    var l = nearList()[Number(i)]; if (!l) return;
+    askMove({ action: 'moveStockToExp', code: l.c, name: l.n, lot: l.lot, exp: l.exp }, 'ย้ายเข้าคลัง EXP', l.n + ' · Lot ' + (l.lot || '-') + ' · EXP ' + l.exp, l.q, !dailyOn());
+  }
+  function askBack(key) {
+    var p = key.split('|'), l = ((S.expInv || {})[p[0]] || []).filter(function (x) { return String(x.row) === p[1]; })[0]; if (!l) return;
+    askMove({ action: 'returnStockFromExp', code: p[0], lot: l.lot, row: l.row }, 'คืนมาคลังปกติ', ((S.byCode[p[0]] || {}).n || l.n) + ' · Lot ' + (l.lot || '-') + ' · EXP ' + l.exp, l.q, false);
   }
   function askNoLot() { openPin('nolot', 'ยืนยันว่าไม่มีเลข Lot', 'ใส่รหัสพนักงานเพื่อยืนยันว่ากล่องนี้ไม่มีเลข Lot', 'ไม่ยืนยัน'); }
   function cancelRow(id) {
@@ -772,6 +813,17 @@
   function confirmCancel() {
     var id = cancelId, pin = $('pinInput').value.trim();
     if (!pin) return pinFail('กรุณาใส่รหัสพนักงาน');
+    if (pinMode === 'move') {
+      var mq = Number($('pinQty').value);
+      if (!(mq > 0)) return pinFail('กรุณาระบุจำนวน');
+      $('pinYes').disabled = true;
+      post(Object.assign({}, moveReq, { pin: pin, qty: mq })).then(function (r) {
+        $('pinYes').disabled = false;
+        if (r.status !== 'ok') return pinFail(r.msg || 'บันทึกไม่สำเร็จ');
+        closePin(); success('บันทึกสำเร็จ', r.warn || ''); S.loading = false; refresh(true);
+      }).catch(function () { pinFail('บันทึกไม่ได้ ต้องต่ออินเทอร์เน็ต'); });
+      return;
+    }
     if (pinMode === 'nolot') {
       if (pin !== S.pin) return pinFail('รหัสพนักงานไม่ถูกต้อง');
       $('fNoLot').checked = true; $('fLot').value = ''; $('fLot').disabled = true; form.confirmed = ''; closePin(); return;
@@ -800,6 +852,8 @@
     else if (t.dataset.mode) { S.mode = t.dataset.mode; S.q = ''; render(); }
     else if (t.dataset.group) { S.group = t.dataset.group; if (S.group === 'REVIEW') loadReview(); if (S.group === 'STOCK') loadStock(); history.pushState({ g: 1 }, ''); render(); scrollTo(0, 0); }
     else if (t.dataset.daily) openDaily(t.dataset.daily);
+    else if (t.dataset.toexp !== undefined) askToExp(t.dataset.toexp);
+    else if (t.dataset.back) askBack(t.dataset.back);
     else if (t.dataset.rev) openReview(t.dataset.rev);
     else if (t.dataset.code) openEntry(t.dataset.code);
     else if (t.dataset.off) openEntry('', true);
