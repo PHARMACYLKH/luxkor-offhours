@@ -646,8 +646,8 @@
   }
 
   // ── กล่องยา: ยอด static ไม่ถูกตัดจากการจ่าย เช้ามาเติมจากห้องยา ──
-  var BOXES = ['YELLOW', 'IPD INJ', 'IPD TAB', 'EMER 1', 'EMER 2', 'EMER 3', 'EMER 4', 'EMER 5', 'EMER 6', 'CPR 1', 'CPR 2', 'CPR 3', 'CPR 4', 'CPR 5', 'OR'];
-  function boxLabel(b) { return b === 'YELLOW' ? 'Yellow Box' : b; }
+  var BOXES = ['YELLOW', 'IPD INJ', 'IPD TAB', 'EMER', 'CPR', 'OR'];   // EMER = กล่อง 1-6, CPR = กล่อง 1-5
+  function boxLabel(b) { return { YELLOW: 'Yellow Box', EMER: 'EMER 1-6', CPR: 'CPR 1-5' }[b] || b; }
   function boxRowsOf(b) { return (S.boxes || []).filter(function (x) { return x.box === b; }); }
   function boxItemsOf(b) { return (S.boxItems || []).filter(function (x) { return x.box === b; }); }
   function boxCount(b) {
@@ -678,7 +678,7 @@
       S.drugs.map(function (d) { return '<option value="' + esc(d.n) + '"></option>'; }).join('') + '</datalist>' +
       '<label class="f" for="bLot">Lot</label><input class="t" id="bLot" maxlength="40" autocapitalize="characters" autocorrect="off" spellcheck="false">' +
       '<label class="f">EXP</label><div class="row3"><select class="t" id="bD" aria-label="วันหมดอายุ">' + dayOptions() + '</select><select class="t" id="bM" aria-label="เดือนหมดอายุ">' + monthOptions() + '</select><select class="t" id="bY" aria-label="ปีหมดอายุ">' + yearOptions() + '</select></div>' +
-      '<label class="f" for="bQty">จำนวนมาตรฐานในกล่อง</label><input class="t" id="bQty" type="number" inputmode="decimal" min="0" step="any">' +
+      '<label class="f" for="bQty">' + (b === 'EMER' || b === 'CPR' ? 'จำนวนมาตรฐานรวมทุกกล่อง' : 'จำนวนมาตรฐานในกล่อง') + '</label><input class="t" id="bQty" type="number" inputmode="decimal" min="0" step="any">' +
       '<div class="warn" id="fWarn" hidden></div><div class="btns"><button class="btn pri" type="submit" id="bSave">บันทึก</button></div></form>';
     $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
     if (code && S.byCode[code]) { $('bDrug').value = S.byCode[code].n; $('bDrug').readOnly = true; }
