@@ -61,6 +61,23 @@
   .tile.exp { background: var(--danger); }
   .tile.exp b, .tile.exp span { color: #fff; }
   .tile.gold { background: var(--gold); }
+  @font-face { font-family: RptThai; font-weight: 400; src: local('TH SarabunPSK'), url('fonts/THSarabun.ttf') format('truetype'); unicode-range: U+0E00-0E7F; size-adjust: 130%; }
+  @font-face { font-family: RptThai; font-weight: 700; src: local('TH SarabunPSK Bold'), url('fonts/THSarabun-Bold.ttf') format('truetype'); unicode-range: U+0E00-0E7F; size-adjust: 130%; }
+  #report { display: none; font-family: RptThai, Arial, sans-serif; color: #000; font-size: 10pt; line-height: 1.3; }
+  #report .rp-head { text-align: center; margin-bottom: 8px; }
+  #report h1 { font-size: 14pt; margin: 2px 0; color: #000; }
+  #report table { width: 100%; border-collapse: collapse; }
+  #report th, #report td { border: 0.5pt solid #555; padding: 2px 4px; text-align: left; vertical-align: top; }
+  #report th { background: #e8efe9; }
+  #report .n { text-align: right; white-space: nowrap; }
+  #report tr { break-inside: avoid; }
+  #report .rp-sign { display: flex; justify-content: space-between; margin-top: 28px; break-inside: avoid; }
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    html, body { background: #fff !important; }
+    body > *:not(#report) { display: none !important; }
+    #report { display: block !important; }
+  }
   .spin { display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spinit .7s linear infinite; }
   @keyframes spinit { to { transform: rotate(360deg); } }
   .btn:disabled { opacity: .75; cursor: wait; }
@@ -404,7 +421,7 @@
       (all.length ? '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + all.length + ' รายการ</span><span>' + pct + '%</span></div>' +
       '<div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '') +
       '<div class="search"><input class="t" id="q" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(keep) + '" autocomplete="off"></div>' +
-      '<div id="res"></div>' +
+      '<div id="res"></div>' + reportBtn() +
       '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
     v.innerHTML = h;
     drawResults();
@@ -540,7 +557,7 @@
     var items = dailyItems(), done = items.filter(function (d) { return d.done; }).length, pct = items.length ? Math.round(done * 100 / items.length) : 0, q = (S.dq || '').trim().toLowerCase();
     var expCodes = Object.keys(S.expInv || {});
     v.innerHTML = (S.daily ? '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + items.length + ' รายการ</span><span>' + pct + '%</span></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '<div class="empty">กำลังโหลดรายการ</div>') +
-      '<div class="search"><input class="t" id="dq" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(S.dq || '') + '" autocomplete="off"></div><div id="dres"></div>' +
+      '<div class="search"><input class="t" id="dq" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(S.dq || '') + '" autocomplete="off"></div><div id="dres"></div>' + reportBtn() +
       '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
     var draw = function () {
       var t = (S.dq || '').trim().toLowerCase();
@@ -744,6 +761,64 @@
     var x = (S.boxes || []).filter(function (r) { return r.id === id; })[0]; if (!x) return;
     askMove({ action: 'cancelBoxStock', id: id }, 'ยกเลิกยาในกล่อง', x.n + ' · Lot ' + (x.lot || '-') + ' · ' + num(x.q) + ' ' + x.u, 1, true);
     $('pinQtyBox').hidden = true; $('pinNo').textContent = 'ไม่ยกเลิก';
+  }
+
+  // ── รายงาน A4: สร้างจากข้อมูลในแอป แล้วใช้หน้าพิมพ์ของเบราว์เซอร์ ──
+  function reportBtn() { return '<div class="btns" style="margin-top:12px"><button class="btn sec" type="button" data-report="1">พิมพ์รายงาน A4</button></div>'; }
+  function openReport() {
+    form = { report: true };
+    $('sheetTitle').textContent = 'พิมพ์รายงาน A4';
+    var slotGroups = {}; S.drugs.forEach(function (d) { if (d.slot) slotGroups[slotGroup(d.slot)] = 1; });
+    $('sheetBody').innerHTML = '<form class="card" id="rpForm"><label class="f" for="rpType">รายงาน</label><select class="t" id="rpType">' +
+      '<option value="all">ยอดนับทั้งหมด</option><option value="group">ยอดนับตามหมวดช่องยา</option><option value="near">NEAR EXP</option><option value="exp">คลัง EXP</option><option value="box">กล่องยา</option><option value="todo">รายการที่ยังไม่นับ</option></select>' +
+      '<div id="rpGroupBox" hidden><label class="f" for="rpGroup">หมวดช่องยา</label><select class="t" id="rpGroup">' + Object.keys(slotGroups).sort(natural).map(function (k) { return '<option>' + esc(k) + '</option>'; }).join('') + '</select></div>' +
+      '<div id="rpBoxBox" hidden><label class="f" for="rpBox">กล่องยา</label><select class="t" id="rpBox"><option value="">ทุกกล่อง</option>' + BOXES.map(function (b) { return '<option value="' + esc(b) + '">' + esc(boxLabel(b)) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="btns"><button class="btn pri" type="submit">พิมพ์</button></div></form>';
+    $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
+    $('rpType').addEventListener('change', function (e) { $('rpGroupBox').hidden = e.target.value !== 'group'; $('rpBoxBox').hidden = e.target.value !== 'box'; });
+    $('rpForm').addEventListener('submit', function (e) { e.preventDefault(); printReport($('rpType').value, $('rpGroup').value, $('rpBox').value); });
+  }
+  function reportData(type, group, box) {
+    var slotOf = function (c) { return (S.byCode[c] || {}).slot || '-'; }, statusOf = function (l) { if (!l.exp || expDays(l.exp) === Infinity) return ''; return isExpired(l) ? 'EXP' : num(daysLeft(l)) + ' วัน'; };
+    var byLoc = function (a, b) { return natural(a[0], b[0]) || String(a[1]).localeCompare(String(b[1])); };
+    if (type === 'exp') {
+      var e = [];
+      Object.keys(S.expInv || {}).forEach(function (c) { S.expInv[c].forEach(function (l) { var d = S.byCode[c] || {}; e.push([d.n || l.n || c, l.lot || 'ไม่มี Lot', l.exp || '-', num(l.q), d.u || '', l.x ? 'EXCHANGE LOSS' : statusOf(l)]); }); });
+      return { title: 'รายงานคลัง EXP', head: ['รายการ', 'Lot', 'EXP', 'จำนวน', 'หน่วย', 'สถานะ'], rows: e.sort(function (a, b) { return expDays(a[2]) - expDays(b[2]); }), num: [3] };
+    }
+    if (type === 'near') return { title: 'รายงาน NEAR EXP (ไม่เกิน ' + NEAR_DAYS + ' วัน)', head: ['ช่อง', 'รายการ', 'Lot', 'EXP', 'จำนวน', 'หน่วย', 'สถานะ'], num: [4],
+      rows: nearList().map(function (l) { return [l.loc || '-', l.n, l.lot || 'ไม่มี Lot', l.exp, l.q ? num(l.q) : '', l.u, statusOf(l)]; }) };
+    if (type === 'box') {
+      var b = [];
+      BOXES.filter(function (x) { return !box || x === box; }).forEach(function (x) {
+        boxList(x).forEach(function (d) {
+          var mine = boxRowsOf(x).filter(function (r) { return r.c === d.c; });
+          if (!mine.length) b.push([boxLabel(x), d.n, d.boxNote || 'ยังไม่กรอก', '', '', '', '']);
+          mine.forEach(function (r) { b.push([boxLabel(x), d.n, r.lot || 'ไม่มี Lot', r.exp, num(r.q), r.u, statusOf(r)]); });
+        });
+      });
+      return { title: 'รายงานกล่องยา' + (box ? ' ' + boxLabel(box) : ''), head: ['กล่อง', 'รายการ', 'Lot', 'EXP', 'จำนวน', 'หน่วย', 'สถานะ'], rows: b, num: [4] };
+    }
+    if (type === 'todo') {
+      var counted = {}; S.rows.forEach(function (r) { counted[r.c] = 1; });
+      return { title: 'รายการที่ยังไม่นับ', head: ['ช่อง', 'รายการ', 'หน่วย'], num: [], rows: S.drugs.filter(function (d) { return !counted[d.c]; }).map(function (d) { return [d.slot || '-', d.n, d.u]; }).sort(byLoc) };
+    }
+    var list = S.rows.filter(function (r) { return type !== 'group' || slotGroup(slotOf(r.c)) === group; }).map(function (r) {
+      var d = S.byCode[r.c] || {}; return [slotOf(r.c), d.n || r.c, r.lot || 'ไม่มี Lot', r.exp || '-', num(r.q), d.u || '', Number(r.q) > 0 ? statusOf(r) : 'ไม่มีของ', r.by || ''];
+    }).sort(byLoc);
+    return { title: type === 'group' ? 'รายงานยอดนับ หมวด ' + group : 'รายงานยอดนับทั้งหมด', head: ['ช่อง', 'รายการ', 'Lot', 'EXP', 'จำนวน', 'หน่วย', 'สถานะ', 'ผู้นับ'], rows: list, num: [4] };
+  }
+  function printReport(type, group, box) {
+    var r = reportData(type, group, box), el = $('report') || document.body.appendChild(Object.assign(document.createElement('div'), { id: 'report' }));
+    if (!r.rows.length) return toast('ไม่มีรายการในรายงานนี้');
+    var now = new Date(), two = function (n) { return ('0' + n).slice(-2); };
+    var stamp = two(now.getDate()) + '/' + two(now.getMonth() + 1) + '/' + now.getFullYear() + ' ' + two(now.getHours()) + ':' + two(now.getMinutes()) + ' น.';
+    el.innerHTML = '<div class="rp-head"><b>Lux Kor Hospital · ห้องยา</b><h1>' + esc(r.title) + '</h1><div>พิมพ์เมื่อ ' + stamp + ' · ผู้พิมพ์ ' + esc(S.by) + ' · ' + num(r.rows.length) + ' รายการ</div></div>' +
+      '<table><thead><tr>' + r.head.map(function (h, i) { return '<th' + (r.num.indexOf(i) >= 0 ? ' class="n"' : '') + '>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      r.rows.map(function (x) { return '<tr>' + x.map(function (c, i) { return '<td' + (r.num.indexOf(i) >= 0 ? ' class="n"' : '') + '>' + esc(c) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>' +
+      '<div class="rp-sign"><div>ลงชื่อ ........................................ ผู้จัดทำ</div><div>ลงชื่อ ........................................ เภสัชกรผู้ตรวจสอบ</div></div>';
+    var go = function () { window.print(); };
+    if (document.fonts && document.fonts.load) Promise.all([document.fonts.load('12px RptThai', 'ไทย'), document.fonts.load('bold 12px RptThai', 'ไทย')]).then(go, go); else go();   // รอฟอนต์ไทยก่อนพิมพ์
   }
 
   // ── ฟอร์มนับ ──
@@ -972,6 +1047,7 @@
     else if (t.dataset.mode) { S.mode = t.dataset.mode; S.q = ''; render(); }
     else if (t.dataset.group) { S.group = t.dataset.group; if (S.group === 'REVIEW') loadReview(); if (S.group === 'STOCK') loadStock(); history.pushState({ g: 1 }, ''); render(); scrollTo(0, 0); }
     else if (t.dataset.daily) openDaily(t.dataset.daily);
+    else if (t.dataset.report) openReport();
     else if (t.dataset.toexp !== undefined) askToExp(t.dataset.toexp);
     else if (t.dataset.boxadd) openBox(t.dataset.boxadd);
     else if (t.dataset.boxcode) { var bi = t.dataset.boxcode.split('|'); openEntry(bi[1], false, false, bi[0]); }
