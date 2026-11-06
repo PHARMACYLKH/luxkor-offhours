@@ -653,7 +653,7 @@
   function boxCount(b) {
     var items = boxItemsOf(b), rows = boxRowsOf(b);
     if (!items.length) return rows.length + ' รายการ';
-    return items.filter(function (i) { return rows.some(function (r) { return r.c === i.c; }); }).length + '/' + items.length;
+    return items.filter(function (i) { return i.note || rows.some(function (r) { return r.c === i.c; }); }).length + '/' + items.length;
   }
   function boxTiles() {
     return BOXES.map(function (b) {
@@ -661,7 +661,7 @@
     }).join('');
   }
   function boxList(b) {
-    var rows = boxRowsOf(b), seen = {}, list = boxItemsOf(b).map(function (i) { seen[i.c] = 1; return S.byCode[i.c] || { c: i.c, n: i.n, u: '' }; });
+    var rows = boxRowsOf(b), seen = {}, list = boxItemsOf(b).map(function (i) { seen[i.c] = 1; return Object.assign({}, S.byCode[i.c] || { c: i.c, n: i.n, u: '' }, { boxNote: i.note }); });
     rows.forEach(function (r) { if (!seen[r.c]) { seen[r.c] = 1; list.push(S.byCode[r.c] || { c: r.c, n: r.n, u: r.u }); } });
     return list;
   }
@@ -669,6 +669,7 @@
     var rows = boxRowsOf(b), list = boxList(b);
     return (list.length ? '<div class="list">' + list.map(function (d) {
       var mine = rows.filter(function (r) { return r.c === d.c; }), tot = mine.reduce(function (t, x) { return t + Number(x.q || 0); }, 0);
+      if (d.boxNote) return '<div class="item done">' + (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + tags(d) + '<div class="sub">' + esc(d.boxNote) + '</div></span></div>';
       return '<button type="button" class="item' + (mine.length ? ' done' : '') + '" data-boxcode="' + esc(b) + '|' + esc(d.c) + '">' +
         (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + tags(d) + '</span>' +
         '<span class="st">' + (mine.length ? num(tot) + ' ' + esc(d.u) + '<br>' + mine.length + ' Lot' : '') + '</span></button>';
@@ -688,7 +689,7 @@
       success('บันทึกสำเร็จ', (lot ? lot + ' · ' : '') + num(qty) + ' ' + d.u);
       if (go === 'more') { reopen(d.c); return; }
       var list = boxList(b), i = list.map(function (x) { return x.c; }).indexOf(d.c), rows = boxRowsOf(b);
-      for (var k = 1; k < list.length; k++) { var c = list[(i + k) % list.length]; if (!rows.some(function (x) { return x.c === c.c; })) { reopen(c.c); return; } }
+      for (var k = 1; k < list.length; k++) { var c = list[(i + k) % list.length]; if (!c.boxNote && !rows.some(function (x) { return x.c === c.c; })) { reopen(c.c); return; } }
       closeSheet();
     }).catch(function () { f.saving = false; showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
   }
