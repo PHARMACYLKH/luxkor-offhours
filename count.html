@@ -360,7 +360,7 @@
   function autoRefresh() {
     if (S.pin && navigator.onLine && !S.queue.some(function (x) { return !x.failed; })) refresh(true);
   }
-  setInterval(autoRefresh, 60000);
+  setInterval(autoRefresh, 180000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) autoRefresh(); });
   window.addEventListener('online', function () { pill(); flush(); });
   window.addEventListener('offline', pill);
@@ -952,7 +952,11 @@
     var target = cancelTarget, req = target && !target.id
       ? { action: 'cancelStockCount', pin: pin, code: target.c, lot: target.lot, qty: target.q }
       : { action: 'cancelStockCount', pin: pin, id: id };
-    post(req).then(function (r) {
+    var tries = 0, send = function () { return post(req).then(function (r) {   // ระบบไม่ว่างให้ลองซ้ำเอง
+      if (r.retry && ++tries < 4) { $('pinErr').textContent = 'ระบบกำลังบันทึกรายการอื่น กำลังลองใหม่…'; $('pinErr').hidden = false; return new Promise(function (ok) { setTimeout(ok, 3000); }).then(send); }
+      return r;
+    }); };
+    send().then(function (r) {
       $('pinYes').disabled = false;
       if (r.status !== 'ok') return pinFail(r.msg || 'ยกเลิกไม่สำเร็จ');
       S.rows = S.rows.filter(function (x) { return x !== target && (!id || x.id !== id); }); save(K_PLAN, { drugs: S.drugs, rows: S.rows, off: S.off, expInv: S.expInv }); drawLots(); closePin(); success('ยกเลิกแล้ว');
