@@ -688,7 +688,7 @@
     }).join('');
   }
   // แท็กในกล่องดูจาก Lot ในกล่องนั้นเท่านั้น ไม่ใช้ Lot ในห้องยา
-  function boxTags(d, lots) { return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags(lots); }
+  function boxTags(d, lots) { return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags(lots.filter(function (l) { return Number(l.q) > 0; })); }
   function boxList(b) {
     var rows = boxRowsOf(b), seen = {}, list = boxItemsOf(b).map(function (i) { seen[i.c] = 1; return Object.assign({}, S.byCode[i.c] || { c: i.c, n: i.n, u: '' }, { boxNote: i.note }); });
     rows.forEach(function (r) { if (!seen[r.c]) { seen[r.c] = 1; list.push(S.byCode[r.c] || { c: r.c, n: r.n, u: r.u }); } });
@@ -701,28 +701,28 @@
       if (d.boxNote) return '<div class="item done">' + (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, []) + '<div class="sub">' + esc(d.boxNote) + '</div></span></div>';
       return '<button type="button" class="item' + (mine.length ? ' done' : '') + '" data-boxcode="' + esc(b) + '|' + esc(d.c) + '">' +
         (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, mine) + '</span>' +
-        '<span class="st">' + (mine.length ? num(tot) + ' ' + esc(d.u) + '<br>' + mine.length + ' Lot' : '') + '</span></button>';
+        '<span class="st">' + (mine.length ? (tot > 0 ? num(tot) + ' ' + esc(d.u) + '<br>' + mine.filter(function (x) { return Number(x.q) > 0; }).length + ' Lot' : 'ไม่มีของ') : '') + '</span></button>';
     }).join('') + '</div>' : '<div class="empty">ยังไม่มียาในกล่องนี้</div>') +
       '<div class="btns" style="margin-top:12px"><button class="btn ghost" type="button" data-boxadd="' + esc(b) + '">ยาไม่อยู่ในรายการ</button></div>';
   }
   // ปุ่มเปลี่ยนทันทีที่กด กันกดซ้ำระหว่างรอระบบ
   function boxBusy(on, go) {
     var a = document.querySelector('#entry button[type=submit]'), b = $('saveMore');
-    [a, b].forEach(function (x) { if (!x) return; x.disabled = on; if (on) x.dataset.label = x.textContent; else if (x.dataset.label) x.textContent = x.dataset.label; });
+    [a, b, $('saveNone')].forEach(function (x) { if (!x) return; x.disabled = on; if (on) x.dataset.label = x.textContent; else if (x.dataset.label) x.textContent = x.dataset.label; });
     var t = go === 'more' ? b : a;
     if (on && t) t.innerHTML = '<span class="spin"></span>กำลังบันทึก…';
   }
-  function saveBoxLot(go, lot, exp, qty, note) {
+  function saveBoxLot(go, lot, exp, qty, note, none) {
     var f = form, d = f.d, b = f.box;
     if (f.saving) return;
-    if (!(qty > 0)) return showWarn('กรุณาระบุจำนวน', 1);
+    if (!none && !(qty > 0)) return showWarn('กรุณาระบุจำนวน', 1);
     f.saving = true; boxBusy(true, go);
     var id = uid();
-    post({ action: 'submitBoxStock', pin: S.pin, id: id, box: b, code: d.c, name: d.n, uom: d.u, lot: lot, exp: exp, qty: qty, note: note }).then(function (r) {
+    post({ action: 'submitBoxStock', pin: S.pin, id: id, box: b, code: d.c, name: d.n, uom: d.u, lot: lot, exp: exp, qty: qty, note: note, none: !!none }).then(function (r) {
       f.saving = false; boxBusy(false);
       if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
       S.boxes = (S.boxes || []).concat([{ id: r.id, box: b, c: d.c, n: d.n, u: d.u, lot: lot, exp: exp, q: qty }]);
-      success('บันทึกสำเร็จ', (lot ? lot + ' · ' : '') + num(qty) + ' ' + d.u);
+      success(none ? 'บันทึกว่าไม่มีของแล้ว' : 'บันทึกสำเร็จ', none ? '' : (lot ? lot + ' · ' : '') + num(qty) + ' ' + d.u);
       if (go === 'more') { reopen(d.c); return; }
       var list = boxList(b), i = list.map(function (x) { return x.c; }).indexOf(d.c), rows = boxRowsOf(b);
       for (var k = 1; k < list.length; k++) { var c = list[(i + k) % list.length]; if (!c.boxNote && !rows.some(function (x) { return x.c === c.c; })) { reopen(c.c); return; } }
@@ -794,7 +794,7 @@
         boxList(x).forEach(function (d) {
           var mine = boxRowsOf(x).filter(function (r) { return r.c === d.c; });
           if (!mine.length) b.push([boxLabel(x), d.n, d.boxNote || 'ยังไม่กรอก', '', '', '', '']);
-          mine.forEach(function (r) { b.push([boxLabel(x), d.n, r.lot || 'ไม่มี Lot', r.exp, num(r.q), r.u, statusOf(r)]); });
+          mine.forEach(function (r) { b.push(Number(r.q) > 0 ? [boxLabel(x), d.n, r.lot || 'ไม่มี Lot', r.exp, num(r.q), r.u, statusOf(r)] : [boxLabel(x), d.n, 'ไม่มีของ', '', '0', r.u, '']); });
         });
       });
       return { title: 'รายงานกล่องยา' + (box ? ' ' + boxLabel(box) : ''), head: ['กล่อง', 'รายการ', 'Lot', 'EXP', 'จำนวน', 'หน่วย', 'สถานะ'], rows: b, num: [4] };
@@ -878,9 +878,9 @@
     var box = $('lotsBox'); if (!box || !form || !form.d) return;
     if (form.box) {
       var br = boxRowsOf(form.box).filter(function (x) { return x.c === form.d.c; });
-      if ($('saveNone')) $('saveNone').hidden = true;
+      if ($('saveNone')) $('saveNone').hidden = br.length > 0;
       box.innerHTML = br.length ? '<div class="sub" style="margin-top:10px">บันทึกแล้วในกล่องนี้</div>' + br.map(function (x) {
-        return '<div class="lot"><div><b>' + esc(x.lot || 'ไม่มี Lot') + '</b> · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(form.d.u) + lotTag(x) + '</div><button type="button" data-boxdel="' + esc(x.id) + '">ยกเลิก</button></div>';
+        return '<div class="lot"><div>' + (Number(x.q) > 0 ? '<b>' + esc(x.lot || 'ไม่มี Lot') + '</b> · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(form.d.u) + lotTag(x) : '<b>ไม่มีของ</b>') + '</div><button type="button" data-boxdel="' + esc(x.id) + '">ยกเลิก</button></div>';
       }).join('') : '';
       return;
     }
@@ -953,7 +953,7 @@
       showWarn(ws.map(function (w) { return w.t; }).join(' / ') + ' — กดบันทึกอีกครั้งเพื่อยืนยัน', ws.some(function (w) { return w.red; }));
       return;
     }
-    if (form.box) { saveBoxLot(go, lot, exp, qty, $('fNote').value.trim()); return; }
+    if (form.box) { saveBoxLot(go, lot, exp, qty, none ? ($('fNote').value.trim() || 'ไม่มีของ') : $('fNote').value.trim(), none); return; }
     if (locEl) { S.loc = loc; save(K_LOC, loc); }
     S.queue.push({ id: uid(), pin: S.pin, by: S.by, place: off ? 'off' : S.mode, loc: loc, code: d ? d.c : '', name: name, lot: lot, exp: exp, qty: qty, noLot: noLot,
       note: none ? 'ไม่มีของ' : $('fNote').value.trim(), clientTime: new Date().toISOString() });
