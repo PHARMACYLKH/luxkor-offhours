@@ -670,6 +670,8 @@
       return '<button type="button" class="tile box-t small" data-group="BOX:' + esc(b) + '"><b>' + esc(boxLabel(b)) + '</b><span>' + boxCount(b) + '</span></button>';
     }).join('');
   }
+  // แท็กในกล่องดูจาก Lot ในกล่องนั้นเท่านั้น ไม่ใช้ Lot ในห้องยา
+  function boxTags(d, lots) { return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags(lots); }
   function boxList(b) {
     var rows = boxRowsOf(b), seen = {}, list = boxItemsOf(b).map(function (i) { seen[i.c] = 1; return Object.assign({}, S.byCode[i.c] || { c: i.c, n: i.n, u: '' }, { boxNote: i.note }); });
     rows.forEach(function (r) { if (!seen[r.c]) { seen[r.c] = 1; list.push(S.byCode[r.c] || { c: r.c, n: r.n, u: r.u }); } });
@@ -679,9 +681,9 @@
     var rows = boxRowsOf(b), list = boxList(b);
     return (list.length ? '<div class="list">' + list.map(function (d) {
       var mine = rows.filter(function (r) { return r.c === d.c; }), tot = mine.reduce(function (t, x) { return t + Number(x.q || 0); }, 0);
-      if (d.boxNote) return '<div class="item done">' + (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + tags(d) + '<div class="sub">' + esc(d.boxNote) + '</div></span></div>';
+      if (d.boxNote) return '<div class="item done">' + (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, []) + '<div class="sub">' + esc(d.boxNote) + '</div></span></div>';
       return '<button type="button" class="item' + (mine.length ? ' done' : '') + '" data-boxcode="' + esc(b) + '|' + esc(d.c) + '">' +
-        (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + tags(d) + '</span>' +
+        (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, mine) + '</span>' +
         '<span class="st">' + (mine.length ? num(tot) + ' ' + esc(d.u) + '<br>' + mine.length + ' Lot' : '') + '</span></button>';
     }).join('') + '</div>' : '<div class="empty">ยังไม่มียาในกล่องนี้</div>') +
       '<div class="btns" style="margin-top:12px"><button class="btn ghost" type="button" data-boxadd="' + esc(b) + '">ยาไม่อยู่ในรายการ</button></div>';
@@ -773,8 +775,8 @@
     $('sheetBody').innerHTML =
       '<div class="card">' +
         (off ? '<label class="f" for="fName">ชื่อยา</label><input class="t" id="fName" maxlength="120">'
-             : '<div class="title">' + esc(d.n) + tags(d) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
-              (expLots(d.c).length ? '<div class="warn" style="margin-top:10px">คลัง EXP: ' + expLots(d.c).map(function (x) { return esc(x.lot || '-') + ' · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(d.u); }).join(' / ') + '</div>' : '')) +
+             : '<div class="title">' + esc(d.n) + (box ? boxTags(d, boxRowsOf(box).filter(function (x) { return x.c === d.c; })) : tags(d)) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
+              (!box && expLots(d.c).length ? '<div class="warn" style="margin-top:10px">คลัง EXP: ' + expLots(d.c).map(function (x) { return esc(x.lot || '-') + ' · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(d.u); }).join(' / ') + '</div>' : '')) +
         '<div id="lotsBox"></div>' +
       '</div>' +
       '<form class="card" id="entry" autocomplete="off">' +
