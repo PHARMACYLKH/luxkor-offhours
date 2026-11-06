@@ -793,7 +793,7 @@
     var r = rowsOf(form.d.c, S.mode);
     if ($('saveNone')) $('saveNone').hidden = r.length > 0;   // มี Lot แล้ว ไม่ต้องกด "ไม่มีของ"
     box.innerHTML = r.length ? '<div class="sub" style="margin-top:10px">นับแล้วที่นี่</div>' + r.map(function (x, i) {
-      return '<div class="lot"><div><b>' + esc(x.lot || 'ไม่มี Lot') + '</b> · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(form.d.u) +
+      return '<div class="lot"><div><b>' + esc(x.lot || 'ไม่มี Lot') + '</b> · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(form.d.u) + (x.exp && Number(x.q) > 0 ? lotTag(x) : '') +
         '<div class="sub">' + esc(x.loc) + (x.by ? ' · ' + esc(x.by) : '') + (x.failed ? ' · ' + esc(x.failed) : (x.pending ? ' · รอส่ง' : '')) + '</div></div>' +
         '<button type="button" data-cancel="' + esc(x.id || 'row:' + i) + '">ยกเลิก</button></div>';
     }).join('') : '';
