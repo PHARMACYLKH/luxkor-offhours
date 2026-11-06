@@ -426,13 +426,18 @@
     var t = expDays(l.exp), now = new Date();
     return t === Infinity || t < new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   }
-  function expTag(expired) { return expired ? '<span class="had exp">EXP</span>' : '<span class="had near">NEAR EXP</span>'; }
-  function lotTag(l) { return l.x ? '<span class="had xl">EXCHANGE LOSS</span>' : expTag(isExpired(l)); }
+  function daysLeft(l) {
+    var now = new Date();
+    return Math.round((expDays(l.exp) - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400000);
+  }
+  function expTag(expired, days) { return expired ? '<span class="had exp">EXP</span>' : '<span class="had near">NEAR EXP</span><span class="had near">' + num(days) + ' วัน</span>'; }
+  function lotTag(l) { return l.x ? '<span class="had xl">EXCHANGE LOSS</span>' : expTag(isExpired(l), daysLeft(l)); }
   // Lot ที่ยังอยู่ในคลัง EXP จริง ไม่รวมแถว Exchange Loss ที่ส่งคืนบริษัทแล้ว
   function expLots(c) { return ((S.expInv || {})[c] || []).filter(function (l) { return !l.x; }); }
   function expTags(lots) {
     var out = lots.some(isExpired) ? expTag(true) : '';
-    return lots.some(function (l) { return !isExpired(l); }) ? out + expTag(false) : out;
+    var near = lots.filter(function (l) { return !isExpired(l); }).map(daysLeft);
+    return near.length ? out + expTag(false, Math.min.apply(null, near)) : out;   // หลาย Lot แสดง Lot ที่ใกล้หมดอายุที่สุด
   }
   function expHtml() {
     var inv = S.expInv || {}, items = Object.keys(inv).map(function (c) {
