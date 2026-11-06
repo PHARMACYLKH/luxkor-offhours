@@ -61,6 +61,9 @@
   .tile.exp { background: var(--danger); }
   .tile.exp b, .tile.exp span { color: #fff; }
   .tile.gold { background: var(--gold); }
+  .spin { display: inline-block; width: 16px; height: 16px; margin-right: 8px; vertical-align: -2px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spinit .7s linear infinite; }
+  @keyframes spinit { to { transform: rotate(360deg); } }
+  .btn:disabled { opacity: .75; cursor: wait; }
   .tile.box-t { background: #fbf3df; }
   .tile.box-t b { color: #7a5d1c; }
   .tile.near-t { background: #f5a623; }
@@ -683,14 +686,21 @@
     }).join('') + '</div>' : '<div class="empty">ยังไม่มียาในกล่องนี้</div>') +
       '<div class="btns" style="margin-top:12px"><button class="btn ghost" type="button" data-boxadd="' + esc(b) + '">ยาไม่อยู่ในรายการ</button></div>';
   }
+  // ปุ่มเปลี่ยนทันทีที่กด กันกดซ้ำระหว่างรอระบบ
+  function boxBusy(on, go) {
+    var a = document.querySelector('#entry button[type=submit]'), b = $('saveMore');
+    [a, b].forEach(function (x) { if (!x) return; x.disabled = on; if (on) x.dataset.label = x.textContent; else if (x.dataset.label) x.textContent = x.dataset.label; });
+    var t = go === 'more' ? b : a;
+    if (on && t) t.innerHTML = '<span class="spin"></span>กำลังบันทึก…';
+  }
   function saveBoxLot(go, lot, exp, qty, note) {
     var f = form, d = f.d, b = f.box;
     if (f.saving) return;
     if (!(qty > 0)) return showWarn('กรุณาระบุจำนวน', 1);
-    f.saving = true;
+    f.saving = true; boxBusy(true, go);
     var id = uid();
     post({ action: 'submitBoxStock', pin: S.pin, id: id, box: b, code: d.c, name: d.n, uom: d.u, lot: lot, exp: exp, qty: qty, note: note }).then(function (r) {
-      f.saving = false;
+      f.saving = false; boxBusy(false);
       if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
       S.boxes = (S.boxes || []).concat([{ id: r.id, box: b, c: d.c, n: d.n, u: d.u, lot: lot, exp: exp, q: qty }]);
       success('บันทึกสำเร็จ', (lot ? lot + ' · ' : '') + num(qty) + ' ' + d.u);
@@ -698,7 +708,7 @@
       var list = boxList(b), i = list.map(function (x) { return x.c; }).indexOf(d.c), rows = boxRowsOf(b);
       for (var k = 1; k < list.length; k++) { var c = list[(i + k) % list.length]; if (!c.boxNote && !rows.some(function (x) { return x.c === c.c; })) { reopen(c.c); return; } }
       closeSheet();
-    }).catch(function () { f.saving = false; showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
+    }).catch(function () { f.saving = false; boxBusy(false); showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
   }
   function openBox(b, code) {
     form = { box: b, id: uid() };
