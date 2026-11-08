@@ -558,7 +558,8 @@
     var expCodes = Object.keys(S.expInv || {});
     v.innerHTML = (S.daily ? '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + items.length + ' รายการ</span><span>' + pct + '%</span></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '<div class="empty">กำลังโหลดรายการ</div>') +
       '<div class="search"><input class="t" id="dq" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(S.dq || '') + '" autocomplete="off"></div><div id="dres"></div>' +
-      (S.daily ? '<div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="dPrint">ตรวจสอบและพิมพ์ใบสรุป A4</button></div><div class="sub" id="dPrintSt" style="text-align:center"></div>' : '') + reportBtn() +
+      (S.daily ? '<div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="dPrint">ตรวจสอบและพิมพ์ใบสรุป A4 (เครื่องห้องยา)</button></div>' +
+        '<div class="btns" style="margin-top:8px"><button class="btn sec" type="button" id="dPdf">บันทึกเป็น PDF / พิมพ์จากมือถือ</button></div><div class="sub" id="dPrintSt" style="text-align:center"></div>' : '') + reportBtn() +
       '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
     var draw = function () {
       var t = (S.dq || '').trim().toLowerCase();
@@ -574,6 +575,24 @@
     draw();
     $('dq').addEventListener('input', function (e) { S.dq = e.target.value; draw(); });
     if ($('dPrint')) $('dPrint').addEventListener('click', printDailySheet);
+    if ($('dPdf')) $('dPdf').addEventListener('click', pdfDailySheet);
+  }
+  // ── ใบนับหลังนับ เปิดในหน้าใหม่ แล้วสั่งพิมพ์ของมือถือ (เลือก "บันทึกเป็น PDF" หรือเครื่องพิมพ์) ──
+  function pdfDailySheet(force) {
+    var left = dailyItems().filter(function (d) { return !d.done; }).length, st = $('dPrintSt'), btn = $('dPdf');
+    if (force !== true && left && !confirm('ยังมียาที่ต้องนับอีก ' + left + ' รายการ\nกด ตกลง เพื่อทำใบที่ยังไม่ครบ หรือ ยกเลิก เพื่อกลับไปนับให้ครบ')) return;
+    var w = window.open('', '_blank');   // เปิดหน้าต่างทันทีตอนกด กันเบราว์เซอร์บล็อก pop-up
+    if (w) w.document.write('<p style="font-family:sans-serif;padding:24px">กำลังสร้างใบนับ…</p>');
+    btn.disabled = true; st.textContent = 'กำลังสร้างใบนับ…';
+    post({ action: 'getDailyCountSheetHtml', pin: S.pin, force: left || force === true ? 1 : 0, test: S.dTest ? 1 : 0 }).then(function (r) {
+      btn.disabled = false; st.textContent = '';
+      if (r.status === 'todo') { if (w) w.close(); if (confirm(r.msg + '\nกด ตกลง เพื่อทำใบที่ยังไม่ครบ')) pdfDailySheet(true); loadDaily(); return; }
+      if (r.status !== 'ok') { if (w) w.close(); st.textContent = r.msg || 'สร้างใบนับไม่สำเร็จ'; return; }
+      var html = r.html.replace('</body>', '<script>(document.fonts?document.fonts.ready:Promise.resolve()).then(function(){setTimeout(function(){window.print()},300)})<\/script></body>');
+      if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+      else { var u = URL.createObjectURL(new Blob([html], { type: 'text/html' })); location.href = u; }
+      st.textContent = 'เปิดใบนับแล้ว ในหน้าพิมพ์เลือก "บันทึกเป็น PDF" หรือเลือกเครื่องพิมพ์';
+    }).catch(function () { btn.disabled = false; if (w) w.close(); st.textContent = 'เชื่อมต่อไม่ได้ กรุณาลองใหม่'; });
   }
   // ── ใบสรุปนับประจำวัน A4: ตรวจว่านับครบ แล้วส่งพิมพ์ที่เครื่อง A4 ห้องยา (ผ่าน LKPC-08) ──
   function printDailySheet(force) {
