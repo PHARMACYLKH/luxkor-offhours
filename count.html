@@ -578,6 +578,22 @@
     if ($('dPdf')) $('dPdf').addEventListener('click', pdfDailySheet);
   }
   // ── ใบนับหลังนับ เปิดในหน้าใหม่ แล้วสั่งพิมพ์ของมือถือ (เลือก "บันทึกเป็น PDF" หรือเครื่องพิมพ์) ──
+  // รายงาน A4 ใบนับประจำวัน เลือกวัน/ช่วงวัน — เปิดหน้าใหม่แล้วสั่งพิมพ์ของมือถือ (บันทึก PDF หรือเลือกเครื่องพิมพ์)
+  function openPrintWindow(w, html) {
+    html = html.replace('</body>', '<script>(document.fonts?document.fonts.ready:Promise.resolve()).then(function(){setTimeout(function(){window.print()},300)})<\/script></body>');
+    if (w) { w.document.open(); w.document.write(html); w.document.close(); }
+    else location.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  }
+  function printDailyRange(from, to) {
+    var btn = $('rpGo'), w = window.open('', '_blank');
+    if (w) w.document.write('<p style="font-family:sans-serif;padding:24px">กำลังสร้างรายงาน…</p>');
+    btn.disabled = true; btn.textContent = 'กำลังสร้างรายงาน…';
+    post({ action: 'getDailyCountRangeHtml', pin: S.pin, from: from, to: to, test: S.dTest ? 1 : 0 }).then(function (r) {
+      btn.disabled = false; btn.textContent = 'พิมพ์';
+      if (r.status !== 'ok') { if (w) w.close(); return showWarn(r.msg || 'สร้างรายงานไม่สำเร็จ', 1); }
+      openPrintWindow(w, r.html);
+    }).catch(function () { btn.disabled = false; btn.textContent = 'พิมพ์'; if (w) w.close(); showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
+  }
   function pdfDailySheet(force) {
     var left = dailyItems().filter(function (d) { return !d.done; }).length, st = $('dPrintSt'), btn = $('dPdf');
     if (force !== true && left && !confirm('ยังมียาที่ต้องนับอีก ' + left + ' รายการ\nกด ตกลง เพื่อทำใบที่ยังไม่ครบ หรือ ยกเลิก เพื่อกลับไปนับให้ครบ')) return;
@@ -833,14 +849,19 @@
     form = { report: true };
     $('sheetTitle').textContent = 'พิมพ์รายงาน A4';
     var slotGroups = {}; S.drugs.forEach(function (d) { if (d.slot) slotGroups[slotGroup(d.slot)] = 1; });
+    var td = new Date(), iso = td.getFullYear() + '-' + ('0' + (td.getMonth() + 1)).slice(-2) + '-' + ('0' + td.getDate()).slice(-2);
     $('sheetBody').innerHTML = '<form class="card" id="rpForm"><label class="f" for="rpType">รายงาน</label><select class="t" id="rpType">' +
+      (dailyOn() ? '<option value="daily">ใบนับ Stock ประจำวัน (เลือกวัน/ช่วงวัน)</option>' : '') +
       '<option value="all">ยอดนับทั้งหมด</option><option value="group">ยอดนับตามหมวดช่องยา</option><option value="near">NEAR EXP</option><option value="exp">คลัง EXP</option><option value="box">กล่องยา</option><option value="todo">รายการที่ยังไม่นับ</option></select>' +
       '<div id="rpGroupBox" hidden><label class="f" for="rpGroup">หมวดช่องยา</label><select class="t" id="rpGroup">' + Object.keys(slotGroups).sort(natural).map(function (k) { return '<option>' + esc(k) + '</option>'; }).join('') + '</select></div>' +
       '<div id="rpBoxBox" hidden><label class="f" for="rpBox">กล่องยา</label><select class="t" id="rpBox"><option value="">ทุกกล่อง</option>' + BOXES.map(function (b) { return '<option value="' + esc(b) + '">' + esc(boxLabel(b)) + '</option>'; }).join('') + '</select></div>' +
-      '<div class="btns"><button class="btn pri" type="submit">พิมพ์</button></div></form>';
+      '<div id="rpDayBox"' + (dailyOn() ? '' : ' hidden') + '><label class="f" for="rpFrom">ตั้งแต่วันที่</label><input class="t" id="rpFrom" type="date" value="' + iso + '" max="' + iso + '">' +
+      '<label class="f" for="rpTo">ถึงวันที่</label><input class="t" id="rpTo" type="date" value="' + iso + '" max="' + iso + '">' +
+      '<div class="sub" style="margin-top:6px">ยาที่ใช้ไปแล้วยังไม่นับ จะรวมมาให้ทุกวันที่ค้าง (วันนี้นับถึงตอนนี้) ช่องนับจริงเว้นว่างจนกว่าจะนับในแอป</div></div>' +
+      '<div class="warn" id="fWarn" hidden></div><div class="btns"><button class="btn pri" type="submit" id="rpGo">พิมพ์</button></div></form>';
     $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
-    $('rpType').addEventListener('change', function (e) { $('rpGroupBox').hidden = e.target.value !== 'group'; $('rpBoxBox').hidden = e.target.value !== 'box'; });
-    $('rpForm').addEventListener('submit', function (e) { e.preventDefault(); printReport($('rpType').value, $('rpGroup').value, $('rpBox').value); });
+    $('rpType').addEventListener('change', function (e) { $('rpGroupBox').hidden = e.target.value !== 'group'; $('rpBoxBox').hidden = e.target.value !== 'box'; $('rpDayBox').hidden = e.target.value !== 'daily'; });
+    $('rpForm').addEventListener('submit', function (e) { e.preventDefault(); if ($('rpType').value === 'daily') return printDailyRange($('rpFrom').value, $('rpTo').value); printReport($('rpType').value, $('rpGroup').value, $('rpBox').value); });
   }
   function reportData(type, group, box) {
     var slotOf = function (c) { return (S.byCode[c] || {}).slot || '-'; }, statusOf = function (l) { if (!l.exp || expDays(l.exp) === Infinity) return ''; return isExpired(l) ? 'EXP' : num(daysLeft(l)) + ' วัน'; };
