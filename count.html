@@ -623,6 +623,7 @@
     $('sheetBody').innerHTML = '<div class="card"><div class="title">' + esc(d.n) + tags(d) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
       (d.recount ? '<div class="warn" style="margin-top:10px">ยอดไม่ตรงกับระบบ กรุณานับซ้ำอีกครั้ง</div>' : '') +
       (d.check ? '<div class="warn" style="margin-top:10px">รายการนี้เป็นของใช้หน่วยงาน แต่คีย์จากคลังห้องยา กรุณาตรวจคลังที่ตัด</div>' : '') + '</div>' +
+      usageHtml(d) +
       '<form class="card" id="dEntry" autocomplete="off">' + d.lots.map(function (l, i) {
         return '<label class="f" for="dl' + i + '">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + '</label><input class="t" id="dl' + i + '" type="number" inputmode="decimal" min="0" step="any" placeholder="จำนวนที่นับได้ (' + esc(d.u) + ')">';
       }).join('') +
@@ -640,6 +641,26 @@
     });
     $('dEntry').addEventListener('submit', function (e) { e.preventDefault(); saveDaily(false); });
     $('dNone').addEventListener('click', function () { askNone(d.n, function () { saveDaily(true); }); });
+  }
+  // (2026-11-08 ผู้ใช้สั่ง) การใช้ยาตั้งแต่นับครั้งล่าสุด แยกรายวัน พร้อมเลขใบสั่งยา — รวมวันที่ไม่ได้นับด้วย
+  function usageHtml(d) {
+    var rx = d.rx || [], days = {}, order = [];
+    rx.forEach(function (a) { var k = String(a.at).slice(0, 10); if (!days[k]) { days[k] = []; order.push(k); } days[k].push(a); });
+    var other = [];
+    if (d.inQty) other.push('รับเข้า ' + num(d.inQty) + ' ' + esc(d.u));
+    if (d.transfer) other.push((d.transfer > 0 ? 'โอนออก ' : 'โอนกลับเข้า ') + num(Math.abs(d.transfer)) + ' ' + esc(d.u));
+    if (d.expQty) other.push('ย้ายเข้าคลัง EXP ' + num(d.expQty) + ' ' + esc(d.u));
+    if (!order.length && !other.length) return '';
+    return '<div class="card"><div class="title" style="font-size:1rem">การใช้ยาตั้งแต่นับครั้งล่าสุด</div><div class="sub">นับครั้งล่าสุด ' + esc(d.from || '-') + '</div>' +
+      order.map(function (k) {
+        var tot = days[k].reduce(function (s, a) { return s + Number(a.q); }, 0);
+        return '<div style="margin-top:10px"><b>วันที่ ' + esc(k) + ' ใช้ไป ' + num(tot) + ' ' + esc(d.u) + '</b>' +
+          days[k].map(function (a) {
+            return '<div class="sub">' + esc(a.ref) + ' · ' + esc(String(a.at).slice(11)) + (a.ward ? ' · ' + esc(a.ward) : '') + ' · ' + (a.q < 0 ? 'คืน ' + num(-a.q) : num(a.q)) + ' ' + esc(d.u) + '</div>';
+          }).join('') + '</div>';
+      }).join('') +
+      (other.length ? '<div style="margin-top:10px"><b>อื่น ๆ</b>' + other.map(function (t) { return '<div class="sub">' + t + '</div>'; }).join('') + '</div>' : '') +
+      '<div class="sub" style="margin-top:10px">นับของจริงทุก Lot แล้วกรอกยอดคงเหลือทั้งหมดด้านล่าง</div></div>';
   }
   function saveDaily(none) {
     var d = form.daily, lots = [], i;
