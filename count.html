@@ -620,7 +620,7 @@
       $('dExtra').appendChild(w);
     });
     $('dEntry').addEventListener('submit', function (e) { e.preventDefault(); saveDaily(false); });
-    $('dNone').addEventListener('click', function () { saveDaily(true); });
+    $('dNone').addEventListener('click', function () { askNone(d.n, function () { saveDaily(true); }); });
   }
   function saveDaily(none) {
     var d = form.daily, lots = [], i;
@@ -934,7 +934,7 @@
     });
     $('entry').addEventListener('submit', function (e) { e.preventDefault(); submit(form.off ? 'close' : 'next'); });
     if ($('saveMore')) $('saveMore').addEventListener('click', function () { submit('more'); });
-    if ($('saveNone')) $('saveNone').addEventListener('click', function () { submit('next', true); });
+    if ($('saveNone')) $('saveNone').addEventListener('click', function () { askNone(form && form.d ? form.d.n : '', function () { submit('next', true); }); });
   }
   function warnings(lot, exp, qty) {
     var w = [], now = new Date();
@@ -1016,6 +1016,9 @@
     askMove({ action: 'returnStockFromExp', code: p[0], lot: l.lot, row: l.row }, 'คืนมาคลังปกติ', ((S.byCode[p[0]] || {}).n || l.n) + ' · Lot ' + (l.lot || '-') + ' · EXP ' + l.exp, l.q, false);
   }
   function askNoLot() { openPin('nolot', 'ยืนยันว่าไม่มีเลข Lot', 'ใส่รหัสพนักงานเพื่อยืนยันว่ากล่องนี้ไม่มีเลข Lot', 'ไม่ยืนยัน'); }
+  // (2026-11-08 ผู้ใช้สั่ง) "ไม่มีของ" ต้องใส่รหัสพนักงานก่อนบันทึกทุกครั้ง กันมือลั่น
+  var noneGo = null;
+  function askNone(name, go) { noneGo = go; openPin('none', 'ยืนยันว่าไม่มีของ', (name ? name + ' · ' : '') + 'ใส่รหัสพนักงานเพื่อยืนยันว่าไม่พบยานี้เลย (จำนวน 0)', 'ไม่ยืนยัน'); }
   function cancelRow(id) {
     var typed = /^row:(\d+)$/.exec(id);
     var r = (typed ? rowsOf(form.d.c)[Number(typed[1])] : allRows().filter(function (x) { return x.id === id; })[0]) || {};
@@ -1038,6 +1041,10 @@
         closePin(); success('บันทึกสำเร็จ', r.warn || ''); S.loading = false; refresh(true);
       }).catch(function () { pinFail('บันทึกไม่ได้ ต้องต่ออินเทอร์เน็ต'); });
       return;
+    }
+    if (pinMode === 'none') {
+      if (pin !== S.pin) return pinFail('รหัสพนักงานไม่ถูกต้อง');
+      var go = noneGo; noneGo = null; closePin(); if (go) go(); return;
     }
     if (pinMode === 'nolot') {
       if (pin !== S.pin) return pinFail('รหัสพนักงานไม่ถูกต้อง');
