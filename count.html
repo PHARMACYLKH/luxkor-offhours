@@ -557,7 +557,8 @@
     var items = dailyItems(), done = items.filter(function (d) { return d.done; }).length, pct = items.length ? Math.round(done * 100 / items.length) : 0, q = (S.dq || '').trim().toLowerCase();
     var expCodes = Object.keys(S.expInv || {});
     v.innerHTML = (S.daily ? '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + items.length + ' รายการ</span><span>' + pct + '%</span></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '<div class="empty">กำลังโหลดรายการ</div>') +
-      '<div class="search"><input class="t" id="dq" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(S.dq || '') + '" autocomplete="off"></div><div id="dres"></div>' + reportBtn() +
+      '<div class="search"><input class="t" id="dq" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(S.dq || '') + '" autocomplete="off"></div><div id="dres"></div>' +
+      (S.daily ? '<div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="dPrint">ตรวจสอบและพิมพ์ใบสรุป A4</button></div><div class="sub" id="dPrintSt" style="text-align:center"></div>' : '') + reportBtn() +
       '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
     var draw = function () {
       var t = (S.dq || '').trim().toLowerCase();
@@ -572,6 +573,29 @@
     };
     draw();
     $('dq').addEventListener('input', function (e) { S.dq = e.target.value; draw(); });
+    if ($('dPrint')) $('dPrint').addEventListener('click', printDailySheet);
+  }
+  // ── ใบสรุปนับประจำวัน A4: ตรวจว่านับครบ แล้วส่งพิมพ์ที่เครื่อง A4 ห้องยา (ผ่าน LKPC-08) ──
+  function printDailySheet(force) {
+    var btn = $('dPrint'), st = $('dPrintSt'), left = dailyItems().filter(function (d) { return !d.done; }).length;
+    if (force !== true && left && !confirm('ยังมียาที่ต้องนับอีก ' + left + ' รายการ\nกด ตกลง เพื่อพิมพ์ใบที่ยังไม่ครบ หรือ ยกเลิก เพื่อกลับไปนับให้ครบ')) return;
+    btn.disabled = true; btn.textContent = 'กำลังตรวจสอบและส่งพิมพ์…'; st.textContent = '';
+    post({ action: 'printDailyCountSheet', pin: S.pin, force: left || force === true ? 1 : 0, test: S.dTest ? 1 : 0 }).then(function (r) {
+      btn.disabled = false; btn.textContent = 'ตรวจสอบและพิมพ์ใบสรุป A4';
+      if (r.status === 'todo') { if (confirm(r.msg + '\nกด ตกลง เพื่อพิมพ์ใบที่ยังไม่ครบ')) printDailySheet(true); loadDaily(); return; }
+      if (r.status !== 'ok') { st.textContent = r.msg || 'ส่งพิมพ์ไม่สำเร็จ'; return; }
+      st.textContent = 'ส่งไปเครื่องพิมพ์ห้องยาแล้ว (' + r.rows + ' รายการ) กำลังรอพิมพ์…';
+      var tries = 0, poll = function () {
+        fetch(WEBAPP_URL + '?action=getPrintJobStatus&jobId=' + encodeURIComponent(r.jobId)).then(function (x) { return x.json(); }).then(function (s) {
+          if (!$('dPrintSt')) return;
+          if (s.jobStatus === 'PRINTED') { $('dPrintSt').textContent = 'พิมพ์แล้ว รับใบสรุปที่เครื่อง A4 ห้องยา แล้วเซ็นชื่อกำกับ'; success('พิมพ์แล้ว', 'เครื่อง A4 ห้องยา'); return; }
+          if (s.jobStatus === 'ERROR') { $('dPrintSt').textContent = 'พิมพ์ไม่สำเร็จ: ' + (s.errorMsg || '') + ' แจ้งเภสัชกร'; return; }
+          if (++tries > 40) { $('dPrintSt').textContent = 'ยังไม่พิมพ์ออก (เครื่องห้องยาอาจปิดอยู่) งานยังอยู่ในคิว จะพิมพ์เมื่อเครื่องพร้อม'; return; }
+          setTimeout(poll, 3000);
+        }).catch(function () { setTimeout(poll, 5000); });
+      };
+      setTimeout(poll, 3000);
+    }).catch(function () { btn.disabled = false; btn.textContent = 'ตรวจสอบและพิมพ์ใบสรุป A4'; st.textContent = 'เชื่อมต่อไม่ได้ กรุณาลองใหม่'; });
   }
   function openDaily(code) {
     var d = dailyItems().filter(function (x) { return x.c === code; })[0]; if (!d) return;
