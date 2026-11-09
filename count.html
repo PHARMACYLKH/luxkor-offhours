@@ -204,7 +204,7 @@
     <div class="sub" id="pinWhat" style="margin-top:4px"></div>
     <label class="f" for="pinInput">รหัสพนักงาน</label>
     <input class="t" id="pinInput" type="password" inputmode="numeric" maxlength="12">
-    <div id="pinQtyBox" hidden><label class="f" for="pinQty">จำนวน</label><input class="t" id="pinQty" type="number" inputmode="decimal" min="0" step="any"></div>
+    <div id="pinQtyBox" hidden><label class="f" for="pinQty">จำนวน</label><input class="t" id="pinQty" type="text" inputmode="decimal" autocomplete="off" data-num="d"></div>
     <div class="warn red" id="pinErr" hidden></div>
     <div class="btns two">
       <button class="btn ghost" type="button" id="pinNo">ไม่ยกเลิก</button>
@@ -547,6 +547,15 @@
     var p = Math.min(95, Math.round(100 * (1 - Math.exp(-2.3 * (Date.now() - LD.t) / LD.ms))));
     el.querySelector('.ldr-bar i').style.width = p + '%'; el.querySelector('.ldr-pct').textContent = p + '%';
   }, 150);
+  // (2026-11-09 ผู้ใช้สั่ง) ช่องจำนวนเป็น text ไม่ใช่ number: หมุนล้อเมาส์/กดลูกศรขึ้นลงต้องไม่เปลี่ยนตัวเลขเด็ดขาด
+  // รับเฉพาะตัวเลข (data-num="d" มีจุดทศนิยมได้ 1 จุด, "i" จำนวนเต็ม) — มือถือยังขึ้นแป้นตัวเลขจาก inputmode
+  document.addEventListener('input', function (e) {
+    var t = e.target; if (!t || !t.getAttribute || !t.getAttribute('data-num')) return;
+    var v = String(t.value).replace(/[๐-๙]/g, function (c) { return String(c.charCodeAt(0) - 0x0E50); }).replace(/[^\d.]/g, '');
+    if (t.getAttribute('data-num') === 'i') v = v.replace(/\./g, '');
+    else { var k = v.indexOf('.'); if (k >= 0) v = v.slice(0, k + 1) + v.slice(k + 1).replace(/\./g, ''); }
+    if (v !== t.value) t.value = v;
+  }, true);
   function getJson(q) { return fetch(WEBAPP_URL + '?action=' + q + '&pin=' + encodeURIComponent(S.pin) + (S.dTest ? '&test=1' : '')).then(function (r) { return r.json(); }); }
   function loadDaily() {
     if (!dailyOn() || !S.pin) return Promise.resolve();
@@ -706,7 +715,7 @@
       // (2026-11-09 ผู้ใช้สั่ง) ยอดควรเหลือราย Lot (ระบบประมาณตาม FEFO) เป็นแนวทางนับ — กรอกตามที่นับได้จริงเสมอ
       (d.total != null ? '<div class="sub" style="margin-bottom:6px"><b>ระบบควรเหลือรวม ' + num(d.total) + ' ' + esc(d.u) + '</b>' + (d.lots.length > 1 ? ' · ยอดราย Lot ประมาณตาม FEFO ใช้เป็นแนวทาง' : '') + '</div>' : '') +
       d.lots.map(function (l, i) {
-        return '<label class="f" for="dl' + i + '">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + (l.gone ? ' <span class="sub" style="font-weight:400">· ระบบประมาณว่าใช้หมดแล้ว ถ้ายังมีของให้กรอกจำนวน</span>' : l.q != null ? ' <span class="sub" style="font-weight:400">· ควรเหลือ ' + num(l.q) + ' ' + esc(d.u) + '</span>' : '') + '</label><input class="t" id="dl' + i + '" type="number" inputmode="decimal" min="0" step="any" placeholder="จำนวนที่นับได้ (' + esc(d.u) + ')">';
+        return '<label class="f" for="dl' + i + '">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + (l.gone ? ' <span class="sub" style="font-weight:400">· ระบบประมาณว่าใช้หมดแล้ว ถ้ายังมีของให้กรอกจำนวน</span>' : l.q != null ? ' <span class="sub" style="font-weight:400">· ควรเหลือ ' + num(l.q) + ' ' + esc(d.u) + '</span>' : '') + '</label><input class="t" id="dl' + i + '" type="text" inputmode="decimal" autocomplete="off" data-num="d" placeholder="จำนวนที่นับได้ (' + esc(d.u) + ')">';
       }).join('') +
       '<div id="dExtra"></div><button type="button" class="link" id="dAdd">เพิ่ม Lot ที่พบใหม่</button>' +
       '<label class="f" for="dNote">หมายเหตุ</label><input class="t" id="dNote" maxlength="120">' +
@@ -717,7 +726,7 @@
       var i = form.extra++, w = document.createElement('div');
       w.innerHTML = '<label class="f" for="xl' + i + '">Lot ใหม่</label><input class="t" id="xl' + i + '" maxlength="40" autocapitalize="characters" autocorrect="off" spellcheck="false">' +
         '<label class="f">EXP</label><div class="row3"><select class="t" id="xd' + i + '" aria-label="วันหมดอายุ">' + dayOptions() + '</select><select class="t" id="xm' + i + '" aria-label="เดือนหมดอายุ">' + monthOptions() + '</select><select class="t" id="xy' + i + '" aria-label="ปีหมดอายุ">' + yearOptions() + '</select></div>' +
-        '<label class="f" for="xq' + i + '">จำนวน (' + esc(d.u) + ')</label><input class="t" id="xq' + i + '" type="number" inputmode="decimal" min="0" step="any">';
+        '<label class="f" for="xq' + i + '">จำนวน (' + esc(d.u) + ')</label><input class="t" id="xq' + i + '" type="text" inputmode="decimal" autocomplete="off" data-num="d">';
       $('dExtra').appendChild(w);
     });
     $('dEntry').addEventListener('submit', function (e) { e.preventDefault(); saveDaily(false); });
@@ -882,7 +891,7 @@
       S.drugs.map(function (d) { return '<option value="' + esc(d.n) + '"></option>'; }).join('') + '</datalist>' +
       '<label class="f" for="bLot">Lot</label><input class="t" id="bLot" maxlength="40" autocapitalize="characters" autocorrect="off" spellcheck="false">' +
       '<label class="f">EXP</label><div class="row3"><select class="t" id="bD" aria-label="วันหมดอายุ">' + dayOptions() + '</select><select class="t" id="bM" aria-label="เดือนหมดอายุ">' + monthOptions() + '</select><select class="t" id="bY" aria-label="ปีหมดอายุ">' + yearOptions() + '</select></div>' +
-      '<label class="f" for="bQty">' + (b === 'EMER' || b === 'CPR' ? 'จำนวนมาตรฐานรวมทุกกล่อง' : 'จำนวนมาตรฐานในกล่อง') + '</label><input class="t" id="bQty" type="number" inputmode="decimal" min="0" step="any">' +
+      '<label class="f" for="bQty">' + (b === 'EMER' || b === 'CPR' ? 'จำนวนมาตรฐานรวมทุกกล่อง' : 'จำนวนมาตรฐานในกล่อง') + '</label><input class="t" id="bQty" type="text" inputmode="decimal" autocomplete="off" data-num="d">' +
       '<div class="warn" id="fWarn" hidden></div><div class="btns"><button class="btn pri" type="submit" id="bSave">บันทึก</button></div></form>';
     $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
     if (code && S.byCode[code]) { $('bDrug').value = S.byCode[code].n; $('bDrug').readOnly = true; }
@@ -1012,9 +1021,9 @@
         '<div class="check"><input type="checkbox" id="fNoLot" aria-label="กล่องนี้ไม่มีเลข Lot"><span>กล่องนี้ไม่มีเลข Lot</span></div>' +
         '<label class="f">EXP</label><div class="row3"><select class="t" id="fD" aria-label="วันหมดอายุ">' + dayOptions() + '</select><select class="t" id="fM" aria-label="เดือนหมดอายุ">' + monthOptions() + '</select><select class="t" id="fY" aria-label="ปีหมดอายุ">' + yearOptions() + '</select></div>' +
         '<div class="sub" style="margin-top:6px">ถ้ากล่องระบุแค่เดือนและปี ไม่ต้องเลือกวัน</div>' +
-        '<label class="f" for="fQty">จำนวน' + (box === 'EMER' || box === 'CPR' ? 'รวมทุกกล่อง' : '') + (d ? ' (' + esc(d.u) + ')' : '') + '</label><input class="t" id="fQty" type="number" inputmode="decimal" min="0" step="any">' +
+        '<label class="f" for="fQty">จำนวน' + (box === 'EMER' || box === 'CPR' ? 'รวมทุกกล่อง' : '') + (d ? ' (' + esc(d.u) + ')' : '') + '</label><input class="t" id="fQty" type="text" inputmode="decimal" autocomplete="off" data-num="d">' +
         '<button type="button" class="link" id="calcToggle">คำนวณจากจำนวนกล่อง</button>' +
-        '<div class="calc" id="calc" hidden><input class="t" id="cBox" type="number" inputmode="numeric" placeholder="กล่อง" aria-label="จำนวนกล่อง"><span>×</span><input class="t" id="cPer" type="number" inputmode="numeric" placeholder="ต่อกล่อง" aria-label="จำนวนต่อกล่อง"><span>+</span><input class="t" id="cLoose" type="number" inputmode="numeric" placeholder="เศษ" aria-label="จำนวนเศษ"></div>' +
+        '<div class="calc" id="calc" hidden><input class="t" id="cBox" type="text" inputmode="numeric" autocomplete="off" data-num="i" placeholder="กล่อง" aria-label="จำนวนกล่อง"><span>×</span><input class="t" id="cPer" type="text" inputmode="numeric" autocomplete="off" data-num="i" placeholder="ต่อกล่อง" aria-label="จำนวนต่อกล่อง"><span>+</span><input class="t" id="cLoose" type="text" inputmode="numeric" autocomplete="off" data-num="i" placeholder="เศษ" aria-label="จำนวนเศษ"></div>' +
         '<label class="f" for="fNote">หมายเหตุ</label><input class="t" id="fNote" maxlength="120">' +
         '<div class="warn" id="fWarn" hidden></div>' +
         '<div class="btns"><button class="btn pri" type="submit" data-go="next">' + (off ? 'บันทึก' : 'บันทึก ไปยาถัดไป') + '</button>' +
