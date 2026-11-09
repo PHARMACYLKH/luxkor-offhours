@@ -791,6 +791,27 @@
     }).join('') + '</div>';
   }
   function loadReview() { S.review = null; getJson('getDailyReview').then(function (d) { if (d.status === 'ok') { S.review = d; if ($('sheet').hidden) render(); } else toast(d.msg || 'โหลดไม่สำเร็จ'); }); }
+  // (2026-11-09) สาเหตุตามทิศทางผลต่าง (+ ของจริงมากกว่า, - น้อยกว่า, ± ทั้งสองทาง) จาก Count_Causes col B
+  function reviewCauses(x) {
+    var meta = S.review.causeMeta || S.review.causes.map(function (n) { return { n: n, dir: '±', me: '' }; });
+    var want = x.diff > 0 ? '+' : '-';
+    return meta.filter(function (c) { return c.dir === '±' || c.dir === want || !c.dir; });
+  }
+  // ผลเทียบกับ HIS จาก bridge (เครื่องห้องยา ทุก ~2 นาที)
+  function analysisHtml(x) {
+    var a = x.analysis;
+    if (!a) return '<div class="card"><div class="title" style="font-size:1rem">ตรวจกับ HIS</div><div class="sub">กำลังรอเครื่องห้องยาตรวจใบสั่งยาและคืนยาใน HIS (ทุกประมาณ 2 นาที) เปิดหน้านี้ใหม่ภายหลัง</div></div>';
+    var sg = function (v) { return (v > 0 ? '+' : '') + num(v); };
+    return '<div class="card"><div class="title" style="font-size:1rem">ตรวจกับ HIS แล้ว</div><div class="sub">' + esc(a.at) + ' · ตรวจใบสั่งยาที่มียานี้ ' + num(a.checkedRx) + ' ใบ · ช่วง ' + esc((a.window || [])[0] || '') + ' – ' + esc((a.window || [])[1] || '') + '</div>' +
+      (a.findings && a.findings.length
+        ? '<div style="margin-top:8px"><b>พบจุดที่อธิบายผลต่างได้</b>' + a.findings.map(function (f) { return '<div class="sub">' + esc(f.ref) + ' · ' + esc(f.msg) + ' <b>(' + sg(f.delta) + ')</b></div>'; }).join('') + '</div>'
+        : '<div class="sub" style="margin-top:8px">ไม่พบความผิดปกติในระบบ: ทุกใบตรงกับ HIS ไม่มีใบค้าง approve ไม่มี POM ไม่มีคืนยาที่ถูกปฏิเสธ</div>') +
+      '<div style="margin-top:8px"><b>ผลต่าง ' + sg(a.diff) + ' · อธิบายได้ ' + sg(a.explained) + ' · เหลือ ' + sg(a.remain) + ' ' + esc(x.u) + '</b></div>' +
+      (a.remain ? '<div class="sub">' + esc(a.hint || '') + '</div>' +
+        (a.suspects && a.suspects.length ? '<div class="sub" style="margin-top:6px">ใบที่ควรตาม' + (a.remain > 0 ? ' (จำนวนพอดีกับผลต่างขึ้นก่อน)' : ' (ล่าสุดก่อน)') + ':</div>' + a.suspects.map(function (s2) {
+          return '<div class="sub">' + esc(s2.ref) + ' · ' + esc(s2.at) + ' · ' + esc(s2.ward) + ' · ' + num(s2.q) + ' ' + esc(x.u) + ' <button type="button" class="link" data-pickref="' + esc(s2.ref) + '">ใช้เลขนี้</button></div>';
+        }).join('') : '') : '') + '</div>';
+  }
   function openReview(id) {
     var x = S.review.rows.filter(function (r) { return r.id === id; })[0]; if (!x) return;
     form = { review: x };
@@ -799,19 +820,28 @@
       '<div class="lot"><div><b>นับได้ ' + num(x.counted) + ' · ระบบ ' + num(x.system) + ' ' + esc(x.u) + '</b><div class="sub">ผลต่าง ' + (x.diff > 0 ? '+' : '') + num(x.diff) + '</div></div></div>' +
       x.lots.map(function (l) { return '<div class="sub">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + ' · ' + num(l.q) + '</div>'; }).join('') +
       '<div class="sub" style="margin-top:8px">รับเข้า ' + num(x.inQty) + ' · จ่ายสุทธิ ' + num(x.outQty) + ' · โอนออก ' + num(x.transfer) + ' · ย้ายเข้า EXP ' + num(x.expQty) + '</div></div>' +
-      '<form class="card" id="rForm" autocomplete="off"><label class="f" for="rCause">สาเหตุ</label><select class="t" id="rCause"><option value="">เลือกสาเหตุ</option>' +
-      S.review.causes.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '<option value="__new">เพิ่มสาเหตุใหม่</option></select>' +
+      (x.strict ? '<div class="warn" style="margin-bottom:12px">ยา HAD / ยาควบคุม — ต่างแม้ 1 หน่วยต้องสอบสวน กรุณาเขียนผลการสอบสวนในหมายเหตุก่อนอนุมัติ</div>' : '') +
+      analysisHtml(x) +
+      '<form class="card" id="rForm" autocomplete="off"><label class="f" for="rCause">สาเหตุ (' + (x.diff > 0 ? 'ของจริงมากกว่าระบบ' : 'ของจริงน้อยกว่าระบบ') + ')</label><select class="t" id="rCause"><option value="">เลือกสาเหตุ</option>' +
+      reviewCauses(x).map(function (c) { return '<option value="' + esc(c.n) + '">' + esc(c.n) + (c.me ? ' (ส่ง MedError)' : '') + '</option>'; }).join('') + '<option value="__new">เพิ่มสาเหตุใหม่</option></select>' +
       '<input class="t" id="rNew" maxlength="60" placeholder="ระบุสาเหตุใหม่" style="margin-top:8px" hidden>' +
-      '<label class="f" for="rNote">หมายเหตุ</label><input class="t" id="rNote" maxlength="120" value="' + esc(x.note) + '"><div class="warn" id="fWarn" hidden></div>' +
+      '<div id="rRefBox" hidden><label class="f" for="rRef">เลขใบสั่งยาที่จ่ายผิด (MED-/MEI-)</label><input class="t" id="rRef" maxlength="20" autocapitalize="characters" placeholder="เช่น MED-2611060003"><div class="sub">อนุมัติแล้วระบบสร้างรายการใน MedError (สถานะคัดกรอง-รอยืนยัน) ให้อัตโนมัติ</div></div>' +
+      '<label class="f" for="rNote">หมายเหตุ' + (x.strict ? ' / ผลการสอบสวน (จำเป็น)' : '') + '</label><input class="t" id="rNote" maxlength="200" value="' + esc(x.note) + '"><div class="warn" id="fWarn" hidden></div>' +
       '<div class="btns"><button class="btn pri" type="submit">อนุมัติยอดนับ</button><button class="btn ghost" type="button" id="rAgain">ให้นับใหม่</button></div></form>';
     $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
-    $('rCause').addEventListener('change', function (e) { $('rNew').hidden = e.target.value !== '__new'; });
+    $('rCause').addEventListener('change', function (e) {
+      $('rNew').hidden = e.target.value !== '__new';
+      var m = reviewCauses(x).filter(function (c) { return c.n === e.target.value; })[0];
+      $('rRefBox').hidden = !(m && m.me);
+    });
+    document.querySelectorAll('[data-pickref]').forEach(function (b) { b.addEventListener('click', function () { $('rRef').value = b.getAttribute('data-pickref'); }); });
     var send = function (decision) {
       var c = $('rCause').value === '__new' ? $('rNew').value.trim() : $('rCause').value;
       if (decision === 'approve' && !c) return showWarn('กรุณาเลือกสาเหตุ', 1);
-      post({ action: 'decideDailyCount', pin: S.pin, id: x.id, decision: decision, cause: c, note: $('rNote').value.trim() }).then(function (r) {
+      if (decision === 'approve' && x.strict && $('rNote').value.trim().length < 10) return showWarn('ยา HAD/ยาควบคุม: กรุณาเขียนผลการสอบสวนในหมายเหตุ', 1);
+      post({ action: 'decideDailyCount', pin: S.pin, id: x.id, decision: decision, cause: c, note: $('rNote').value.trim(), ref: $('rRef').value.trim() }).then(function (r) {
         if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
-        success(decision === 'approve' ? 'อนุมัติแล้ว' : 'ส่งกลับให้นับใหม่'); closeSheet(); loadReview(); loadDaily();
+        success(decision === 'approve' ? (r.medError ? 'อนุมัติแล้ว · ' + r.medError : 'อนุมัติแล้ว') : 'ส่งกลับให้นับใหม่'); closeSheet(); loadReview(); loadDaily();
       }).catch(function () { showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
     };
     $('rForm').addEventListener('submit', function (e) { e.preventDefault(); send('approve'); });
