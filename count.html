@@ -430,7 +430,7 @@
       '<div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '') +
       '<div class="search"><input class="t" id="q" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(keep) + '" autocomplete="off"></div>' +
       '<div id="res"></div>' + reportBtn() +
-      '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
+      '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + (S.pharm ? ' <b style="color:#a27e2c">(Administrator)</b>' : '') + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
     v.innerHTML = h;
     drawResults();
     $('q').addEventListener('input', function (e) { S.q = e.target.value; drawResults(); });
@@ -599,7 +599,7 @@
       '<div class="search"><input class="t" id="dq" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(S.dq || '') + '" autocomplete="off"></div><div id="dres"></div>' +
       (S.daily ? '<div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="dPrint">ตรวจสอบและพิมพ์ใบสรุป A4 (เครื่องห้องยา)</button></div>' +
         '<div class="btns" style="margin-top:8px"><button class="btn sec" type="button" id="dPdf">บันทึกเป็น PDF / พิมพ์จากมือถือ</button></div><div class="sub" id="dPrintSt" style="text-align:center"></div>' : '') + reportBtn() +
-      '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
+      '<div class="sub" style="margin-top:22px;text-align:center">ผู้นับ: ' + esc(S.by) + (S.pharm ? ' <b style="color:#a27e2c">(Administrator)</b>' : '') + ' · <button type="button" class="link" id="logout">เปลี่ยนผู้นับ</button></div>';
     var draw = function () {
       var t = (S.dq || '').trim().toLowerCase();
       if (t) { $('dres').innerHTML = dailyListHtml(items.filter(function (d) { return d.n.toLowerCase().indexOf(t) >= 0 || d.c.indexOf(t) >= 0; })); return; }
