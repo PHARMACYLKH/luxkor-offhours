@@ -586,6 +586,7 @@
   }
   function renderDaily(v) {
     if (S.group === 'REVIEW') { $('topTitle').textContent = 'รอเภสัชกรตรวจ'; v.innerHTML = reviewHtml(); return; }
+    if (S.group === 'FOLLOW') { $('topTitle').textContent = 'สอบสวนต่อ'; v.innerHTML = followHtml(); return; }
     if (S.group === 'STOCK') { $('topTitle').textContent = 'ยอดคงเหลือ'; v.innerHTML = '<div class="search"><input class="t" id="sq" type="search" placeholder="ค้นหาชื่อยา รหัส หรือช่อง" value="' + esc(S.sq || '') + '" autocomplete="off"></div><div id="sres"></div>'; drawStock(); $('sq').addEventListener('input', function (e) { S.sq = e.target.value; drawStock(); }); return; }
     if (S.group) {
       var key = S.group.slice(2), g = dailyGroups().filter(function (x) { return x.k === key; })[0];
@@ -604,7 +605,8 @@
       if (t) { $('dres').innerHTML = dailyListHtml(items.filter(function (d) { return d.n.toLowerCase().indexOf(t) >= 0 || d.c.indexOf(t) >= 0; })); return; }
       $('dres').innerHTML = '<div class="grid">' +
         (expCodes.length ? '<button type="button" class="tile exp" data-group="EXP"><b>EXP</b><span>' + expCodes.length + ' รายการ</span></button>' : '') + nearTile() +
-        (S.pharm ? '<button type="button" class="tile gold small" data-group="REVIEW"><b>รอตรวจ</b><span>' + ((S.daily && S.daily.review) || 0) + ' รายการ</span></button><button type="button" class="tile small" data-group="STOCK"><b>ยอดคงเหลือ</b><span>ดูยอด</span></button>' : '') +
+        (S.pharm ? '<button type="button" class="tile gold small" data-group="REVIEW"><b>รอตรวจ</b><span>' + ((S.daily && S.daily.review) || 0) + ' รายการ</span></button>' +
+        '<button type="button" class="tile small" data-group="FOLLOW"><b>สอบสวนต่อ</b><span>' + ((S.daily && S.daily.followup) || 0) + ' รายการ</span></button><button type="button" class="tile small" data-group="STOCK"><b>ยอดคงเหลือ</b><span>ดูยอด</span></button>' : '') +
         dailyGroups().map(function (g) {
           var d = g.list.filter(function (x) { return x.done; }).length, ok = d === g.list.length;
           return '<button type="button" class="tile' + (ok ? ' done' : '') + (g.k.length > 3 ? ' small' : '') + '" data-group="D:' + esc(g.k) + '"><b>' + esc(g.k) + '</b><span>' + d + '/' + g.list.length + '</span></button>';
@@ -811,6 +813,45 @@
         (a.suspects && a.suspects.length ? '<div class="sub" style="margin-top:6px">ใบที่ควรตาม' + (a.remain > 0 ? ' (จำนวนพอดีกับผลต่างขึ้นก่อน)' : ' (ล่าสุดก่อน)') + ':</div>' + a.suspects.map(function (s2) {
           return '<div class="sub">' + esc(s2.ref) + ' · ' + esc(s2.at) + ' · ' + esc(s2.ward) + ' · ' + num(s2.q) + ' ' + esc(x.u) + ' <button type="button" class="link" data-pickref="' + esc(s2.ref) + '">ใช้เลขนี้</button></div>';
         }).join('') : '') : '') + '</div>';
+  }
+  // ── สอบสวนต่อ (2026-11-09): รายการที่อนุมัติด้วย "ไม่ทราบสาเหตุ" ย้อนหลัง 30 วัน → พบเบาะแสแล้วแก้สาเหตุได้ ยอด stock ไม่เปลี่ยน
+  function loadFollow() { S.follow = null; ldStart(); getJson('getDailyFollowup').then(function (d) { if (d.status === 'ok') { S.follow = d; if ($('sheet').hidden) render(); } else toast(d.msg || 'โหลดไม่สำเร็จ'); }); }
+  function followHtml() {
+    if (!S.follow) return loaderHtml('กำลังโหลดรายการสอบสวนต่อ');
+    var head = '<div class="sub" style="margin-bottom:10px">รายการที่อนุมัติด้วย "ไม่ทราบสาเหตุ" ย้อนหลัง ' + num(S.follow.days) + ' วัน — พบเบาะแสแล้วกดเพื่อระบุสาเหตุ ยอด stock ไม่เปลี่ยน</div>';
+    if (!S.follow.rows.length) return head + '<div class="empty">ไม่มีรายการที่ต้องสอบสวนต่อ</div>';
+    return head + '<div class="list">' + S.follow.rows.map(function (x) {
+      return '<button type="button" class="item" data-fol="' + esc(x.id) + '"><span class="loc">' + esc(x.loc) + '</span><span class="nm">' + esc(x.n) + '<br><span class="sub">นับ ' + esc(x.at) + '</span></span><span class="st">ต่าง ' + (x.diff > 0 ? '+' : '') + num(x.diff) + '<br>' + esc(x.u) + '</span></button>';
+    }).join('') + '</div>';
+  }
+  function openFollow(id) {
+    var x = S.follow.rows.filter(function (r) { return r.id === id; })[0]; if (!x) return;
+    var keep = S.review; S.review = { causeMeta: S.follow.causeMeta, causes: [] };   // ใช้ตัวกรองสาเหตุชุดเดียวกับหน้ารอตรวจ
+    var causes = reviewCauses(x).filter(function (c) { return c.n !== x.cause; }); S.review = keep;
+    form = { follow: x };
+    $('sheetTitle').textContent = 'สอบสวนต่อ';
+    $('sheetBody').innerHTML = '<div class="card"><div class="title">' + esc(x.n) + '</div><div class="sub">' + esc(x.loc) + ' · นับโดย ' + esc(x.by) + ' · ' + esc(x.at) + '</div>' +
+      '<div class="lot"><div><b>นับได้ ' + num(x.counted) + ' · ระบบ ' + num(x.system) + ' ' + esc(x.u) + '</b><div class="sub">ผลต่าง ' + (x.diff > 0 ? '+' : '') + num(x.diff) + ' · อนุมัติ ' + esc(x.approvedAt) + ' โดย ' + esc(x.approver) + '</div></div></div>' +
+      '<div class="sub">สาเหตุเดิม: ' + esc(x.cause) + (x.note ? '<br>หมายเหตุ: ' + esc(x.note) : '') + '</div></div>' +
+      analysisHtml(x) +
+      '<form class="card" id="fForm" autocomplete="off"><label class="f" for="fCause">สาเหตุที่ยืนยันแล้ว</label><select class="t" id="fCause"><option value="">เลือกสาเหตุ</option>' +
+      causes.map(function (c) { return '<option value="' + esc(c.n) + '">' + esc(c.n) + (c.me ? ' (ส่ง MedError)' : '') + '</option>'; }).join('') + '</select>' +
+      '<div id="rRefBox" hidden><label class="f" for="rRef">เลขใบสั่งยา (MED-/MEI-)</label><input class="t" id="rRef" maxlength="20" autocapitalize="characters"><div class="sub">บันทึกแล้วระบบสร้างรายการใน MedError (สถานะคัดกรอง-รอยืนยัน)</div></div>' +
+      '<label class="f" for="fNote">เบาะแส / ที่มาของการยืนยัน (จำเป็น)</label><input class="t" id="fNote" maxlength="200"><div class="warn" id="fWarn" hidden></div>' +
+      '<div class="btns"><button class="btn pri" type="submit">บันทึกสาเหตุ</button></div></form>';
+    $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
+    $('fCause').addEventListener('change', function (e) { var m = causes.filter(function (c) { return c.n === e.target.value; })[0]; $('rRefBox').hidden = !(m && m.me); });
+    document.querySelectorAll('[data-pickref]').forEach(function (b) { b.addEventListener('click', function () { $('rRef').value = b.getAttribute('data-pickref'); }); });
+    $('fForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var c = $('fCause').value, nt = $('fNote').value.trim();
+      if (!c) return showWarn('กรุณาเลือกสาเหตุ', 1);
+      if (nt.length < 5) return showWarn('กรุณาระบุเบาะแส/ที่มาของการยืนยัน', 1);
+      post({ action: 'reclassifyDailyCount', pin: S.pin, id: x.id, cause: c, ref: $('rRef').value.trim(), note: nt }).then(function (r) {
+        if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
+        success(r.medError ? 'บันทึกแล้ว · ' + r.medError : 'บันทึกสาเหตุแล้ว'); closeSheet(); loadFollow(); loadDaily();
+      }).catch(function () { showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
+    });
   }
   function openReview(id) {
     var x = S.review.rows.filter(function (r) { return r.id === id; })[0]; if (!x) return;
@@ -1257,7 +1298,7 @@
     var t = e.target.closest('button'); if (!t) return;
     if (t.id === 'logout') { S.pin = ''; S.by = ''; save(K_USER, null); save(K_PLAN, null); $('inPin').value = ''; showLogin(); }
     else if (t.dataset.mode) { S.mode = t.dataset.mode; S.q = ''; render(); }
-    else if (t.dataset.group) { S.group = t.dataset.group; if (S.group === 'REVIEW') loadReview(); if (S.group === 'STOCK') loadStock(); history.pushState({ g: 1 }, ''); render(); scrollTo(0, 0); }
+    else if (t.dataset.group) { S.group = t.dataset.group; if (S.group === 'REVIEW') loadReview(); if (S.group === 'FOLLOW') loadFollow(); if (S.group === 'STOCK') loadStock(); history.pushState({ g: 1 }, ''); render(); scrollTo(0, 0); }
     else if (t.dataset.daily) openDaily(t.dataset.daily);
     else if (t.dataset.report) openReport();
     else if (t.dataset.toexp !== undefined) askToExp(t.dataset.toexp);
@@ -1266,6 +1307,7 @@
     else if (t.dataset.boxdel) askBoxDel(t.dataset.boxdel);
     else if (t.dataset.back) askBack(t.dataset.back);
     else if (t.dataset.rev) openReview(t.dataset.rev);
+    else if (t.dataset.fol) openFollow(t.dataset.fol);
     else if (t.dataset.code) openEntry(t.dataset.code);
     else if (t.dataset.off) openEntry('', true);
     else if (t.dataset.cancel) cancelRow(t.dataset.cancel);
