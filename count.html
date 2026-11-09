@@ -640,8 +640,11 @@
       (d.recount ? '<div class="warn" style="margin-top:10px">ยอดไม่ตรงกับระบบ กรุณานับซ้ำอีกครั้ง</div>' : '') +
       (d.check ? '<div class="warn" style="margin-top:10px">รายการนี้เป็นของใช้หน่วยงาน แต่คีย์จากคลังห้องยา กรุณาตรวจคลังที่ตัด</div>' : '') + '</div>' +
       usageHtml(d) +
-      '<form class="card" id="dEntry" autocomplete="off">' + d.lots.map(function (l, i) {
-        return '<label class="f" for="dl' + i + '">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + '</label><input class="t" id="dl' + i + '" type="number" inputmode="decimal" min="0" step="any" placeholder="จำนวนที่นับได้ (' + esc(d.u) + ')">';
+      '<form class="card" id="dEntry" autocomplete="off">' +
+      // (2026-11-09 ผู้ใช้สั่ง) ยอดควรเหลือราย Lot (ระบบประมาณตาม FEFO) เป็นแนวทางนับ — กรอกตามที่นับได้จริงเสมอ
+      (d.total != null ? '<div class="sub" style="margin-bottom:6px"><b>ระบบควรเหลือรวม ' + num(d.total) + ' ' + esc(d.u) + '</b>' + (d.lots.length > 1 ? ' · ยอดราย Lot ประมาณตาม FEFO ใช้เป็นแนวทาง' : '') + '</div>' : '') +
+      d.lots.map(function (l, i) {
+        return '<label class="f" for="dl' + i + '">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + (l.q != null ? ' <span class="sub" style="font-weight:400">· ควรเหลือ ' + num(l.q) + ' ' + esc(d.u) + '</span>' : '') + '</label><input class="t" id="dl' + i + '" type="number" inputmode="decimal" min="0" step="any" placeholder="จำนวนที่นับได้ (' + esc(d.u) + ')">';
       }).join('') +
       '<div id="dExtra"></div><button type="button" class="link" id="dAdd">เพิ่ม Lot ที่พบใหม่</button>' +
       '<label class="f" for="dNote">หมายเหตุ</label><input class="t" id="dNote" maxlength="120">' +
