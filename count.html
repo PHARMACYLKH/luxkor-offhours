@@ -147,7 +147,7 @@
   .login-box .btns { margin-top: 22px; }
   .login-box .warn { text-align: left; }
   .boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--muted); }
-  .spin { width: 44px; height: 44px; border: 4px solid #dbe3df; border-top-color: var(--green); border-radius: 50%; animation: spinBig .8s linear infinite; }
+  .boot .spin { display: block; margin: 0; width: 44px; height: 44px; border: 4px solid #dbe3df; border-top-color: var(--green); border-radius: 50%; animation: spinBig .8s linear infinite; }
   @keyframes spinBig { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
@@ -656,7 +656,7 @@
       $('dExtra').appendChild(w);
     });
     $('dEntry').addEventListener('submit', function (e) { e.preventDefault(); saveDaily(false); });
-    $('dNone').addEventListener('click', function () { askNone(d.n, function () { saveDaily(true); }); });
+    $('dNone').addEventListener('click', function () { askNone(d.n, function (pin) { return saveDaily(true, pin); }); });
   }
   // (2026-11-08 ผู้ใช้สั่ง) การใช้ยาตั้งแต่นับครั้งล่าสุด แยกรายวัน พร้อมเลขใบสั่งยา — รวมวันที่ไม่ได้นับด้วย
   function usageHtml(d) {
@@ -678,8 +678,9 @@
       (other.length ? '<div style="margin-top:10px"><b>อื่น ๆ</b>' + other.map(function (t) { return '<div class="sub">' + t + '</div>'; }).join('') + '</div>' : '') +
       '<div class="sub" style="margin-top:10px">นับของจริงทุก Lot แล้วกรอกยอดคงเหลือทั้งหมดด้านล่าง</div></div>';
   }
-  function saveDaily(none) {
-    var d = form.daily, lots = [], i;
+  // none=true มาจากหน้ายืนยันรหัสพนักงาน: คืน Promise ของข้อความผิดพลาด ('' = สำเร็จ) ให้แสดงในหน้ายืนยัน
+  function saveDaily(none, who) {
+    var d = form.daily, lots = [], i, fail = function (m) { if (none) return m; showWarn(m, 1); };
     if (!none) {
       for (i = 0; i < d.lots.length; i++) {
         var v = $('dl' + i).value.trim();
@@ -695,18 +696,18 @@
     }
     var btn = $('dSave'), note = $('dNote').value.trim();
     btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
-    post({ action: 'submitDailyCount', pin: S.pin, code: d.c, lots: lots, id: form.id, note: (S.dTest ? 'TEST ' : '') + note, clientTime: new Date().toISOString(), test: S.dTest ? 1 : 0 }).then(function (r) {
+    return post({ action: 'submitDailyCount', pin: who || S.pin, code: d.c, lots: lots, id: form.id, note: (S.dTest ? 'TEST ' : '') + note, clientTime: new Date().toISOString(), test: S.dTest ? 1 : 0 }).then(function (r) {
       btn.disabled = false; btn.textContent = 'บันทึก';
-      if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ กรุณาลองใหม่', 1);
+      if (r.status !== 'ok') return fail(r.msg || 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
       if (r.result === 'นับซ้ำ') {
         d.recount = true; form.id = uid();
         for (i = 0; i < d.lots.length; i++) $('dl' + i).value = '';
-        showWarn('ยอดไม่ตรงกับระบบ กรุณานับซ้ำอีกครั้ง', 1); return;
+        showWarn('ยอดไม่ตรงกับระบบ กรุณานับซ้ำอีกครั้ง', 1); return '';
       }
       d.recount = false; d.done = r.result === 'ยอดตรง' ? 'ยอดตรง' : 'รอตรวจ';
       success(r.result === 'ยอดตรง' ? 'ยอดตรง' : 'ส่งเภสัชกรตรวจแล้ว', d.loc || '');
-      closeSheet(); loadDaily();
-    }).catch(function () { btn.disabled = false; btn.textContent = 'บันทึก'; showWarn('เชื่อมต่อไม่ได้ กดบันทึกอีกครั้งเมื่อมีอินเทอร์เน็ต', 1); });
+      closeSheet(); loadDaily(); return '';
+    }).catch(function () { btn.disabled = false; btn.textContent = 'บันทึก'; return fail('เชื่อมต่อไม่ได้ กดบันทึกอีกครั้งเมื่อมีอินเทอร์เน็ต'); });
   }
   function reviewHtml() {
     if (!S.review) return '<div class="empty">กำลังโหลดรายการ</div>';
@@ -792,13 +793,13 @@
     var t = go === 'more' ? b : a;
     if (on && t) t.innerHTML = '<span class="spin"></span>กำลังบันทึก…';
   }
-  function saveBoxLot(go, lot, exp, qty, note, none) {
+  function saveBoxLot(go, lot, exp, qty, note, none, who) {
     var f = form, d = f.d, b = f.box;
     if (f.saving) return;
     if (!none && !(qty > 0)) return showWarn('กรุณาระบุจำนวน', 1);
     f.saving = true; boxBusy(true, go);
     var id = uid();
-    post({ action: 'submitBoxStock', pin: S.pin, id: id, box: b, code: d.c, name: d.n, uom: d.u, lot: lot, exp: exp, qty: qty, note: note, none: !!none }).then(function (r) {
+    post({ action: 'submitBoxStock', pin: (who && who.pin) || S.pin, id: id, box: b, code: d.c, name: d.n, uom: d.u, lot: lot, exp: exp, qty: qty, note: note, none: !!none }).then(function (r) {
       f.saving = false; boxBusy(false);
       if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
       S.boxes = (S.boxes || []).concat([{ id: r.id, box: b, c: d.c, n: d.n, u: d.u, lot: lot, exp: exp, q: qty }]);
@@ -995,7 +996,9 @@
     });
     $('entry').addEventListener('submit', function (e) { e.preventDefault(); submit(form.off ? 'close' : 'next'); });
     if ($('saveMore')) $('saveMore').addEventListener('click', function () { submit('more'); });
-    if ($('saveNone')) $('saveNone').addEventListener('click', function () { askNone(form && form.d ? form.d.n : '', function () { submit('next', true); }); });
+    if ($('saveNone')) $('saveNone').addEventListener('click', function () { askNone(form && form.d ? form.d.n : '', function (pin) {
+      return verifyPin(pin).then(function (me) { if (!me) return 'ไม่พบรหัสพนักงานนี้'; submit('next', true, { pin: pin, by: me }); return ''; });
+    }); });
   }
   function warnings(lot, exp, qty) {
     var w = [], now = new Date();
@@ -1016,7 +1019,7 @@
     return w;
   }
   function showWarn(msg, red) { var b = $('fWarn'); b.textContent = msg; b.className = 'warn' + (red ? ' red' : ''); b.hidden = false; b.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-  function submit(go, none) {
+  function submit(go, none, who) {   // who = { pin, by } ผู้ยืนยัน "ไม่มีของ" (ถ้าไม่ใช่คน login)
     var d = form.d, off = form.off;
     var locEl = $('fLoc'), loc = (locEl ? locEl.value : d.slot).trim().toUpperCase();
     var lot = none ? '' : $('fLot').value.trim().toUpperCase();
@@ -1038,9 +1041,9 @@
       showWarn(ws.map(function (w) { return w.t; }).join(' / ') + ' — กดบันทึกอีกครั้งเพื่อยืนยัน', ws.some(function (w) { return w.red; }));
       return;
     }
-    if (form.box) { saveBoxLot(go, lot, exp, qty, none ? ($('fNote').value.trim() || 'ไม่มีของ') : $('fNote').value.trim(), none); return; }
+    if (form.box) { saveBoxLot(go, lot, exp, qty, none ? ($('fNote').value.trim() || 'ไม่มีของ') : $('fNote').value.trim(), none, who); return; }
     if (locEl) { S.loc = loc; save(K_LOC, loc); }
-    S.queue.push({ id: uid(), pin: S.pin, by: S.by, place: off ? 'off' : S.mode, loc: loc, code: d ? d.c : '', name: name, lot: lot, exp: exp, qty: qty, noLot: noLot,
+    S.queue.push({ id: uid(), pin: (who && who.pin) || S.pin, by: (who && who.by) || S.by, place: off ? 'off' : S.mode, loc: loc, code: d ? d.c : '', name: name, lot: lot, exp: exp, qty: qty, noLot: noLot,
       note: none ? 'ไม่มีของ' : $('fNote').value.trim(), clientTime: new Date().toISOString() });
     save(K_QUEUE, S.queue); pill(); flush();
     success(none ? 'บันทึกว่าไม่มีของแล้ว' : 'บันทึกสำเร็จ', none ? '' : (lot ? lot + ' · ' : '') + num(qty) + ' ' + (d ? d.u : ''));
@@ -1061,6 +1064,7 @@
   var cancelId = '', cancelTarget = null, pinMode = 'cancel';
   function openPin(mode, title, what, noText) {
     pinMode = mode; $('pinTitle').textContent = title; $('pinWhat').textContent = what; $('pinNo').textContent = noText;
+    $('pinYes').disabled = false; $('pinYes').textContent = 'ยืนยัน'; $('pinNo').disabled = false;
     $('pinInput').value = ''; $('pinErr').hidden = true; $('pinModal').hidden = false; $('pinQtyBox').hidden = true; $('pinQty').disabled = false; $('pinInput').focus();
   }
   var moveReq = null;
@@ -1078,7 +1082,12 @@
   }
   function askNoLot() { openPin('nolot', 'ยืนยันว่าไม่มีเลข Lot', 'ใส่รหัสพนักงานเพื่อยืนยันว่ากล่องนี้ไม่มีเลข Lot', 'ไม่ยืนยัน'); }
   // (2026-11-08 ผู้ใช้สั่ง) "ไม่มีของ" ต้องใส่รหัสพนักงานก่อนบันทึกทุกครั้ง กันมือลั่น
+  // (2026-11-09 ผู้ใช้สั่ง) รับรหัสพนักงานปกติทุกคน (เช่น 68017) ไม่ใช่เฉพาะรหัสที่ login — ให้ server ตรวจกับ Count_Staff
   var noneGo = null;
+  function verifyPin(pin) {
+    if (pin === S.pin) return Promise.resolve(S.by || pin);
+    return fetchPlan(pin).then(function (d) { return d && d.status === 'ok' ? (d.me || pin) : ''; });
+  }
   function askNone(name, go) { noneGo = go; openPin('none', 'ยืนยันว่าไม่มีของ', (name ? name + ' · ' : '') + 'ใส่รหัสพนักงานเพื่อยืนยันว่าไม่พบยานี้เลย (จำนวน 0)', 'ไม่ยืนยัน'); }
   function cancelRow(id) {
     var typed = /^row:(\d+)$/.exec(id);
@@ -1104,8 +1113,15 @@
       return;
     }
     if (pinMode === 'none') {
-      if (pin !== S.pin) return pinFail('รหัสพนักงานไม่ถูกต้อง');
-      var go = noneGo; noneGo = null; closePin(); if (go) go(); return;
+      if (!noneGo || $('pinYes').disabled) return;
+      $('pinYes').disabled = true; $('pinNo').disabled = true; $('pinErr').hidden = true;
+      $('pinYes').innerHTML = '<span class="spin"></span>กำลังบันทึก…';
+      Promise.resolve(noneGo(pin)).then(function (err) {
+        $('pinYes').textContent = 'ยืนยัน'; $('pinNo').disabled = false;
+        if (err) return pinFail(err);
+        noneGo = null; closePin();
+      }).catch(function () { $('pinYes').textContent = 'ยืนยัน'; $('pinNo').disabled = false; pinFail('เชื่อมต่อไม่ได้ กรุณาตรวจอินเทอร์เน็ต'); });
+      return;
     }
     if (pinMode === 'nolot') {
       if (pin !== S.pin) return pinFail('รหัสพนักงานไม่ถูกต้อง');
