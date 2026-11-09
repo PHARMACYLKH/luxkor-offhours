@@ -149,6 +149,14 @@
   .boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--muted); }
   .boot .spin { display: block; margin: 0; width: 44px; height: 44px; border: 4px solid #dbe3df; border-top-color: var(--green); border-radius: 50%; animation: spinBig .8s linear infinite; }
   @keyframes spinBig { to { transform: rotate(360deg); } }
+  /* (2026-11-09) loader ระหว่างโหลดรายการ: โลโก้ + แถบ % (ประมาณจากเวลาโหลดครั้งก่อน, ครบ 100% เมื่อข้อมูลมาจริง) */
+  .ldr { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 34px 0 26px; animation: rise .3s ease; }
+  .ldr svg { width: 180px; height: auto; animation: ldrPulse 1.6s ease-in-out infinite; }
+  .ldr-bar { width: min(260px, 80%); height: 9px; background: #dbe3df; border-radius: 99px; overflow: hidden; }
+  .ldr-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--green), #a27e2c); border-radius: 99px; transition: width .25s ease; }
+  .ldr-pct { font-family: Arial, Arimo, sans-serif; font-weight: 700; font-size: 20px; color: var(--green); }
+  .ldr .sub { margin-top: -4px; }
+  @keyframes ldrPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .72; transform: scale(.97); } }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -524,11 +532,32 @@
 
   // ── นับประจำวัน: ใช้หน้าตาเดียวกับการนับรอบใหญ่ แสดงเฉพาะยาที่เคลื่อนไหวหลังนับครั้งล่าสุด ──
   function dailyOn() { return !!(S.closed || S.dTest); }
+  // ── loader: % เดินตามเวลาโหลดครั้งก่อน (เก็บใน localStorage) ค้างไม่เกิน 95% จนข้อมูลมาจริงแล้วเป็น 100%
+  var LD = { t: 0, ms: 8000, done: 0 };
+  try { LD.ms = Number(localStorage.getItem('lkh_cnt_loadms')) || 8000; } catch (eL) {}
+  function loaderHtml(txt) {
+    return '<div class="ldr" role="status" aria-live="polite"><svg viewBox="0 0 960.55 484.69" aria-hidden="true"><use href="#luxkorLogo"></use></svg>' +
+      '<div class="ldr-bar"><i></i></div><div class="ldr-pct">0%</div><div class="sub">' + esc(txt || 'กำลังโหลดรายการ') + '</div></div>';
+  }
+  function ldStart() { if (!LD.t || LD.done) { LD.t = Date.now(); LD.done = 0; } }
+  function ldDone() { if (LD.t && !LD.done) { LD.done = 1; var ms = Date.now() - LD.t; LD.ms = Math.round(LD.ms * 0.4 + ms * 0.6); try { localStorage.setItem('lkh_cnt_loadms', String(LD.ms)); } catch (eS) {} } }
+  setInterval(function () {
+    var el = document.querySelector('.ldr'); if (!el) return;
+    if (!LD.t || LD.done) ldStart();
+    var p = Math.min(95, Math.round(100 * (1 - Math.exp(-2.3 * (Date.now() - LD.t) / LD.ms))));
+    el.querySelector('.ldr-bar i').style.width = p + '%'; el.querySelector('.ldr-pct').textContent = p + '%';
+  }, 150);
   function getJson(q) { return fetch(WEBAPP_URL + '?action=' + q + '&pin=' + encodeURIComponent(S.pin) + (S.dTest ? '&test=1' : '')).then(function (r) { return r.json(); }); }
   function loadDaily() {
     if (!dailyOn() || !S.pin) return Promise.resolve();
+    if (!S.daily) ldStart();
     return getJson('getDailyCountPlan').then(function (d) {
-      if (d.status === 'ok' && d.open) { S.daily = d; if ($('sheet').hidden) render(); }
+      if (d.status === 'ok' && d.open) {
+        var first = !S.daily; S.daily = d; ldDone();
+        var el = document.querySelector('.ldr');
+        if (first && el) { el.querySelector('.ldr-bar i').style.width = '100%'; el.querySelector('.ldr-pct').textContent = '100%'; setTimeout(function () { if ($('sheet').hidden) render(); }, 280); }
+        else if ($('sheet').hidden) render();
+      }
     }).catch(function () { /* ใช้รายการเดิม */ });
   }
   function dailyItems() { return (S.daily && S.daily.items) || []; }
@@ -556,7 +585,7 @@
     $('topTitle').textContent = 'นับประจำวัน';
     var items = dailyItems(), done = items.filter(function (d) { return d.done; }).length, pct = items.length ? Math.round(done * 100 / items.length) : 0, q = (S.dq || '').trim().toLowerCase();
     var expCodes = Object.keys(S.expInv || {});
-    v.innerHTML = (S.daily ? '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + items.length + ' รายการ</span><span>' + pct + '%</span></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>' : '<div class="empty">กำลังโหลดรายการ</div>') +
+    v.innerHTML = (S.daily ? '<div class="prog"><div class="prog-t"><span>นับแล้ว ' + done + ' จาก ' + items.length + ' รายการ</span><span>' + pct + '%</span></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>' : loaderHtml('กำลังโหลดรายการยาที่ต้องนับ')) +
       '<div class="search"><input class="t" id="dq" type="search" placeholder="ค้นหาชื่อยาหรือรหัส" value="' + esc(S.dq || '') + '" autocomplete="off"></div><div id="dres"></div>' +
       (S.daily ? '<div class="btns" style="margin-top:12px"><button class="btn pri" type="button" id="dPrint">ตรวจสอบและพิมพ์ใบสรุป A4 (เครื่องห้องยา)</button></div>' +
         '<div class="btns" style="margin-top:8px"><button class="btn sec" type="button" id="dPdf">บันทึกเป็น PDF / พิมพ์จากมือถือ</button></div><div class="sub" id="dPrintSt" style="text-align:center"></div>' : '') + reportBtn() +
@@ -579,14 +608,47 @@
   }
   // ── ใบนับหลังนับ เปิดในหน้าใหม่ แล้วสั่งพิมพ์ของมือถือ (เลือก "บันทึกเป็น PDF" หรือเครื่องพิมพ์) ──
   // รายงาน A4 ใบนับประจำวัน เลือกวัน/ช่วงวัน — เปิดหน้าใหม่แล้วสั่งพิมพ์ของมือถือ (บันทึก PDF หรือเลือกเครื่องพิมพ์)
+  // (2026-11-09 ผู้ใช้สั่ง) หน้ารอสร้างรายงานในหน้าต่างใหม่: โลโก้โรงพยาบาล + แถบ % (ประมาณจากเวลาสร้างครั้งก่อน ค้างไม่เกิน 95%)
+  var RPT = { t: 0 };
+  function reportWaitHtml(txt) {
+    var ms = 15000; try { ms = Number(localStorage.getItem('lkh_rpt_ms')) || 15000; } catch (e) {}
+    var sym = ($('luxkorLogo') || {}).outerHTML || '', fu = function (f) { return new URL('fonts/' + f, location.href).href; };   // หน้าต่างใหม่เป็น about:blank ต้องใช้ URL เต็ม
+    return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(txt) + '</title><style>' +
+      "@font-face{font-family:WTH;font-weight:400;src:local('TH SarabunPSK'),url('" + fu('THSarabun.ttf') + "') format('truetype')}" +
+      "@font-face{font-family:WTH;font-weight:700;src:local('TH SarabunPSK Bold'),url('" + fu('THSarabun-Bold.ttf') + "') format('truetype')}" +
+      'body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f6f5;font-family:WTH,sans-serif;color:#0f613b}' +
+      '.w{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px;animation:in .45s ease}.lg{width:230px;max-width:70vw;animation:pl 1.8s ease-in-out infinite}' +
+      '.rg{position:relative;width:120px;height:120px}.rg svg{width:120px;height:120px;transform:rotate(-90deg)}.rg circle{fill:none;stroke-width:9}.rg .bg{stroke:#dbe3df}' +
+      '.rg .fg{stroke:url(#gd);stroke-linecap:round;stroke-dasharray:314;stroke-dashoffset:314;transition:stroke-dashoffset .25s ease}' +
+      '.pc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 26px Arial,Arimo,sans-serif}' +
+      '.tx{font-size:28px;font-weight:700;line-height:1}.sb{font-size:22px;color:#6b7a73;line-height:1;margin-top:-6px}' +
+      '@keyframes pl{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.96);opacity:.75}}@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}' +
+      '@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}</style></head><body>' +
+      '<svg width="0" height="0" style="position:absolute" aria-hidden="true">' + sym + '</svg>' +
+      '<div class="w" role="status" aria-live="polite"><svg class="lg" viewBox="0 0 960.55 484.69" aria-label="Lux Kor Hospital"><use href="#luxkorLogo"></use></svg>' +
+      '<div class="rg"><svg viewBox="0 0 120 120"><defs><linearGradient id="gd" x1="0" x2="1"><stop offset="0" stop-color="#0f613b"/><stop offset="1" stop-color="#a27e2c"/></linearGradient></defs>' +
+      '<circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" id="fg" cx="60" cy="60" r="50"/></svg><div class="pc" id="pc">0%</div></div>' +
+      '<div class="tx">' + esc(txt) + '</div><div class="sb">โปรดรอสักครู่</div></div>' +
+      '<script>(function(){var t=Date.now(),ms=' + ms + ';setInterval(function(){var p=Math.min(95,Math.round(100*(1-Math.exp(-2.3*(Date.now()-t)/ms))));' +
+      'document.getElementById("pc").textContent=p+"%";document.getElementById("fg").style.strokeDashoffset=314*(1-p/100);},150);})()<\/script></body></html>';
+  }
+  function openWaitWindow(txt) {
+    var w = window.open('', '_blank'); RPT.t = Date.now();
+    if (w) { w.document.open(); w.document.write(reportWaitHtml(txt)); w.document.close(); }
+    return w;
+  }
+  function rptDone() {
+    if (!RPT.t) return; var ms = Date.now() - RPT.t, old = 15000; RPT.t = 0;
+    try { old = Number(localStorage.getItem('lkh_rpt_ms')) || 15000; localStorage.setItem('lkh_rpt_ms', String(Math.round(old * 0.4 + ms * 0.6))); } catch (e) {}
+  }
   function openPrintWindow(w, html) {
+    rptDone();
     html = html.replace('</body>', '<script>(document.fonts?document.fonts.ready:Promise.resolve()).then(function(){setTimeout(function(){window.print()},300)})<\/script></body>');
     if (w) { w.document.open(); w.document.write(html); w.document.close(); }
     else location.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
   }
   function printDailyRange(from, to) {
-    var btn = $('rpGo'), w = window.open('', '_blank');
-    if (w) w.document.write('<p style="font-family:sans-serif;padding:24px">กำลังสร้างรายงาน…</p>');
+    var btn = $('rpGo'), w = openWaitWindow('กำลังสร้างรายงาน');
     btn.disabled = true; btn.textContent = 'กำลังสร้างรายงาน…';
     post({ action: 'getDailyCountRangeHtml', pin: S.pin, from: from, to: to, test: S.dTest ? 1 : 0 }).then(function (r) {
       btn.disabled = false; btn.textContent = 'พิมพ์';
@@ -597,13 +659,13 @@
   function pdfDailySheet(force) {
     var left = dailyItems().filter(function (d) { return !d.done; }).length, st = $('dPrintSt'), btn = $('dPdf');
     if (force !== true && left && !confirm('ยังมียาที่ต้องนับอีก ' + left + ' รายการ\nกด ตกลง เพื่อทำใบที่ยังไม่ครบ หรือ ยกเลิก เพื่อกลับไปนับให้ครบ')) return;
-    var w = window.open('', '_blank');   // เปิดหน้าต่างทันทีตอนกด กันเบราว์เซอร์บล็อก pop-up
-    if (w) w.document.write('<p style="font-family:sans-serif;padding:24px">กำลังสร้างใบนับ…</p>');
+    var w = openWaitWindow('กำลังสร้างใบนับ');   // เปิดหน้าต่างทันทีตอนกด กันเบราว์เซอร์บล็อก pop-up
     btn.disabled = true; st.textContent = 'กำลังสร้างใบนับ…';
     post({ action: 'getDailyCountSheetHtml', pin: S.pin, force: left || force === true ? 1 : 0, test: S.dTest ? 1 : 0 }).then(function (r) {
       btn.disabled = false; st.textContent = '';
       if (r.status === 'todo') { if (w) w.close(); if (confirm(r.msg + '\nกด ตกลง เพื่อทำใบที่ยังไม่ครบ')) pdfDailySheet(true); loadDaily(); return; }
       if (r.status !== 'ok') { if (w) w.close(); st.textContent = r.msg || 'สร้างใบนับไม่สำเร็จ'; return; }
+      rptDone();
       var html = r.html.replace('</body>', '<script>(document.fonts?document.fonts.ready:Promise.resolve()).then(function(){setTimeout(function(){window.print()},300)})<\/script></body>');
       if (w) { w.document.open(); w.document.write(html); w.document.close(); }
       else { var u = URL.createObjectURL(new Blob([html], { type: 'text/html' })); location.href = u; }
@@ -713,7 +775,7 @@
     }).catch(function () { btn.disabled = false; btn.textContent = 'บันทึก'; return fail('เชื่อมต่อไม่ได้ กดบันทึกอีกครั้งเมื่อมีอินเทอร์เน็ต'); });
   }
   function reviewHtml() {
-    if (!S.review) return '<div class="empty">กำลังโหลดรายการ</div>';
+    if (!S.review) { ldStart(); return loaderHtml('กำลังโหลดรายการรอตรวจ'); }
     if (!S.review.rows.length) return '<div class="empty">ไม่มีรายการรอตรวจ</div>';
     return '<div class="list">' + S.review.rows.map(function (x) {
       return '<button type="button" class="item" data-rev="' + esc(x.id) + '"><span class="loc">' + esc(x.loc) + '</span><span class="nm">' + esc(x.n) + '</span><span class="st">ต่าง ' + (x.diff > 0 ? '+' : '') + num(x.diff) + '<br>' + esc(x.u) + '</span></button>';
