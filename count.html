@@ -847,10 +847,12 @@
       var c = $('fCause').value, nt = $('fNote').value.trim();
       if (!c) return showWarn('กรุณาเลือกสาเหตุ', 1);
       if (nt.length < 5) return showWarn('กรุณาระบุเบาะแส/ที่มาของการยืนยัน', 1);
+      var fb = $('fForm'); if (fb.dataset.busy) return; fb.dataset.busy = 1; formBusy(fb, fb.querySelector('button[type=submit]'), true);
+      var undo = function () { delete fb.dataset.busy; formBusy(fb, null, false); };
       post({ action: 'reclassifyDailyCount', pin: S.pin, id: x.id, cause: c, ref: $('rRef').value.trim(), note: nt }).then(function (r) {
-        if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
+        if (r.status !== 'ok') { undo(); return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1); }
         success(r.medError ? 'บันทึกแล้ว · ' + r.medError : 'บันทึกสาเหตุแล้ว'); closeSheet(); loadFollow(); loadDaily();
-      }).catch(function () { showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
+      }).catch(function () { undo(); showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
     });
   }
   function openReview(id) {
@@ -880,10 +882,12 @@
       var c = $('rCause').value === '__new' ? $('rNew').value.trim() : $('rCause').value;
       if (decision === 'approve' && !c) return showWarn('กรุณาเลือกสาเหตุ', 1);
       if (decision === 'approve' && x.strict && $('rNote').value.trim().length < 10) return showWarn('ยา HAD/ยาควบคุม: กรุณาเขียนผลการสอบสวนในหมายเหตุ', 1);
+      var fb = $('rForm'); if (fb.dataset.busy) return; fb.dataset.busy = 1; formBusy(fb, decision === 'approve' ? fb.querySelector('button[type=submit]') : $('rAgain'), true);
+      var undo = function () { delete fb.dataset.busy; formBusy(fb, null, false); };
       post({ action: 'decideDailyCount', pin: S.pin, id: x.id, decision: decision, cause: c, note: $('rNote').value.trim(), ref: $('rRef').value.trim() }).then(function (r) {
-        if (r.status !== 'ok') return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1);
+        if (r.status !== 'ok') { undo(); return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1); }
         success(decision === 'approve' ? (r.medError ? 'อนุมัติแล้ว · ' + r.medError : 'อนุมัติแล้ว') : 'ส่งกลับให้นับใหม่'); closeSheet(); loadReview(); loadDaily();
-      }).catch(function () { showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
+      }).catch(function () { undo(); showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
     };
     $('rForm').addEventListener('submit', function (e) { e.preventDefault(); send('approve'); });
     $('rAgain').addEventListener('click', function () { send('recount'); });
@@ -932,6 +936,12 @@
       '<div class="btns" style="margin-top:12px"><button class="btn ghost" type="button" data-boxadd="' + esc(b) + '">ยาไม่อยู่ในรายการ</button></div>';
   }
   // ปุ่มเปลี่ยนทันทีที่กด กันกดซ้ำระหว่างรอระบบ
+  // (2026-11-09) ปุ่มในฟอร์มตรวจ/สอบสวนต่อ: กดแล้วหมุนทันที ปิดทุกปุ่ม กันกดซ้ำ คืนสภาพถ้าไม่สำเร็จ
+  function formBusy(f, btn, on) {
+    if (!f) return;
+    f.querySelectorAll('button.btn').forEach(function (x) { x.disabled = on; if (on) x.dataset.label = x.textContent; else if (x.dataset.label) x.textContent = x.dataset.label; });
+    if (on && btn) btn.innerHTML = '<span class="spin"></span>กำลังบันทึก…';
+  }
   function boxBusy(on, go) {
     var a = document.querySelector('#entry button[type=submit]'), b = $('saveMore');
     [a, b, $('saveNone')].forEach(function (x) { if (!x) return; x.disabled = on; if (on) x.dataset.label = x.textContent; else if (x.dataset.label) x.textContent = x.dataset.label; });
