@@ -734,13 +734,21 @@
     $('dEntry').addEventListener('submit', function (e) { e.preventDefault(); saveDaily(false); });
     $('dNone').addEventListener('click', function () { askNone(d.n, function (pin) { return saveDaily(true, pin); }); });
   }
+  // (2026-11-11 ผู้ใช้สั่ง) ระบุเลขเอกสารโอนใน HIS (TF = TRANSFER, GIM = ISSUE) และหน่วยงาน รายใบ
+  function transferDocsHtml(d) {
+    var L = d.tdocs || [];
+    if (!L.length) return '';
+    return L.map(function (e) {
+      return '<div class="sub" style="margin-left:12px">' + esc(e.doc) + ' (' + esc(e.type) + ') ' + (e.q > 0 ? '→ ' : '← คืนจาก ') + esc(e.dept) + ' <b>' + num(Math.abs(e.q)) + '</b></div>';
+    }).join('');
+  }
   // (2026-11-08 ผู้ใช้สั่ง) การใช้ยาตั้งแต่นับครั้งล่าสุด แยกรายวัน พร้อมเลขใบสั่งยา — รวมวันที่ไม่ได้นับด้วย
   function usageHtml(d) {
     var rx = d.rx || [], days = {}, order = [];
     rx.forEach(function (a) { var k = String(a.at).slice(0, 10); if (!days[k]) { days[k] = []; order.push(k); } days[k].push(a); });
     var other = [];
     if (d.inQty) other.push('รับเข้า ' + num(d.inQty) + ' ' + esc(d.u));
-    if (d.transfer) other.push((d.transfer > 0 ? 'โอนออก ' : 'โอนกลับเข้า ') + num(Math.abs(d.transfer)) + ' ' + esc(d.u));
+    if (d.transfer) other.push((d.transfer > 0 ? 'โอนออก ' : 'โอนกลับเข้า ') + num(Math.abs(d.transfer)) + ' ' + esc(d.u) + transferDocsHtml(d));
     if (d.expQty) other.push('ย้ายเข้าคลัง EXP ' + num(d.expQty) + ' ' + esc(d.u));
     if (!order.length && !other.length) return '';
     return '<div class="card"><div class="title" style="font-size:1rem">การใช้ยาตั้งแต่นับครั้งล่าสุด</div><div class="sub">นับครั้งล่าสุด ' + esc(d.from || '-') + '</div>' +
@@ -862,7 +870,7 @@
     $('sheetBody').innerHTML = '<div class="card"><div class="title">' + esc(x.n) + '</div><div class="sub">' + esc(x.loc) + ' · นับโดย ' + esc(x.by) + ' · ' + esc(x.at) + '</div>' +
       '<div class="lot"><div><b>นับได้ ' + num(x.counted) + ' · ระบบ ' + num(x.system) + ' ' + esc(x.u) + '</b><div class="sub">ผลต่าง ' + (x.diff > 0 ? '+' : '') + num(x.diff) + '</div></div></div>' +
       x.lots.map(function (l) { return '<div class="sub">Lot ' + esc(l.lot || 'ไม่มี Lot') + ' · EXP ' + esc(l.exp || '-') + ' · ' + num(l.q) + '</div>'; }).join('') +
-      '<div class="sub" style="margin-top:8px">รับเข้า ' + num(x.inQty) + ' · จ่ายสุทธิ ' + num(x.outQty) + ' · โอนออก ' + num(x.transfer) + ' · ย้ายเข้า EXP ' + num(x.expQty) + '</div></div>' +
+      '<div class="sub" style="margin-top:8px">รับเข้า ' + num(x.inQty) + ' · จ่ายสุทธิ ' + num(x.outQty) + ' · โอนออก ' + num(x.transfer) + ' · ย้ายเข้า EXP ' + num(x.expQty) + '</div>' + transferDocsHtml(x) + '</div>' +
       (x.strict ? '<div class="warn" style="margin-bottom:12px">ยา HAD / ยาควบคุม — ต่างแม้ 1 หน่วยต้องสอบสวน กรุณาเขียนผลการสอบสวนในหมายเหตุก่อนอนุมัติ</div>' : '') +
       analysisHtml(x) +
       '<form class="card" id="rForm" autocomplete="off"><label class="f" for="rCause">สาเหตุ (' + (x.diff > 0 ? 'ของจริงมากกว่าระบบ' : 'ของจริงน้อยกว่าระบบ') + ')</label><select class="t" id="rCause"><option value="">เลือกสาเหตุ</option>' +
