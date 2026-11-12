@@ -1014,13 +1014,15 @@
     $('sheetTitle').textContent = 'พิมพ์รายงาน A4';
     var slotGroups = {}; S.drugs.forEach(function (d) { if (d.slot) slotGroups[slotGroup(d.slot)] = 1; });
     var td = new Date(), iso = td.getFullYear() + '-' + ('0' + (td.getMonth() + 1)).slice(-2) + '-' + ('0' + td.getDate()).slice(-2);
+    var yd = new Date(td.getTime() - 864e5), ydIso = yd.getFullYear() + '-' + ('0' + (yd.getMonth() + 1)).slice(-2) + '-' + ('0' + yd.getDate()).slice(-2);   // (2026-11-12) ค่าเริ่มต้น = ยอดใช้เมื่อวาน
     $('sheetBody').innerHTML = '<form class="card" id="rpForm"><label class="f" for="rpType">รายงาน</label><select class="t" id="rpType">' +
       (dailyOn() ? '<option value="daily">ใบนับ Stock ประจำวัน (เลือกวัน/ช่วงวัน)</option>' : '') +
       '<option value="all">ยอดนับทั้งหมด</option><option value="group">ยอดนับตามหมวดช่องยา</option><option value="near">NEAR EXP</option><option value="exp">คลัง EXP</option><option value="box">กล่องยา</option><option value="todo">รายการที่ยังไม่นับ</option></select>' +
       '<div id="rpGroupBox" hidden><label class="f" for="rpGroup">หมวดช่องยา</label><select class="t" id="rpGroup">' + Object.keys(slotGroups).sort(natural).map(function (k) { return '<option>' + esc(k) + '</option>'; }).join('') + '</select></div>' +
       '<div id="rpBoxBox" hidden><label class="f" for="rpBox">กล่องยา</label><select class="t" id="rpBox"><option value="">ทุกกล่อง</option>' + BOXES.map(function (b) { return '<option value="' + esc(b) + '">' + esc(boxLabel(b)) + '</option>'; }).join('') + '</select></div>' +
-      '<div id="rpDayBox"' + (dailyOn() ? '' : ' hidden') + '><label class="f" for="rpFrom">ตั้งแต่วันที่</label><input class="t" id="rpFrom" type="date" value="' + iso + '" max="' + iso + '">' +
-      '<label class="f" for="rpTo">ถึงวันที่</label><input class="t" id="rpTo" type="date" value="' + iso + '" max="' + iso + '">' +
+      '<div id="rpDayBox"' + (dailyOn() ? '' : ' hidden') + '><label class="f" for="rpFrom">วันที่ใช้ยา ตั้งแต่</label><input class="t" id="rpFrom" type="date" value="' + ydIso + '" max="' + iso + '">' +
+      '<label class="f" for="rpTo">ถึงวันที่</label><input class="t" id="rpTo" type="date" value="' + ydIso + '" max="' + iso + '">' +
+      '<div class="sub" style="margin-top:6px">เลือกวันที่ใช้ยา (เช่น นับวันนี้ = ยอดใช้เมื่อวาน) ผลนับที่แสดงคือผลนับของวันถัดไป</div>' +
       '<div class="sub" style="margin-top:6px">ยาที่ใช้ไปแล้วยังไม่นับ จะรวมมาให้ทุกวันที่ค้าง (วันนี้นับถึงตอนนี้) ช่องนับจริงเว้นว่างจนกว่าจะนับในแอป</div></div>' +
       '<div class="warn" id="fWarn" hidden></div><div class="btns"><button class="btn pri" type="submit" id="rpGo">พิมพ์</button></div></form>';
     $('sheet').hidden = false; $('sheet').scrollTop = 0; history.pushState({ s: 1 }, '');
