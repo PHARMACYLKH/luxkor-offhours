@@ -713,6 +713,8 @@
     form = { daily: d, id: uid(), extra: 0 };
     $('sheetTitle').textContent = 'ช่อง ' + (d.loc || '-');
     $('sheetBody').innerHTML = '<div class="card"><div class="title">' + esc(d.n) + tags(d) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
+      // (2026-11-14 ผู้ใช้สั่ง) วันที่ยอดตรงล่าสุดจากนับประจำวัน ไว้ย้อนรอยว่าคลาดเคลื่อนตั้งแต่เมื่อไร
+      (d.okAt != null ? '<div style="margin-top:6px">' + (d.okAt ? '<span class="had fill" style="margin-left:0">ยอดตรงล่าสุด ' + esc(d.okAt) + '</span>' : '<span class="had pend" style="margin-left:0">ยังไม่มีครั้งที่ยอดตรงในการนับประจำวัน</span>') + '</div>' : '') +
       (d.recount ? '<div class="warn" style="margin-top:10px">ยอดไม่ตรงกับระบบ กรุณานับซ้ำอีกครั้ง</div>' : '') +
       (d.check ? '<div class="warn" style="margin-top:10px">รายการนี้เป็นของใช้หน่วยงาน แต่คีย์จากคลังห้องยา กรุณาตรวจคลังที่ตัด</div>' : '') + '</div>' +
       usageHtml(d) +
