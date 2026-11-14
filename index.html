@@ -1837,10 +1837,32 @@
       .finally(function () { btn.disabled = false; });
   }
   // พิมพ์แบบตรวจรับคืนรายครั้ง (A4) — เปิดหน้าต่างก่อน fetch กัน popup blocker แล้วสั่ง print (บันทึกเป็น PDF ได้)
+  // (2026-11-14 ผู้ใช้สั่ง) หน้ารอพิมพ์แบบเดียวกับใบนับ stock ประจำวัน (count.html): โลโก้เต้น + วงแหวน % เขียว-ทอง
+  function ovWaitHtml(txt) {
+    const sym = (document.getElementById('luxkorLogo') || {}).outerHTML || '', ms = 6000;
+    return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + ovEsc(txt) + '</title>'
+      + '<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet"><style>'
+      + "@font-face{font-family:WTH;font-weight:400;src:local('TH SarabunPSK'),local('THSarabunPSK')}@font-face{font-family:WTH;font-weight:700;src:local('TH SarabunPSK Bold'),local('THSarabunPSK-Bold')}"
+      + 'body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f6f5;font-family:WTH,Sarabun,sans-serif;color:#0f613b}'
+      + '.w{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px;animation:in .45s ease}.lg{width:230px;max-width:70vw;animation:pl 1.8s ease-in-out infinite}'
+      + '.rg{position:relative;width:120px;height:120px}.rg svg{width:120px;height:120px;transform:rotate(-90deg)}.rg circle{fill:none;stroke-width:9}.rg .bg{stroke:#dbe3df}'
+      + '.rg .fg{stroke:url(#gd);stroke-linecap:round;stroke-dasharray:314;stroke-dashoffset:314;transition:stroke-dashoffset .25s ease}'
+      + '.pc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 26px Arial,Arimo,sans-serif}'
+      + '.tx{font-size:28px;font-weight:700;line-height:1;text-align:center}.sb{font-size:22px;color:#6b7a73;line-height:1;margin-top:-6px}'
+      + '@keyframes pl{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.96);opacity:.75}}@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}'
+      + '@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}</style></head><body>'
+      + '<svg width="0" height="0" style="position:absolute" aria-hidden="true">' + sym + '</svg>'
+      + '<div class="w" role="status" aria-live="polite"><svg class="lg" viewBox="0 0 960.55 484.69" aria-label="Lux Kor Hospital"><use href="#luxkorLogo"></use></svg>'
+      + '<div class="rg"><svg viewBox="0 0 120 120"><defs><linearGradient id="gd" x1="0" x2="1"><stop offset="0" stop-color="#0f613b"/><stop offset="1" stop-color="#a27e2c"/></linearGradient></defs>'
+      + '<circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" id="fg" cx="60" cy="60" r="50"/></svg><div class="pc" id="pc">0%</div></div>'
+      + '<div class="tx">' + ovEsc(txt) + '</div><div class="sb">โปรดรอสักครู่</div></div>'
+      + '<script>(function(){var t=Date.now(),ms=' + ms + ';setInterval(function(){var p=Math.min(95,Math.round(100*(1-Math.exp(-2.3*(Date.now()-t)/ms))));'
+      + 'document.getElementById("pc").textContent=p+"%";document.getElementById("fg").style.strokeDashoffset=314*(1-p/100);},150);})()<\/script></body></html>';
+  }
   function ovPrint(logId) {
     const w = window.open('', '_blank');
     if (!w) { showToast('เบราว์เซอร์บล็อกหน้าต่างพิมพ์ — กรุณาอนุญาต pop-up', 'error'); return; }
-    w.document.write('<p style="font-family:sans-serif">กำลังโหลด…</p>');
+    w.document.open(); w.document.write(ovWaitHtml('กำลังเตรียมแบบตรวจรับคืนกล่อง OR')); w.document.close();
     fetch(WEBAPP_URL + '?action=getOrVerifyRecord&logId=' + encodeURIComponent(logId))
       .then(function (r) { return r.json(); })
       .then(function (d) {
