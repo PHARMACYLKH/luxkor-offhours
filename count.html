@@ -954,13 +954,18 @@
   function boxList(b) {
     var rows = boxRowsOf(b), seen = {}, list = boxItemsOf(b).map(function (i) { seen[i.c] = 1; return Object.assign({}, S.byCode[i.c] || { c: i.c, n: i.n, u: '' }, { boxNote: i.note }); });
     rows.forEach(function (r) { if (!seen[r.c]) { seen[r.c] = 1; list.push(S.byCode[r.c] || { c: r.c, n: r.n, u: r.u }); } });
+    // (2026-11-14 ผู้ใช้สั่ง) ยาเสพติดกล่อง Narcotics นับรวม stock ห้องยา ไม่นับแยกในกล่อง — แสดงสถานะใช้ไป/เติมแล้ว อย่างเดียว
+    if (b === 'OR') Object.keys(S.orBox || {}).forEach(function (c) {
+      if (seen[c] || S.orBox[c].base) return; seen[c] = 1;
+      list.push(Object.assign({}, S.byCode[c] || { c: c, n: c, u: '' }, { boxNote: 'ยาเสพติด — นับรวม stock ห้องยา ไม่นับแยกในกล่อง' }));
+    });
     return list;
   }
   function boxHtml(b) {
     var rows = boxRowsOf(b), list = boxList(b);
     return (list.length ? '<div class="list">' + list.map(function (d) {
       var mine = rows.filter(function (r) { return r.c === d.c; }), tot = mine.reduce(function (t, x) { return t + Number(x.q || 0); }, 0);
-      if (d.boxNote) return '<div class="item done">' + (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, []) + '<div class="sub">' + esc(d.boxNote) + '</div></span></div>';
+      if (d.boxNote) return '<div class="item done">' + (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, []) + (b === 'OR' ? orTag(d.c) : '') + '<div class="sub">' + esc(d.boxNote) + '</div>' + (b === 'OR' ? orLogHtml(d.c, d.u) : '') + '</span></div>';
       return '<button type="button" class="item' + (mine.length ? ' done' : '') + '" data-boxcode="' + esc(b) + '|' + esc(d.c) + '">' +
         (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, mine) + (b === 'OR' ? orTag(d.c) : '') + '</span>' +
         '<span class="st">' + (mine.length ? (tot > 0 ? num(tot) + ' ' + esc(d.u) + '<br>' + mine.filter(function (x) { return Number(x.q) > 0; }).length + ' Lot' : 'ไม่มีของ') : '') + '</span></button>';
