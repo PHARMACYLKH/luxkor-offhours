@@ -1852,7 +1852,7 @@
   }
   function ovPrintHtml(d) {
     // (2026-10-29 ผู้ใช้กำหนด) 1 หน้า A4: ชื่อยา+รหัสบรรทัดเดียว แถวเตี้ย, ช่องลงชื่อเว้นที่เซ็นเหนือเส้นจุด
-    const v = d.verify, td = 'border:1px solid #666;padding:1px 4px';
+    const v = d.verify, td = 'border:1px solid #666;padding:3px 5px';
     const rows = d.items.map(function (it, i) {
       return '<tr><td style="' + td + ';text-align:center">' + (i + 1) + '</td><td style="' + td + '">' + ovEsc(it.name)
         + ' <span style="font-size:7.5pt;color:#666">' + ovEsc(it.code) + '</span></td>'
@@ -1875,9 +1875,9 @@
       + '@page{size:A4;margin:10mm 12mm}html,body{margin:0}body{font-family:LKThai,Arial,Sarabun,sans-serif;font-size:10pt;line-height:1.25;color:#000}'
       + 'table{border-collapse:collapse;width:100%}tr{page-break-inside:avoid}'
       + 'h1{font-size:13pt;margin:0;color:#0f613b}.sub{font-size:8pt;color:#555;margin:1px 0 5px}.grid td{padding:1px 6px 1px 0;vertical-align:top}'
-      + '.sig{margin-top:auto;padding-top:10px;page-break-inside:avoid}.sig td{text-align:center;width:33%;vertical-align:top}'
-      // (2026-10-29 ผู้ใช้กำหนด) เต็มหน้า A4: ความสูงพื้นที่พิมพ์ 297 − 20 มม. ตารางยืดเต็มที่เหลือ ช่องลงชื่อชิดล่าง
-      + '.pg{height:275mm;display:flex;flex-direction:column}.tw{flex:1 1 auto;display:flex;margin-top:5px;min-height:0}.tw>table{flex:1}'
+      + '.sig{margin-top:14px;page-break-inside:avoid}.sig td{text-align:center;width:33%;vertical-align:top}'
+      // (2026-11-14 ผู้ใช้สั่ง) ตารางสูงตามเนื้อหา ไม่ยืดเต็มหน้า — ช่องลงชื่อต่อท้ายผลกระทบยอด
+      + '.tw{margin-top:5px}'
       + '</style></head><body><div class="pg">'
       + '<h1>แบบตรวจรับคืนและเติมกล่องยา OR</h1><div class="sub">นโยบายการจัดการยาสำรองประจำห้องผ่าตัด (OR Floor Stock) ภาคผนวก ง · พิมพ์จากระบบ ' + new Date().toLocaleString('th-TH') + '</div>'
       + '<table class="grid"><tr><td><b>กล่อง</b> ' + ovEsc(boxLabel(d.box)) + ' ' + ovEsc(d.boxName) + '</td><td><b>Log ID</b> ' + ovEsc(d.logId) + '</td></tr>'
