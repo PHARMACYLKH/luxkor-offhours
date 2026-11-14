@@ -1874,7 +1874,7 @@
       .then(function (d) {
         if (d.status !== 'ok') throw new Error(d.msg);
         w.document.open(); w.document.write(ovPrintHtml(d)); w.document.close();
-        setTimeout(function () { w.focus(); w.print(); }, 500);
+        // หน้าพิมพ์ย่อให้พอดี 1 หน้าแล้วสั่งพิมพ์เอง (สคริปต์ท้าย ovPrintHtml)
       })
       .catch(function (e) { w.document.body.innerHTML = '<p style="font-family:sans-serif;color:#b3261e">พิมพ์ไม่ได้: ' + ovEsc(e.message) + '</p>'; });
   }
@@ -1907,7 +1907,7 @@
       // (2026-11-14 ผู้ใช้สั่ง) ตารางสูงตามเนื้อหา ไม่ยืดเต็มหน้า — ช่องลงชื่อต่อท้ายผลกระทบยอด
       + '.tw{margin-top:5px}'
       // (2026-11-14 ผู้ใช้สั่ง) พิมพ์ 100% แล้วขอบขวาเกินหน้า → ย่อเนื้อหาเหลือ 97% ให้ขอบตารางอยู่ครบ
-      + '.pg{zoom:.97}'
+      + '.pg{zoom:.97;width:186mm}'
       + '</style></head><body><div class="pg">'
       + '<svg style="display:none">' + (document.getElementById('luxkorLogo') ? document.getElementById('luxkorLogo').outerHTML : '') + '</svg>'
       + '<div class="hd"><svg viewBox="0 0 960.55 484.69"><use href="#luxkorLogo"></use></svg><div style="text-align:right">'
@@ -1924,7 +1924,14 @@
       + '<div style="margin-top:3px">☐ ตรวจกับ anesthetic record และรายการค่ายาในระบบ HIS แล้ว &nbsp; ☐ กล่องที่ 2: ตรวจแบบ ยส.5 + ยส.2/วจ.2 บันทึกการทำลาย และ ampoule/vial เปล่าแล้ว</div>'
       + '<table class="sig"><tr>' + sig(d.returnedBy, 'ผู้คืนกล่อง ' + ovEsc(d.returnTs || ''))
       + sig(v.resolvedBy || v.pharmacist, 'เภสัชกรผู้ตรวจ ' + ovEsc(v.resolvedAt || v.verifiedAt)) + '</tr></table>'
-      + '</div></body></html>';
+      + '</div>'
+      // (2026-11-14 ผู้ใช้สั่ง) ทั้งฟอร์มต้องอยู่หน้าเดียว รวมช่องลงชื่อ: วัดความสูงจริงแล้วย่อ (สูงสุด 97%) ให้พอดีพื้นที่พิมพ์ A4
+      // ความสูงพื้นที่พิมพ์ = 297 − ขอบบน 10 − ขอบล่าง 13 = 274 มม. (เผื่อ 3 มม.) · กว้าง 186 มม. คงที่ ย่อแล้วตัดบรรทัดเหมือนเดิม
+      + '<script>(function(){var pg=document.querySelector(".pg");function go(){pg.style.zoom=1;'
+      + 'var h=pg.getBoundingClientRect().height,av=271*96/25.4;pg.style.zoom=String(Math.min(.97,av/h));'
+      + 'setTimeout(function(){window.focus();window.print();},300);}'
+      + '(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(go);})()<\/script>'
+      + '</body></html>';
   }
   document.getElementById('boxForm').addEventListener('submit', function (ev) { submitBoxForm(ev, 'box'); });
   document.getElementById('orBoxForm').addEventListener('submit', function (ev) { submitBoxForm(ev, 'or'); });
