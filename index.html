@@ -1928,7 +1928,7 @@
       // (2026-11-14 ผู้ใช้สั่ง) ทั้งฟอร์มต้องอยู่หน้าเดียว รวมช่องลงชื่อ: วัดความสูงจริงแล้วย่อ (สูงสุด 97%) ให้พอดีพื้นที่พิมพ์ A4
       // ความสูงพื้นที่พิมพ์ = 297 − ขอบบน 10 − ขอบล่าง 13 = 274 มม. (เผื่อ 3 มม.) · กว้าง 186 มม. คงที่ ย่อแล้วตัดบรรทัดเหมือนเดิม
       + '<script>(function(){var pg=document.querySelector(".pg");function go(){pg.style.zoom=1;'
-      + 'var h=pg.getBoundingClientRect().height,av=271*96/25.4;pg.style.zoom=String(Math.min(.97,av/h));'
+      + 'var h=pg.getBoundingClientRect().height,av=271*96/25.4,z=Math.min(.97,av/h);pg.style.zoom=String(z);pg.style.width=(186/z)+"mm";'   // ย่อแล้วยังกว้างเต็ม 186 มม. ขอบขวาเท่าขอบซ้าย
       + 'setTimeout(function(){window.focus();window.print();},300);}'
       + '(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(go);})()<\/script>'
       + '</body></html>';
