@@ -348,19 +348,34 @@
   @media (prefers-reduced-motion: reduce) { .open-notice, .achtung-sign { animation: none; } }
   .splash {
     position: fixed; inset: 0; background: #ffffff; z-index: 200;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center;
     transition: opacity 0.4s ease, visibility 0.4s ease;
   }
   .splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
-  .splash svg { width: 150px; height: auto; animation: splashPulse 1.1s ease-in-out infinite; }
-  @keyframes splashPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.06); opacity: .82; } }
+  /* (2026-11-14 ผู้ใช้สั่ง) splash แรกเปิด = loader แบบหน้านับ stock (โลโก้เต้น + แถบเขียว-ทอง + %) ตั้งแต่วินาทีแรก */
+  .splash { background: #f4f6f5; }
+  .splash svg { width: 180px; height: auto; animation: ldrPulse 1.6s ease-in-out infinite; }
 </style>
 </head>
 <body>
 
-<div id="splash" class="splash">
+<div id="splash" class="splash" role="status" aria-live="polite">
   <svg viewBox="0 0 960.55 484.69" aria-label="Lux Kor Hospital"><use href="#luxkorLogo"></use></svg>
+  <div class="ldr-bar"><i id="splashBar"></i></div><div class="ldr-pct" id="splashPct">0%</div><div class="ldr-sub">กำลังโหลด</div>
 </div>
+<script>
+  // แถบ % ของ splash วิ่งทันทีที่หน้าเปิด (ก่อนสคริปต์หลักโหลด) ประมาณจากเวลาโหลดครั้งก่อน
+  (function () {
+    var t0 = Date.now(), ms = 2500;
+    try { ms = Number(localStorage.getItem('lkh_splash_ms')) || 2500; } catch (e) {}
+    window.__splashT0 = t0; window.__splashMs = ms;
+    window.__splashTick = setInterval(function () {
+      var p = Math.min(95, Math.round(100 * (1 - Math.exp(-2.3 * (Date.now() - t0) / ms))));
+      var b = document.getElementById('splashBar'), c = document.getElementById('splashPct');
+      if (b) b.style.width = p + '%'; if (c) c.textContent = p + '%';
+    }, 120);
+  })();
+</script>
 
 <div id="saveOverlay" class="save-overlay">
   <div id="saveSpinner" class="save-spinner"></div>
@@ -1235,7 +1250,13 @@
       populateBoxStaff();
       // โชว์ splash logo อย่างน้อย 500ms กันกระพริบเร็วเกินไปตอนเน็ตแรง แต่ยึดตามเวลาโหลดจริง
       const wait = Math.max(0, 500 - (Date.now() - splashStart));
-      setTimeout(function () { document.getElementById('splash').classList.add('hide'); }, wait);
+      setTimeout(function () {
+        clearInterval(window.__splashTick);
+        const el = Date.now() - (window.__splashT0 || splashStart);
+        try { localStorage.setItem('lkh_splash_ms', String(Math.round((window.__splashMs || 2500) * 0.4 + el * 0.6))); } catch (e) {}
+        document.getElementById('splashBar').style.width = '100%'; document.getElementById('splashPct').textContent = '100%';
+        setTimeout(function () { document.getElementById('splash').classList.add('hide'); }, 250);
+      }, wait);
     });
   }
 
@@ -1544,6 +1565,7 @@
       const dept = BOX_FORMS[k].deptFilter;
       const list = staffItems.filter(function (s) { return !dept || (s.department || '').indexOf(dept) > -1; });
       const sel = document.getElementById(BOX_FORMS[k].staff);
+      if (!sel) return;   // กันหน้า splash ค้างถ้าฟอร์มกล่องใดไม่มีในหน้า
       sel.innerHTML = '<option value="">' + (list.length ? '— เลือกชื่อ —' : '— โหลดรายชื่อไม่สำเร็จ ลองรีเฟรช —') + '</option>';
       list.forEach(function (s) {
         const o = document.createElement('option');
