@@ -586,7 +586,7 @@
   function dailyListHtml(list) {
     if (!list.length) return '<div class="empty">ไม่มีรายการในกลุ่มนี้</div>';
     return '<div class="list">' + list.map(function (d) {
-      var mark = d.recount ? '<span class="had near">นับซ้ำ</span>' : (d.check ? '<span class="had near">ตรวจคลัง</span>' : '');
+      var mark = d.order ? '<span class="had near">นับคู่สลับ</span>' : d.recount ? '<span class="had near">นับซ้ำ</span>' : (d.check ? '<span class="had near">ตรวจคลัง</span>' : '');
       return '<button type="button" class="item' + (d.done ? ' done' : '') + '"' + (d.done ? '' : ' data-daily="' + esc(d.c) + '"') + '>' +
         '<span class="loc">' + esc(d.loc || '-') + '</span><span class="nm">' + esc(d.n) + tags(d) + mark + '</span>' +
         '<span class="st">' + (d.done ? esc(d.done) : '') + '</span></button>';
@@ -720,6 +720,7 @@
     $('sheetBody').innerHTML = '<div class="card"><div class="title">' + esc(d.n) + tags(d) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
       // (2026-11-14 ผู้ใช้สั่ง) วันที่ยอดตรงล่าสุดจากนับประจำวัน ไว้ย้อนรอยว่าคลาดเคลื่อนตั้งแต่เมื่อไร
       (d.okAt != null ? '<div style="margin-top:6px">' + (d.okAt ? '<span class="had fill" style="margin-left:0">ยอดตรงล่าสุด ' + esc(d.okAt) + '</span>' : '<span class="had pend" style="margin-left:0">ยังไม่มีครั้งที่ยอดตรงในการนับประจำวัน</span>') + '</div>' : '') +
+      (d.order ? '<div class="warn" style="margin-top:10px">เภสัชกรสั่งนับ: ' + esc(d.order) + '</div>' : '') +
       (d.recount ? '<div class="warn" style="margin-top:10px">ยอดไม่ตรงกับระบบ กรุณานับซ้ำอีกครั้ง</div>' : '') +
       (d.check ? '<div class="warn" style="margin-top:10px">รายการนี้เป็นของใช้หน่วยงาน แต่คีย์จากคลังห้องยา กรุณาตรวจคลังที่ตัด</div>' : '') + '</div>' +
       usageHtml(d) +
@@ -883,9 +884,13 @@
       '<div class="sub" style="margin-top:8px">รับเข้า ' + num(x.inQty) + ' · จ่ายสุทธิ ' + num(x.outQty) + ' · โอนออก ' + num(x.transfer) + ' · ย้ายเข้า EXP ' + num(x.expQty) + '</div>' + transferDocsHtml(x) + '</div>' +
       (x.strict ? '<div class="warn" style="margin-bottom:12px">ยา HAD / ยาควบคุม — ต่างแม้ 1 หน่วยต้องสอบสวน กรุณาเขียนผลการสอบสวนในหมายเหตุก่อนอนุมัติ</div>' : '') +
       analysisHtml(x) +
-      '<form class="card" id="rForm" autocomplete="off"><label class="f" for="rCause">สาเหตุ (' + (x.diff > 0 ? 'ของจริงมากกว่าระบบ' : 'ของจริงน้อยกว่าระบบ') + ')</label><select class="t" id="rCause"><option value="">เลือกสาเหตุ</option>' +
-      reviewCauses(x).map(function (c) { return '<option value="' + esc(c.n) + '">' + esc(c.n) + (c.me ? ' (ส่ง MedError)' : '') + '</option>'; }).join('') + '<option value="__new">เพิ่มสาเหตุใหม่</option></select>' +
+      (x.pair ? '<div class="card"><div class="title" style="font-size:1rem">ยาคู่สลับ</div><div class="sub">' + esc(x.pair.note) + '</div><div class="sub" style="margin-top:6px">อนุมัติแล้วใช้ MedError ' + esc(x.pair.me) + ' เดิม ไม่สร้างซ้ำ</div></div>' : '') +
+      '<form class="card" id="rForm" autocomplete="off"><label class="f" for="rCause">สาเหตุ (' + (x.diff > 0 ? 'ของจริงมากกว่าระบบ' : 'ของจริงน้อยกว่าระบบ') + ')</label><select class="t" id="rCause"' + (x.pair ? ' disabled' : '') + '><option value="">เลือกสาเหตุ</option>' +
+      reviewCauses(x).map(function (c) { return '<option value="' + esc(c.n) + '"' + (x.pair && c.n === S.review.swapCause ? ' selected' : '') + '>' + esc(c.n) + (c.me ? (x.pair && c.n === S.review.swapCause ? ' (MedError เดิม)' : ' (ส่ง MedError)') : '') + '</option>'; }).join('') + '<option value="__new">เพิ่มสาเหตุใหม่</option></select>' +
       '<input class="t" id="rNew" maxlength="60" placeholder="ระบุสาเหตุใหม่" style="margin-top:8px" hidden>' +
+      '<div id="rPairBox" hidden><label class="f" for="rPair">ยาที่ถูกจ่ายสลับ (ตัวอื่น)</label><input class="t" id="rPair" list="rPairList" placeholder="พิมพ์ชื่อยา / รหัส / ช่อง"><datalist id="rPairList">' +
+      (S.review.drugs || []).filter(function (d) { return d.c !== x.c; }).map(function (d) { return '<option value="' + esc(d.n + ' · ' + d.loc + ' · ' + d.c) + '">'; }).join('') + '</datalist>' +
+      '<div class="sub">' + (x.diff > 0 ? 'ระบบตัดยานี้ แต่ของที่จ่ายออกไปจริงคือยาตัวที่เลือก' : 'จ่ายยานี้ออกไปจริง แทนยาตัวที่เลือก (ที่ระบบตัดยอด)') + ' — อนุมัติแล้วระบบเปิดการ์ดให้นับยาตัวที่เลือกใหม่ เพื่อปรับยอดคู่กัน</div></div>' +
       '<div id="rRefBox" hidden><label class="f" for="rRef">เลขใบสั่งยาที่จ่ายผิด (MED-/MEI-)</label><input class="t" id="rRef" maxlength="20" autocapitalize="characters" placeholder="เช่น MED-2611060003"><div class="sub">อนุมัติแล้วระบบสร้างรายการใน MedError (สถานะคัดกรอง-รอยืนยัน) ให้อัตโนมัติ</div></div>' +
       '<label class="f" for="rNote">หมายเหตุ' + (x.strict ? ' / ผลการสอบสวน (จำเป็น)' : '') + '</label><input class="t" id="rNote" maxlength="200" value="' + esc(x.note) + '"><div class="warn" id="fWarn" hidden></div>' +
       '<div class="btns"><button class="btn pri" type="submit">อนุมัติยอดนับ</button><button class="btn ghost" type="button" id="rAgain">ให้นับใหม่</button></div></form>';
@@ -893,18 +898,24 @@
     $('rCause').addEventListener('change', function (e) {
       $('rNew').hidden = e.target.value !== '__new';
       var m = reviewCauses(x).filter(function (c) { return c.n === e.target.value; })[0];
-      $('rRefBox').hidden = !(m && m.me);
+      $('rRefBox').hidden = !(m && m.me) || !!x.pair;
+      $('rPairBox').hidden = !(e.target.value === S.review.swapCause && !x.pair);
     });
+    var pairCode = function () {   // ค่าที่เลือกจาก datalist ลงท้ายด้วย " · <รหัสยา>"
+      var v = ($('rPair').value || '').trim(), mm = v.match(/(\d{6,})\s*$/);
+      return mm ? mm[1] : '';
+    };
     document.querySelectorAll('[data-pickref]').forEach(function (b) { b.addEventListener('click', function () { $('rRef').value = b.getAttribute('data-pickref'); }); });
     var send = function (decision) {
       var c = $('rCause').value === '__new' ? $('rNew').value.trim() : $('rCause').value;
       if (decision === 'approve' && !c) return showWarn('กรุณาเลือกสาเหตุ', 1);
       if (decision === 'approve' && x.strict && $('rNote').value.trim().length < 10) return showWarn('ยา HAD/ยาควบคุม: กรุณาเขียนผลการสอบสวนในหมายเหตุ', 1);
+      if (decision === 'approve' && c === S.review.swapCause && !x.pair && !pairCode()) return showWarn('กรุณาเลือกยาที่ถูกจ่ายสลับจากรายการ', 1);
       var fb = $('rForm'); if (fb.dataset.busy) return; fb.dataset.busy = 1; formBusy(fb, decision === 'approve' ? fb.querySelector('button[type=submit]') : $('rAgain'), true);
       var undo = function () { delete fb.dataset.busy; formBusy(fb, null, false); };
-      post({ action: 'decideDailyCount', pin: S.pin, id: x.id, decision: decision, cause: c, note: $('rNote').value.trim(), ref: $('rRef').value.trim() }).then(function (r) {
+      post({ action: 'decideDailyCount', pin: S.pin, id: x.id, decision: decision, cause: c, note: $('rNote').value.trim(), ref: $('rRef').value.trim(), pair: x.pair ? '' : pairCode() }).then(function (r) {
         if (r.status !== 'ok') { undo(); return showWarn(r.msg || 'บันทึกไม่สำเร็จ', 1); }
-        success(decision === 'approve' ? (r.medError ? 'อนุมัติแล้ว · ' + r.medError : 'อนุมัติแล้ว') : 'ส่งกลับให้นับใหม่'); closeSheet(); loadReview(); loadDaily();
+        success(decision === 'approve' ? (r.medError ? 'อนุมัติแล้ว · ' + r.medError : 'อนุมัติแล้ว') + (r.pair ? ' · เปิดการ์ดนับ ' + r.pair : '') : 'ส่งกลับให้นับใหม่'); closeSheet(); loadReview(); loadDaily();
       }).catch(function () { undo(); showWarn('เชื่อมต่อไม่ได้ กรุณาลองใหม่', 1); });
     };
     $('rForm').addEventListener('submit', function (e) { e.preventDefault(); send('approve'); });
@@ -916,7 +927,9 @@
     if (!S.stock) { box.innerHTML = '<div class="empty">กำลังคำนวณยอด</div>'; return; }
     var q = (S.sq || '').trim().toLowerCase(), list = S.stock.items.filter(function (d) { return !q || d.n.toLowerCase().indexOf(q) >= 0 || d.c.indexOf(q) >= 0 || String(d.loc).toLowerCase().indexOf(q) >= 0; }).sort(function (a, b) { return natural(a.loc, b.loc); }).slice(0, 60);
     box.innerHTML = '<div class="sub" style="margin-bottom:8px">อัปเดต ' + esc(S.stock.generatedAt) + ' · ยอดราย Lot ประมาณตาม FEFO</div><div class="list">' + list.map(function (d) {
-      return '<div class="item static"><div class="nm">' + esc(d.loc) + ' · ' + esc(d.n) + tags(d) + '</div><div class="sub"><b>คงเหลือห้องยา ' + num(d.total) + ' ' + esc(d.u) + '</b>' + (d.boxQty ? ' · ในกล่อง ' + num(d.boxQty) + ' · รวม ' + num(d.grand) : '') + '</div>' + d.lots.map(function (l) { return '<div class="sub">' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp || '-') + ' · ' + num(l.q) + '</div>'; }).join('') + '</div>';
+      return '<div class="item static"><div class="nm">' + esc(d.loc) + ' · ' + esc(d.n) + tags(d) + '</div><div class="sub"><b>คงเหลือห้องยา ' + num(d.total) + ' ' + esc(d.u) + '</b>' + (d.boxQty ? ' · ในกล่อง ' + num(d.boxQty) + ' · รวม ' + num(d.grand) : '') + '</div>' +
+        (d.adj ? '<div class="sub" style="margin-top:4px"><span class="had pend" style="margin-left:0">ปรับยอดสะสม ' + (d.adj.sum > 0 ? '+' : '') + num(d.adj.sum) + '</span></div>' + d.adj.list.map(function (a) { return '<div class="sub">' + esc(a.d) + ' · <b>' + (a.q > 0 ? '+' : '') + num(a.q) + '</b> · ' + esc(a.cause) + (a.me ? ' · MedError ' + esc(a.me) : '') + (a.note ? '<br><span style="opacity:.8">' + esc(a.note) + '</span>' : '') + '</div>'; }).join('') : '') +
+        d.lots.map(function (l) { return '<div class="sub">' + esc(l.lot || 'ไม่มี Lot') + ' · ' + esc(l.exp || '-') + ' · ' + num(l.q) + '</div>'; }).join('') + '</div>';
     }).join('') + '</div>';
   }
 
