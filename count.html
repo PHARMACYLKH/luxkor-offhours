@@ -97,6 +97,9 @@
   .had.exp { background: #333a40; }
   .had.near { background: #f5a623; color: #2b2111; }
   .had.xl { background: #e4e9f0; color: #2f4a6b; box-shadow: inset 0 0 0 1px #2f4a6b; }
+  .had.pend { background: #fde8e8; color: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
+  .had.fill { background: #e6f2ec; color: #0f613b; box-shadow: inset 0 0 0 1px #0f613b; }
+  .orlog { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #f6f8f7; font-size: 14px; line-height: 1.5; }
   .sub { color: var(--muted); font-size: 15px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .chip { min-height: 40px; padding: 6px 12px; border-radius: 99px; background: var(--gold-soft); color: #6d5317; font-size: 15px; font-weight: 600; }
@@ -339,9 +342,9 @@
   function applyPlan(d) {
     S.drugs = d.drugs; S.rows = d.rows; S.off = d.off || []; S.expInv = d.expInv || {}; S.byCode = {};
     if (d.closed !== undefined) { S.closed = !!d.closed; S.pharm = !!d.pharm; }
-    S.boxes = d.boxes || S.boxes || []; S.boxItems = d.boxItems || S.boxItems || [];
+    S.boxes = d.boxes || S.boxes || []; S.boxItems = d.boxItems || S.boxItems || []; S.orBox = d.orBox || S.orBox || {};
     d.drugs.forEach(function (x) { S.byCode[x.c] = x; });
-    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [], expInv: d.expInv || {}, closed: S.closed, pharm: S.pharm, boxes: S.boxes, boxItems: S.boxItems });   // เปิดครั้งถัดไปแสดงได้ทันที
+    save(K_PLAN, { drugs: d.drugs, rows: d.rows, off: d.off || [], expInv: d.expInv || {}, closed: S.closed, pharm: S.pharm, boxes: S.boxes, boxItems: S.boxItems, orBox: S.orBox });   // เปิดครั้งถัดไปแสดงได้ทันที
     loadDaily();
   }
   function refresh(quiet) {
@@ -926,6 +929,20 @@
     }).join('');
   }
   // แท็กในกล่องดูจาก Lot ในกล่องนั้นเท่านั้น ไม่ใช้ Lot ในห้องยา
+  // (2026-11-14) กล่อง OR: ใช้ไปรอเติม / เติมแล้ว (วันเวลา) — จาก OR_BoxDrugUse + OR_BoxVerifyItems หลังบันทึกกล่องครั้งล่าสุด
+  function orTag(c) {
+    var o = (S.orBox || {})[c]; if (!o) return '';
+    if (o.pend > 0) return '<span class="had pend">ใช้ไป ' + num(o.pend) + ' รอเติม</span>';
+    var r = o.refills[o.refills.length - 1];
+    return r ? '<span class="had fill">เติมแล้ว ' + esc(r.at) + '</span>' : '';
+  }
+  function orLogHtml(c, u) {
+    var o = (S.orBox || {})[c]; if (!o) return '';
+    var ev = o.uses.map(function (x) { return { at: x.at, t: '<b style="color:var(--danger)">ใช้ไป ' + num(x.q) + ' ' + esc(u) + '</b> · คืนกล่อง ' + esc(x.box || '') + ' ' + esc(x.at) }; })
+      .concat(o.refills.map(function (x) { return { at: x.at, t: '<b style="color:#0f613b">เติมแล้ว ' + num(x.q) + ' ' + esc(u) + '</b> · ' + esc(x.at) + ' · Lot ' + esc(x.lot || '-') + ' · ' + esc(x.exp || '-') + (x.by ? ' · ' + esc(x.by) : '') }; }));
+    ev.sort(function (a, b) { var k = function (s) { var m = s.match(/(\d+)\/(\d+)\/(\d+) (\d+):(\d+)/); return m ? m[3] + m[2] + m[1] + m[4] + m[5] : s; }; return k(a.at) < k(b.at) ? -1 : 1; });
+    return '<div class="orlog">' + ev.map(function (x) { return '<div>' + x.t + '</div>'; }).join('') + '</div>';
+  }
   function boxTags(d, lots) { return (isHad(d.n) ? '<span class="had">HAD</span>' : '') + expTags(lots.filter(function (l) { return Number(l.q) > 0; })); }
   function boxList(b) {
     var rows = boxRowsOf(b), seen = {}, list = boxItemsOf(b).map(function (i) { seen[i.c] = 1; return Object.assign({}, S.byCode[i.c] || { c: i.c, n: i.n, u: '' }, { boxNote: i.note }); });
@@ -938,7 +955,7 @@
       var mine = rows.filter(function (r) { return r.c === d.c; }), tot = mine.reduce(function (t, x) { return t + Number(x.q || 0); }, 0);
       if (d.boxNote) return '<div class="item done">' + (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, []) + '<div class="sub">' + esc(d.boxNote) + '</div></span></div>';
       return '<button type="button" class="item' + (mine.length ? ' done' : '') + '" data-boxcode="' + esc(b) + '|' + esc(d.c) + '">' +
-        (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, mine) + '</span>' +
+        (d.slot ? '<span class="loc">' + esc(d.slot) + '</span>' : '') + '<span class="nm">' + esc(d.n) + boxTags(d, mine) + (b === 'OR' ? orTag(d.c) : '') + '</span>' +
         '<span class="st">' + (mine.length ? (tot > 0 ? num(tot) + ' ' + esc(d.u) + '<br>' + mine.filter(function (x) { return Number(x.q) > 0; }).length + ' Lot' : 'ไม่มีของ') : '') + '</span></button>';
     }).join('') + '</div>' : '<div class="empty">ยังไม่มียาในกล่องนี้</div>') +
       '<div class="btns" style="margin-top:12px"><button class="btn ghost" type="button" data-boxadd="' + esc(b) + '">ยาไม่อยู่ในรายการ</button></div>';
@@ -1101,7 +1118,7 @@
     $('sheetBody').innerHTML =
       '<div class="card">' +
         (off ? '<label class="f" for="fName">ชื่อยา</label><input class="t" id="fName" maxlength="120">'
-             : '<div class="title">' + esc(d.n) + (box ? boxTags(d, boxRowsOf(box).filter(function (x) { return x.c === d.c; })) : tags(d)) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
+             : '<div class="title">' + esc(d.n) + (box ? boxTags(d, boxRowsOf(box).filter(function (x) { return x.c === d.c; })) + (box === 'OR' ? orTag(d.c) : '') : tags(d)) + '</div><div class="sub">' + esc(d.c) + ' · นับเป็น ' + esc(d.u) + '</div>' +
               (!box && expLots(d.c).length ? '<div class="warn" style="margin-top:10px">คลัง EXP: ' + expLots(d.c).map(function (x) { return esc(x.lot || '-') + ' · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(d.u); }).join(' / ') + '</div>' : '')) +
         '<div id="lotsBox"></div>' +
       '</div>' +
@@ -1133,6 +1150,7 @@
       box.innerHTML = br.length ? '<div class="sub" style="margin-top:10px">บันทึกแล้วในกล่องนี้</div>' + br.map(function (x) {
         return '<div class="lot"><div>' + (Number(x.q) > 0 ? '<b>' + esc(x.lot || 'ไม่มี Lot') + '</b> · ' + esc(x.exp || '-') + ' · ' + num(x.q) + ' ' + esc(form.d.u) + lotTag(x) : '<b>ไม่มีของ</b>') + '</div><button type="button" data-boxdel="' + esc(x.id) + '">ยกเลิก</button></div>';
       }).join('') : '';
+      if (form.box === 'OR') box.innerHTML += orLogHtml(form.d.c, form.d.u);
       return;
     }
     var r = rowsOf(form.d.c, S.mode);
