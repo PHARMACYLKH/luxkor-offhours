@@ -26,6 +26,16 @@
   @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK Italic'), local('THSarabunPSK-Italic'); font-weight: 100 550; font-style: italic; unicode-range: U+0E00-0E7F; size-adjust: 135%; }
   @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK Bold Italic'), local('THSarabunPSK-BoldItalic'); font-weight: 551 900; font-style: italic; unicode-range: U+0E00-0E7F; size-adjust: 135%; }
   * { box-sizing: border-box; }
+  /* (2026-11-14 ผู้ใช้สั่ง) loading หน้า #orverify แบบเดียวกับหน้านับ stock: โลโก้เต้น + แถบเขียว-ทอง + % */
+  .ldr { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 34px 0 26px; animation: ldrRise .3s ease; }
+  .ldr svg { width: 180px; height: auto; animation: ldrPulse 1.6s ease-in-out infinite; }
+  .ldr-bar { width: min(260px, 80%); height: 9px; background: #dbe3df; border-radius: 99px; overflow: hidden; }
+  .ldr-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--green), #a27e2c); border-radius: 99px; transition: width .25s ease; }
+  .ldr-pct { font-family: Arial, Arimo, sans-serif; font-weight: 700; font-size: 20px; color: var(--green); }
+  .ldr-sub { margin-top: -4px; font-size: 14px; color: var(--muted, #6b7a73); }
+  @keyframes ldrPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .72; transform: scale(.97); } }
+  @keyframes ldrRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .ldr, .ldr svg { animation: none; } .ldr-bar i { transition: none; } }
   html, body {
     margin: 0; padding: 0; background: var(--bg); color: var(--text);
     font-family: 'LK Thai', 'Sarabun', sans-serif; -webkit-tap-highlight-color: transparent;
@@ -637,7 +647,7 @@
       <button type="button" id="ovTabFollowup" onclick="ovTab('followup')">รอติดตาม <span class="ov-badge zero" id="ovCntFollowup">0</span></button>
       <button type="button" id="ovTabRecent" onclick="ovTab('recent')">ตรวจแล้ว</button>
     </div>
-    <div id="ovItems"><div class="ov-empty">— กำลังโหลด —</div></div>
+    <div id="ovItems"></div>
     <div style="display:flex;gap:8px;justify-content:center;margin-top:6px">
       <button type="button" class="ov-btn ghost" onclick="loadOrVerify()">↻ รีเฟรช</button>
       <button type="button" class="ov-btn ghost" onclick="ovOpenPin()">ตั้ง/เปลี่ยน PIN</button>
@@ -1614,7 +1624,19 @@
   // ══ (2026-10-29) เภสัชกรตรวจรับคืนกล่อง OR — คิวจาก ?action=getOrVerifyQueue, บันทึก POST submitOrVerify (PIN รายบุคคล) ══
   let ovData = null, ovCur = null, ovTabNow = 'pending';
   const ovEsc = function (t) { return escHtml(t == null ? '' : t); };
+  var OVLD = { t: 0, ms: 6000 };
+  try { OVLD.ms = Number(localStorage.getItem('lkh_ov_loadms')) || 6000; } catch (eL) {}
+  setInterval(function () {
+    const el = document.querySelector('#ovItems .ldr'); if (!el || !OVLD.t) return;
+    const p = Math.min(95, Math.round(100 * (1 - Math.exp(-2.3 * (Date.now() - OVLD.t) / OVLD.ms))));
+    el.querySelector('.ldr-bar i').style.width = p + '%'; el.querySelector('.ldr-pct').textContent = p + '%';
+  }, 150);
   function loadOrVerify(badgeOnly) {
+    if (!badgeOnly) {
+      OVLD.t = Date.now();
+      document.getElementById('ovItems').innerHTML = '<div class="ldr" role="status" aria-live="polite"><svg viewBox="0 0 960.55 484.69" aria-hidden="true"><use href="#luxkorLogo"></use></svg>'
+        + '<div class="ldr-bar"><i></i></div><div class="ldr-pct">0%</div><div class="ldr-sub">กำลังโหลดกล่องยาที่รอตรวจรับคืน</div></div>';
+    }
     fetch(WEBAPP_URL + '?action=getOrVerifyQueue')
       .then(function (r) { return r.json(); })
       .then(function (d) {
@@ -1628,9 +1650,16 @@
           const el = document.getElementById(x[0]); el.textContent = x[1]; el.classList.toggle('zero', x[1] === 0);
         });
         ovFillPeople();
-        ovRenderList();
+        const el = document.querySelector('#ovItems .ldr');
+        if (el && OVLD.t) {   // เต็ม 100% แวบหนึ่งแล้วค่อยแสดงรายการ + จำเวลาโหลดไว้ประมาณครั้งหน้า
+          const ms = Date.now() - OVLD.t; OVLD.t = 0; OVLD.ms = Math.round(OVLD.ms * 0.4 + ms * 0.6);
+          try { localStorage.setItem('lkh_ov_loadms', String(OVLD.ms)); } catch (eS) {}
+          el.querySelector('.ldr-bar i').style.width = '100%'; el.querySelector('.ldr-pct').textContent = '100%';
+          setTimeout(ovRenderList, 280);
+        } else ovRenderList();
       })
       .catch(function (e) {
+        if (!badgeOnly) OVLD.t = 0;
         if (!badgeOnly) document.getElementById('ovItems').innerHTML = '<div class="ov-empty" style="color:var(--danger)">โหลดไม่สำเร็จ — ' + ovEsc(e.message) + '</div>';
       });
   }
