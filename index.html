@@ -19,10 +19,16 @@
     --radius: 14px;
     --radius-sm: 8px;
   }
+  /* (2026-11-14 ผู้ใช้สั่ง) ภาษาไทย = TH SarabunPSK เฉพาะเครื่องที่ติดตั้งฟอนต์ไว้ (local เท่านั้น ไม่โหลดไฟล์)
+     มือถือ/เครื่องที่ไม่มีฟอนต์ → ตกไปใช้ Sarabun เหมือนเดิม; อังกฤษ/ตัวเลขยังเป็น Sarabun; ขยาย 135% ให้สูงเท่าตัวอักษรเดิม */
+  @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK'), local('THSarabunPSK'); font-weight: 100 550; font-style: normal; unicode-range: U+0E00-0E7F; size-adjust: 135%; }
+  @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK Bold'), local('THSarabunPSK-Bold'); font-weight: 551 900; font-style: normal; unicode-range: U+0E00-0E7F; size-adjust: 135%; }
+  @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK Italic'), local('THSarabunPSK-Italic'); font-weight: 100 550; font-style: italic; unicode-range: U+0E00-0E7F; size-adjust: 135%; }
+  @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK Bold Italic'), local('THSarabunPSK-BoldItalic'); font-weight: 551 900; font-style: italic; unicode-range: U+0E00-0E7F; size-adjust: 135%; }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; background: var(--bg); color: var(--text);
-    font-family: 'Sarabun', sans-serif; -webkit-tap-highlight-color: transparent;
+    font-family: 'LK Thai', 'Sarabun', sans-serif; -webkit-tap-highlight-color: transparent;
   }
   body { padding-bottom: 40px; }
   header {
