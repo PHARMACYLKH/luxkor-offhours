@@ -1893,7 +1893,7 @@
       // (2026-10-29 ผู้ใช้กำหนด) ไทย = TH SarabunPSK (ขยาย 133% ให้สูงเท่า Arial), อังกฤษ/ตัวเลข = Arial — แยกด้วย unicode-range
       + '@font-face{font-family:LKThai;src:local("TH SarabunPSK"),local("THSarabunPSK"),local("TH Sarabun New");unicode-range:U+0E00-0E7F;size-adjust:133%}'
       + '@font-face{font-family:LKThai;font-weight:700;src:local("TH SarabunPSK Bold"),local("THSarabunPSK-Bold"),local("TH Sarabun New Bold");unicode-range:U+0E00-0E7F;size-adjust:133%}'
-      + '@page{size:A4;margin:10mm 12mm}html,body{margin:0}body{font-family:LKThai,Arial,Sarabun,sans-serif;font-size:10pt;line-height:1.25;color:#000}'
+      + '@page{size:A4;margin:10mm 12mm 13mm;@bottom-left{content:"เอกสารทดลองใช้";font-family:LKThai,Arial,sans-serif;font-size:11pt;color:#555}@bottom-right{content:"Page " counter(page) "/" counter(pages);font-family:Arial,sans-serif;font-size:9pt;color:#333}}html,body{margin:0}body{font-family:LKThai,Arial,Sarabun,sans-serif;font-size:10pt;line-height:1.25;color:#000}'
       + 'table{border-collapse:collapse;width:100%}tr{page-break-inside:avoid}'
       + '.hd{display:flex;align-items:center;justify-content:space-between;gap:5mm;border-bottom:.6mm solid #a27e2c;padding-bottom:2.5mm;margin-bottom:2.5mm}.hd svg{height:17mm;width:auto}'
       + 'h1{font-size:17pt;margin:0;color:#0f613b;line-height:1.1}.sub{font-size:8.5pt;color:#555;margin-top:1mm}.grid td{padding:1px 6px 1px 0;vertical-align:top}'
@@ -1914,7 +1914,7 @@
       + '<div style="margin-top:5px"><b>ผลการกระทบยอด 3 ทาง:</b> ' + ovEsc(v.status) + (v.mismatch ? '<br><b>รายการไม่ตรง:</b> ' + ovEsc(v.mismatch) : '')
       + (v.cause ? '<br><b>สาเหตุ / การดำเนินการ:</b> ' + ovEsc(v.cause) : '') + '</div>'
       + '<div style="margin-top:3px">☐ ตรวจกับ anesthetic record และรายการค่ายาในระบบ HIS แล้ว &nbsp; ☐ กล่องที่ 2: ตรวจแบบ ยส.5 + ยส.2/วจ.2 บันทึกการทำลาย และ ampoule/vial เปล่าแล้ว</div>'
-      + '<table class="sig"><tr>' + sig(d.returnedBy, 'ผู้คืนกล่อง')
+      + '<table class="sig"><tr>' + sig(d.returnedBy, 'ผู้คืนกล่อง ' + ovEsc(d.returnTs || ''))
       + sig(v.resolvedBy || v.pharmacist, 'เภสัชกรผู้ตรวจ ' + ovEsc(v.resolvedAt || v.verifiedAt)) + '</tr></table>'
       + '</div></body></html>';
   }
