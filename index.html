@@ -1357,7 +1357,7 @@
     '':       { id: 'viewLanding', title: 'Off-Hours Medication (24.00-08.00)', sub: 'เลือกรายการที่ต้องการบันทึก' },
     'box':    { id: 'viewBox',     title: 'บันทึกผู้เบิก / คืนกล่องยา', sub: 'กล่องยา Tier A — เบิก 24.00 น. / คืนไม่เกิน 08.30 น.' },
     'orbox':  { id: 'viewOrBox',   title: 'บันทึกผู้เบิก / คืนกล่องยา OR', sub: 'ห้องผ่าตัด — บันทึกทุกครั้งที่เบิก-คืน / คืนภายใน 24 ชม. หลังเบิก' },
-    'orverify': { id: 'viewOrVerify', title: 'เภสัชกร: ตรวจรับคืนกล่องยา OR', sub: 'นับยอด กระทบยอด 3 ทาง เติมยา ปิดซีล — เคลียร์งานค้างให้จบ' },
+    'orverify': { id: 'viewOrVerify', title: 'เภสัชกร: ตรวจรับคืนกล่องยา OR', sub: '' },
     'record': { id: 'viewRecord',  title: 'Medication Management Records (Special Hour 24.00-08.00)', sub: '24.00–08.00 น. — กรอกให้ครบก่อนหยิบยาทุกครั้ง' }
   };
   function goView(v) {
@@ -1372,6 +1372,7 @@
     });
     document.getElementById('pageTitle').textContent = VIEW_META[v].title;
     document.getElementById('pageSub').textContent = VIEW_META[v].sub;
+    document.getElementById('pageSub').style.display = VIEW_META[v].sub ? '' : 'none';   // ไม่มีคำอธิบาย → ซ่อนบรรทัด
     document.getElementById('backBtn').classList.toggle('show', v !== '');
     if (v === '' || v === 'box') loadOpenBoxes();
     if (v === 'orbox') { loadOpenBoxes('or'); loadOrBoxDrugs(); }
