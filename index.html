@@ -1687,6 +1687,11 @@
     const inp = document.querySelector('#ovRefill input[data-key="' + c + '|lot"]');
     if (inp) inp.value = v;
     ovLot[c + '|lot'] = v;
+    // (2026-11-14 ผู้ใช้สั่ง) เลือก Lot จากห้องยาแล้วใส่ Exp ให้อัตโนมัติจากระบบ (แก้เองได้)
+    const hit = v && ovLots && (ovLots[c] || []).filter(function (l) { return l.lot === v; })[0];
+    const m = hit && String(hit.exp).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    const expI = document.querySelector('#ovRefill input[data-key="' + c + '|exp"]');
+    if (m && expI) { expI.value = m[3] + '-' + m[2] + '-' + m[1]; ovLot[c + '|exp'] = expI.value; }
     ovExpCheck(c);
   }
   // เทียบ Exp ที่กรอกกับ Exp ของ Lot นั้นในระบบ — เตือนอย่างเดียว ไม่บล็อกการบันทึก
