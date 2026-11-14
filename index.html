@@ -236,6 +236,9 @@
   .ov-refill input { padding: 8px 10px; font-size: 14px; }
   .ov-refill label.mini { flex: 1; min-width: 0; margin: 0; font-size: 11.5px; font-weight: 600; color: var(--muted); }
   .ov-refill label.mini input { margin-top: 3px; width: 100%; }
+  .ov-refill label.mini select { margin-top: 3px; width: 100%; padding: 7px 8px; font-size: 14px; }
+  .ov-expwarn { display: none; margin-top: 4px; font-size: 12.5px; font-weight: 600; color: var(--danger); }
+  .ov-expwarn.ok { color: var(--muted); font-weight: 400; }
   .ov-cnt { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid #edf1ef; font-size: 13px; }
   .ov-cnt .n { flex: 1; min-width: 0; font-weight: 600; }
   .ov-cnt .e { color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -1664,10 +1667,48 @@
     document.getElementById('pmName').value = pm;
   }
   let ovAllOk = null, ovLot = {};
+  // (2026-11-14) Lot ในห้องยา Pharmacy F1 ของยากล่อง OR (ยอด real-time) → dropdown ช่อง Lot ยาที่เติมคืน; ยังพิมพ์เองได้, Exp กรอกเอง (เทียบกับระบบ)
+  let ovLots = null, ovLotsBusy = false;
+  function ovLoadLots() {
+    if (ovLots || ovLotsBusy) return;
+    ovLotsBusy = true;
+    fetch(WEBAPP_URL + '?action=getOrRefillLots').then(function (r) { return r.json(); })
+      .then(function (res) { if (res.status === 'ok') { ovLots = res.lots || {}; if (ovCur) ovRefresh(); } })
+      .catch(function () {}).finally(function () { ovLotsBusy = false; });
+  }
+  function ovLotSel(c) {
+    const L = (ovLots || {})[c], cur = String(ovLot[c + '|lot'] || '').trim().toUpperCase();
+    if (!ovLots) return '<select disabled><option>กำลังโหลด Lot จากห้องยา…</option></select>';
+    if (!L || !L.length) return '<select disabled><option>ไม่พบ Lot ในห้องยา — พิมพ์เอง</option></select>';
+    return '<select onchange="ovPickLot(\'' + c + '\', this.value)"><option value="">— เลือก Lot จากห้องยา (' + L.length + ') —</option>'
+      + L.map(function (l) { return '<option value="' + ovEsc(l.lot) + '"' + (l.lot === cur ? ' selected' : '') + '>' + ovEsc(l.lot) + '</option>'; }).join('') + '</select>';
+  }
+  function ovPickLot(c, v) {
+    const inp = document.querySelector('#ovRefill input[data-key="' + c + '|lot"]');
+    if (inp) inp.value = v;
+    ovLot[c + '|lot'] = v;
+    ovExpCheck(c);
+  }
+  // เทียบ Exp ที่กรอกกับ Exp ของ Lot นั้นในระบบ — เตือนอย่างเดียว ไม่บล็อกการบันทึก
+  function ovExpCheck(c) {
+    const lotI = document.querySelector('#ovRefill input[data-key="' + c + '|lot"]'), expI = document.querySelector('#ovRefill input[data-key="' + c + '|exp"]');
+    const w = document.getElementById('ovw_' + c);
+    if (!lotI || !expI || !w) return;
+    const lot = lotI.value.trim().toUpperCase(), exp = ovDmy(expI.value || '');
+    const sel = lotI.parentNode.querySelector('select');
+    if (sel && !sel.disabled) sel.value = Array.prototype.some.call(sel.options, function (o) { return o.value === lot; }) ? lot : '';
+    const hit = lot && ovLots && (ovLots[c] || []).filter(function (l) { return l.lot === lot; })[0];
+    let msg = '', cls = 'ov-expwarn';
+    if (lot && ovLots && ovLots[c] && ovLots[c].length && !hit) { msg = 'Lot นี้ไม่มีในยอดห้องยา — ตรวจเลข Lot อีกครั้ง'; }
+    else if (hit && hit.exp && exp && exp !== hit.exp) { msg = 'Exp ไม่ตรงกับ Lot นี้ในระบบ (' + hit.exp + ') — ตรวจสอบอีกครั้ง'; }
+    else if (hit && hit.exp && exp === hit.exp) { msg = '✓ Exp ตรงกับระบบ'; cls += ' ok'; }
+    w.className = cls; w.textContent = msg; w.style.display = msg ? 'block' : 'none';
+  }
   function ovOpen(i) {
     ovCur = ovData[ovTabNow][i];
     const rec = ovCur, v = rec.verify;
     ovAllOk = null; ovLot = {};
+    ovLoadLots();
     document.getElementById('ovList').style.display = 'none';
     document.getElementById('ovForm').style.display = 'block';
     document.getElementById('ovFormTitle').textContent = (v ? 'เคลียร์รายการรอติดตาม — ' : 'ตรวจรับคืน — ') + 'กล่อง ' + boxLabel(rec.box);
@@ -1724,9 +1765,11 @@
     document.getElementById('ovRefill').innerHTML = fill.length ? fill.map(function (r) {
       const c = r.d.code;
       return '<div class="ov-fill"><div class="n">' + ovEsc(r.d.name) + ' <b>× ' + r.need + '</b> ' + ovEsc(r.d.uom) + '</div>'
-        + '<div class="ov-refill show"><label class="mini">Lot (ตัวอักษร/ตัวเลข)<input type="text" autocapitalize="characters" autocomplete="off" data-key="' + c + '|lot" value="' + ovEsc(ovLot[c + '|lot'] || '') + '"></label>'
-        + '<label class="mini">วันหมดอายุ (Exp.)<input type="date" data-key="' + c + '|exp" value="' + ovEsc(ovLot[c + '|exp'] || '') + '"></label></div></div>';
+        + '<div class="ov-refill show"><label class="mini">Lot (เลือก หรือพิมพ์เอง)' + ovLotSel(c) + '<input type="text" autocapitalize="characters" autocomplete="off" data-key="' + c + '|lot" value="' + ovEsc(ovLot[c + '|lot'] || '') + '" oninput="ovExpCheck(\'' + c + '\')"></label>'
+        + '<label class="mini">วันหมดอายุ (Exp.)<input type="date" data-key="' + c + '|exp" value="' + ovEsc(ovLot[c + '|exp'] || '') + '" oninput="ovExpCheck(\'' + c + '\')" onchange="ovExpCheck(\'' + c + '\')"></label></div>'
+        + '<div class="ov-expwarn" id="ovw_' + c + '"></div></div>';
     }).join('') : '<div class="hint">ไม่มียาที่ต้องเติม</div>';
+    fill.forEach(function (r) { ovExpCheck(r.d.code); });
     document.getElementById('ovSealedRow').style.display = hold ? 'none' : 'flex';
     document.getElementById('ovSubmit').textContent = ovAllOk === null ? 'บันทึกการตรวจรับคืน'
       : hold ? 'บันทึกเป็น "รอติดตาม" (ล็อกกล่อง)' : 'บันทึก — เติมยาและปิดซีลแล้ว';
