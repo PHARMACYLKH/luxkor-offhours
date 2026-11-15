@@ -1300,8 +1300,7 @@
   }
   var paperReq = null;
   function askPaper(doc) {
-    var note = window.prompt('เอกสาร ' + doc + ' ปรับยอดใน HIS อย่างเดียว ไม่ได้เคลื่อนย้ายของจริง
-ระบุเหตุผล (จะแสดงในการ์ดนับ):', 'ปรับยอดคลังใน HIS ให้ถูกต้อง ของจริงไม่ได้ออกจากห้องยา');
+    var note = window.prompt('เอกสาร ' + doc + ' ปรับยอดใน HIS อย่างเดียว ไม่ได้เคลื่อนย้ายของจริง\nระบุเหตุผล (จะแสดงในการ์ดนับ):', 'ปรับยอดคลังใน HIS ให้ถูกต้อง ของจริงไม่ได้ออกจากห้องยา');
     if (note == null) return;
     note = String(note).trim(); if (!note) return;
     paperReq = { doc: doc, note: note };
