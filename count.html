@@ -750,7 +750,9 @@
     var L = (d.tdocs || []).filter(function (e) { return !e.paper; });
     if (!L.length) return '';
     return L.map(function (e) {
-      return '<div class="sub" style="margin-left:12px">' + esc(e.doc) + ' (' + esc(e.type) + ') ' + (e.q > 0 ? '→ ' : '← คืนจาก ') + esc(e.dept) + ' <b>' + num(Math.abs(e.q)) + '</b></div>';
+      // (2026-11-15 ผู้ใช้สั่ง) เอกสารที่ปรับยอดใน HIS อย่างเดียว (ลืมใส่ #ADJ) → เภสัชกรกด "ไม่หักยอด" ได้เอง
+      return '<div class="sub" style="margin-left:12px">' + esc(e.doc) + ' (' + esc(e.type) + ') ' + (e.q > 0 ? '→ ' : '← คืนจาก ') + esc(e.dept) + ' <b>' + num(Math.abs(e.q)) + '</b>' +
+        (e.doc && e.doc !== '-' ? ' <button type="button" class="link" data-paper="' + esc(e.doc) + '" style="font-size:.85rem">ไม่หักยอด (ปรับใน HIS อย่างเดียว)</button>' : '') + '</div>';
     }).join('');
   }
   // (2026-11-15 ผู้ใช้สั่ง) เอกสารโอนที่ปรับยอดใน HIS อย่างเดียว ของจริงไม่ได้ออกจากห้องยา — ไม่หักยอด แสดงหมายเหตุ
@@ -1296,6 +1298,15 @@
     var p = key.split('|'), l = ((S.expInv || {})[p[0]] || []).filter(function (x) { return String(x.row) === p[1]; })[0]; if (!l) return;
     askMove({ action: 'returnStockFromExp', code: p[0], lot: l.lot, row: l.row }, 'คืนมาคลังปกติ', ((S.byCode[p[0]] || {}).n || l.n) + ' · Lot ' + (l.lot || '-') + ' · EXP ' + l.exp, l.q, false);
   }
+  var paperReq = null;
+  function askPaper(doc) {
+    var note = window.prompt('เอกสาร ' + doc + ' ปรับยอดใน HIS อย่างเดียว ไม่ได้เคลื่อนย้ายของจริง
+ระบุเหตุผล (จะแสดงในการ์ดนับ):', 'ปรับยอดคลังใน HIS ให้ถูกต้อง ของจริงไม่ได้ออกจากห้องยา');
+    if (note == null) return;
+    note = String(note).trim(); if (!note) return;
+    paperReq = { doc: doc, note: note };
+    openPin('paper', 'ไม่หักยอดเอกสาร ' + doc, 'ใส่รหัสผู้อนุมัติ (เภสัชกร) เพื่อยืนยันว่าเอกสารนี้ไม่หักยอดห้องยา', 'ยกเลิก');
+  }
   function askNoLot() { openPin('nolot', 'ยืนยันว่าไม่มีเลข Lot', 'ใส่รหัสพนักงานเพื่อยืนยันว่ากล่องนี้ไม่มีเลข Lot', 'ไม่ยืนยัน'); }
   // (2026-11-08 ผู้ใช้สั่ง) "ไม่มีของ" ต้องใส่รหัสพนักงานก่อนบันทึกทุกครั้ง กันมือลั่น
   // (2026-11-09 ผู้ใช้สั่ง) รับรหัสพนักงานปกติทุกคน (เช่น 68017) ไม่ใช่เฉพาะรหัสที่ login — ให้ server ตรวจกับ Count_Staff
@@ -1325,6 +1336,16 @@
         if (r.status !== 'ok') return pinFail(r.msg || 'บันทึกไม่สำเร็จ');
         if (moveReq.action === 'cancelBoxStock') { var did = moveReq.id; S.boxes = (S.boxes || []).filter(function (x) { return x.id !== did; }); drawLots(); }
         closePin(); success('บันทึกสำเร็จ', r.warn || ''); S.loading = false; refresh(true);
+      }).catch(function () { pinFail('บันทึกไม่ได้ ต้องต่ออินเทอร์เน็ต'); });
+      return;
+    }
+    if (pinMode === 'paper') {
+      if (!paperReq || $('pinYes').disabled) return;
+      $('pinYes').disabled = true;
+      post({ action: 'markPaperDoc', pin: pin, doc: paperReq.doc, note: paperReq.note }).then(function (r) {
+        $('pinYes').disabled = false;
+        if (r.status !== 'ok') return pinFail(r.msg || 'บันทึกไม่สำเร็จ');
+        paperReq = null; closePin(); success('บันทึกแล้ว', 'เอกสารนี้ไม่หักยอดห้องยา'); S.loading = false; refresh(true);
       }).catch(function () { pinFail('บันทึกไม่ได้ ต้องต่ออินเทอร์เน็ต'); });
       return;
     }
@@ -1377,6 +1398,7 @@
     else if (t.dataset.boxcode) { var bi = t.dataset.boxcode.split('|'); openEntry(bi[1], false, false, bi[0]); }
     else if (t.dataset.boxdel) askBoxDel(t.dataset.boxdel);
     else if (t.dataset.back) askBack(t.dataset.back);
+    else if (t.dataset.paper) askPaper(t.dataset.paper);
     else if (t.dataset.rev) openReview(t.dataset.rev);
     else if (t.dataset.fol) openFollow(t.dataset.fol);
     else if (t.dataset.code) openEntry(t.dataset.code);
