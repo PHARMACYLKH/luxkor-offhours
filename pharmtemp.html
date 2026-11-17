@@ -345,6 +345,7 @@
     document.getElementById('chartMonth').value = m; document.getElementById('printMonth').value = m;
     return fetch(WEBAPP_URL + '?action=getPharmTemp&month=' + m + '&_=' + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
       if (d.status === 'err') throw new Error(d.msg);
+      if (d.month !== document.getElementById('chartMonth').value) return; // คำตอบของเดือนที่เปลี่ยนไปแล้ว (โหลดซ้อนกัน)
       const first = !DATA; DATA = d;
       if (first || JSON.stringify(fridges) !== JSON.stringify(d.fridges)) { fridges = d.fridges; renderFridgeInputs(); }
       renderStatus(); renderChips(); renderChart(); renderProblems();
