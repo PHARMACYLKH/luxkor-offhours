@@ -232,7 +232,7 @@
   <section class="view" id="v-chart">
     <div class="card">
       <h2>กราฟประจำเดือน</h2>
-      <input type="month" id="chartMonth" onchange="loadMonth(this.value)">
+      <select id="chartMonth" onchange="loadMonth(this.value)"></select>
       <div class="chips" id="chartChips"></div>
       <div class="legend"><span><i class="dot" style="background:var(--blue)"></i>บันทึกครั้งแรกของรอบ (08.00 / 20.00)</span>
         <span><i class="dot" style="background:var(--danger)"></i>บันทึกซ้ำ (ค่าไม่ผ่านเกณฑ์)</span></div>
@@ -250,7 +250,7 @@
     <div class="card">
       <h2>พิมพ์ตามแบบฟอร์ม (A4 แนวนอน)</h2>
       <label>เดือน</label>
-      <input type="month" id="printMonth" onchange="loadMonth(this.value)">
+      <select id="printMonth" onchange="loadMonth(this.value)"></select>
       <div style="height:12px"></div>
       <button class="btn ghost" onclick="doPrint('room')">PHA-0021 อุณหภูมิและความชื้น ห้องยา / ตู้เก็บยา</button>
       <button class="btn ghost" onclick="doPrint('fridge')">PHA-0031 อุณหภูมิตู้เย็น</button>
@@ -362,8 +362,25 @@
     c.innerHTML = h;
   }
 
+  // dropdown เดือน: เดือนปัจจุบันย้อนไปถึง ม.ค. 2026 (มกราคม 2569) เท่านั้น
+  const MONTH_MIN = '2026-01';
+  function fillMonthOptions() {
+    const cur = bkkMonth(), sel = document.getElementById('chartMonth');
+    if (sel.options.length && sel.options[0].value === cur) return;
+    let y = +cur.slice(0, 4), mo = +cur.slice(5, 7), html = '';
+    for (;;) {
+      const v = y + '-' + String(mo).padStart(2, '0');
+      if (v < MONTH_MIN) break;
+      html += '<option value="' + v + '">' + TH_MONTH[mo - 1] + ' ' + (y + 543) + '</option>';
+      if (--mo < 1) { mo = 12; y--; }
+    }
+    sel.innerHTML = html; document.getElementById('printMonth').innerHTML = html;
+  }
+
   function loadMonth(m) {
+    fillMonthOptions();
     m = m || bkkMonth();
+    if (m < MONTH_MIN || m > bkkMonth()) m = bkkMonth();
     document.getElementById('chartMonth').value = m; document.getElementById('printMonth').value = m;
     return fetch(WEBAPP_URL + '?action=getPharmTemp&month=' + m + '&_=' + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
       if (d.status === 'err') throw new Error(d.msg);
