@@ -233,6 +233,7 @@
     <div class="card">
       <h2>กราฟประจำเดือน</h2>
       <select id="chartMonth" onchange="loadMonth(this.value)"></select>
+      <div id="chartTitle" style="font-weight:700;color:var(--green-dark);margin-top:10px;font-size:15px"></div>
       <div class="chips" id="chartChips"></div>
       <div class="legend"><span><i class="dot" style="background:var(--blue)"></i>บันทึกครั้งแรกของรอบ (08.00 / 20.00)</span>
         <span><i class="dot" style="background:var(--danger)"></i>บันทึกซ้ำ (ค่าไม่ผ่านเกณฑ์)</span></div>
@@ -384,14 +385,30 @@
     m = m || bkkMonth();
     if (m < MONTH_MIN || m > bkkMonth()) m = bkkMonth();
     document.getElementById('chartMonth').value = m; document.getElementById('printMonth').value = m;
+    // (2026-11-17) เปลี่ยนเดือนแล้วกราฟต้องเปลี่ยนทันที: ใช้ข้อมูลที่เคยโหลด (ถ้ามี) ไม่งั้นล้างกราฟขึ้น "กำลังโหลด" — GAS ตอบช้า 3–8 วิ
+    if (MONTH_CACHE[m]) applyMonth(MONTH_CACHE[m]);
+    else if (DATA && DATA.month !== m) {
+      document.getElementById('chartBox').innerHTML = '<div class="hint" style="padding:40px 12px;text-align:center">กำลังโหลดข้อมูล ' + esc(monthLabel(m)) + '...</div>';
+      document.getElementById('probList').textContent = 'กำลังโหลด...';
+      document.getElementById('chartTitle').textContent = monthLabel(m);
+    }
     return fetch(WEBAPP_URL + '?action=getPharmTemp&month=' + m + '&_=' + Date.now()).then(function (r) { return r.json(); }).then(function (d) {
       if (d.status === 'err') throw new Error(d.msg);
+      MONTH_CACHE[d.month] = d;
       if (d.month !== document.getElementById('chartMonth').value) return; // คำตอบของเดือนที่เปลี่ยนไปแล้ว (โหลดซ้อนกัน)
+      applyMonth(d);
+    }).catch(function (e) { document.getElementById('statusCard').innerHTML = '<div class="hint">โหลดข้อมูลไม่สำเร็จ: ' + esc(e.message) + '</div>'; });
+  }
+  const MONTH_CACHE = {};
+  function monthLabel(m) { return TH_MONTH[+m.slice(5, 7) - 1] + ' ' + (+m.slice(0, 4) + 543); }
+  function applyMonth(d) {
+    {
       const first = !DATA; DATA = d;
+      document.getElementById('chartTitle').textContent = monthLabel(d.month);
       if (first || JSON.stringify(fridges) !== JSON.stringify(d.fridges)) { fridges = d.fridges; renderFridgeInputs(); }
       if (first || JSON.stringify(cabinets) !== JSON.stringify(d.cabinets || [])) { cabinets = d.cabinets || []; renderCabInputs(); }
       renderStatus(); renderChips(); renderChart(); renderProblems(); renderPrintList();
-    }).catch(function (e) { document.getElementById('statusCard').innerHTML = '<div class="hint">โหลดข้อมูลไม่สำเร็จ: ' + esc(e.message) + '</div>'; });
+    }
   }
 
   function loadNames() {
