@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ฉลากยาต่างประเทศ (中文/日本語) — Lux Kor Hospital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#0f613b; --gold:#a27e2c;
+  --gray-1:#f4f6f5; --gray-2:#e3e7e5; --gray-3:#b8c0bd; --gray-4:#7c8985;
+  --text:#1c2622; --text-2:#3d4a45; --white:#fff; --red:#c0392b; --blue:#1e6fa8;
+  --shadow:0 2px 10px rgba(15,97,59,.08); --radius:8px;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Sarabun',sans-serif;background:var(--gray-1);color:var(--text);font-size:15px;line-height:1.5;}
+header{background:linear-gradient(135deg,var(--green),#0a4a2e);color:#fff;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;box-shadow:var(--shadow);}
+header h1{font-size:18px;margin:0;font-weight:700;}
+header .sub{font-size:11px;opacity:.75;margin-top:2px;}
+.lang-select{display:flex;align-items:center;gap:8px;}
+.lang-select select{padding:9px 14px;border-radius:7px;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:600;}
+.lang-select select option{color:#000;}
+.gear-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:7px;padding:8px 12px;cursor:pointer;font-size:14px;}
+
+.wrap{display:grid;grid-template-columns:440px 1fr;gap:24px;padding:18px;max-width:1320px;margin:0 auto;align-items:start;}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;max-width:600px;}}
+
+.preview-col{position:sticky;top:18px;}
+@media (max-width:980px){.preview-col{position:static;}}
+
+.panel{background:var(--white);border:1px solid var(--gray-2);border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;}
+.panel-head{background:var(--gray-1);border-bottom:1px solid var(--gray-2);padding:11px 16px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-2);display:flex;align-items:center;justify-content:space-between;}
+.panel-body{padding:16px;}
+.row{display:flex;gap:10px;margin-bottom:10px;}
+.row > *{flex:1;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px;}
+.field label .opt{color:var(--gray-4);font-weight:400;text-transform:none;font-size:10.5px;}
+input,select,textarea{width:100%;border:1.5px solid var(--gray-2);border-radius:6px;padding:9px 11px;font-family:'Sarabun',sans-serif;font-size:14.5px;color:var(--text);background:#fff;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(15,97,59,.12);}
+textarea{resize:vertical;min-height:44px;}
+.mb0{margin-bottom:0 !important;}
+.charcount{font-size:10.5px;color:var(--gray-4);text-align:right;margin-top:2px;}
+.charcount.over{color:var(--red);font-weight:700;}
+.hint{font-size:11.5px;color:var(--gray-4);margin-top:3px;}
+.hint.needs-translate{color:var(--gold);font-weight:700;}
+textarea.needs-translate{border-color:var(--gold);background:#fffaf0;}
+
+.btn{padding:9px 16px;border:none;border-radius:7px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:#0a4a2e;}
+.btn-gold{background:var(--gold);color:#fff;}
+.btn-outline{background:#fff;border:1.5px solid var(--gray-2);color:var(--text-2);}
+.btn-outline:hover{border-color:var(--green);color:var(--green);}
+.btn-sm{padding:6px 11px;font-size:12.5px;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+.fetch-status{font-size:12.5px;margin-top:6px;min-height:16px;}
+.fetch-status.ok{color:var(--green);}
+.fetch-status.err{color:var(--red);}
+
+/* ── Label preview (Premiere-style centered monitor) ── */
+.preview-outer{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-height:min(66vh,620px);}
+.gate-msg{padding:60px 20px;text-align:center;color:var(--gray-4);font-size:16px;}
+.label-scale-box{
+  background:#525659;border-radius:10px;padding:26px;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  width:100%;height:100%;min-height:min(66vh,620px);
+  overflow:hidden;
+}
+.label-stage{position:relative;}
+#labelPrint{
+  width:100mm;height:80mm;background:#fff;color:#000;
+  padding:2.6mm 4.5mm;font-family:'Noto Sans SC','Noto Sans JP',sans-serif;
+  font-size:7.6pt;line-height:1.17;box-shadow:0 3px 14px rgba(0,0,0,.35);
+  position:relative;overflow:hidden;box-sizing:border-box;
+  transition:transform .22s ease, opacity .22s ease;
+  transform-origin:center center;
+}
+.nav-btn{
+  position:absolute;top:50%;transform:translateY(-50%);
+  width:38px;height:38px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.14);color:#fff;font-size:19px;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:background .15s,transform .15s;z-index:5;
+}
+.nav-btn:hover{background:rgba(255,255,255,.28);}
+.nav-btn:active{transform:translateY(-50%) scale(.92);}
+.nav-btn:disabled{opacity:.25;cursor:default;pointer-events:none;}
+.nav-prev{left:10px;}
+.nav-next{right:10px;}
+.drug-counter{font-size:12.5px;color:var(--gray-4);font-weight:600;}
+.drug-counter b{color:var(--text-2);}
+.lp-page{text-align:center;font-weight:700;font-size:8.4pt;margin-bottom:1mm;}
+.lp-top{display:flex;justify-content:space-between;gap:2mm;margin-bottom:1mm;}
+.lp-top-left{width:22%;}
+.lp-top-center{width:32%;display:flex;justify-content:center;}
+.lp-top-center-inner{text-align:left;}
+.lp-top-right{width:46%;}
+.lp-line{margin-bottom:0.5mm;display:flex;justify-content:space-between;gap:2mm;}
+.lp-line span:last-child{white-space:nowrap;}
+.lp-line-c{margin-bottom:0.5mm;white-space:nowrap;}
+.lp-rline{margin-bottom:0.35mm;text-align:right;white-space:nowrap;}
+.lp-addr{font-size:6.2pt;color:#222;margin:0.6mm 0;line-height:1.15;}
+.lp-logo-space{height:10.5mm;}
+.lp-addr-left{font-size:5.4pt;color:#222;line-height:1.15;text-align:left;overflow-wrap:break-word;}
+.lp-drugtype{font-weight:700;text-align:right;}
+.lp-divider{border:none;border-top:1px solid #000;margin:0.8mm 0;}
+.lp-patient{font-weight:700;font-size:9pt;margin-bottom:0.8mm;}
+.lp-drugname{font-weight:700;font-size:8.6pt;margin-bottom:0.5mm;}
+.lp-drugrow{display:flex;justify-content:space-between;font-size:7.6pt;margin-bottom:0.6mm;}
+.lp-doctor{text-align:right;font-size:7.6pt;margin-bottom:0.8mm;}
+.lp-instr{font-weight:700;font-size:9pt;margin-bottom:0.4mm;}
+.lp-freq{font-size:7.8pt;}
+.lp-freqrow{display:flex;justify-content:space-between;align-items:flex-end;gap:3mm;}
+.lp-times{font-size:6.8pt;color:#333;}
+.lp-bottomtext-row{display:flex;flex-direction:column;align-items:flex-start;gap:0.5mm;margin-top:0.8mm;}
+.lp-indic{font-size:7pt;color:#222;text-align:left;}
+.lp-warn{font-size:7pt;font-weight:600;text-align:left;}
+.lp-bottom{position:absolute;left:4.5mm;right:4.5mm;bottom:2mm;font-size:6.2pt;color:#222;}
+.lp-bottom-row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:0.4mm 3mm;margin-bottom:0.4mm;}
+.lp-bottom-row span{white-space:nowrap;}
+
+/* .label-page = 1 หน้าพิมพ์ต่อยา 1 รายการ ใช้ box styling เดียวกับ #labelPrint บนจอ
+   เติมเข้า #printAllContainer เฉพาะตอนกดพิมพ์เท่านั้น (ปกติ container นี้ว่างเปล่า) */
+.label-page{
+  width:100mm;height:80mm;background:#fff;color:#000;
+  padding:2.6mm 4.5mm;font-family:'Noto Sans SC','Noto Sans JP',sans-serif;
+  font-size:7.6pt;line-height:1.17;position:relative;overflow:hidden;box-sizing:border-box;
+}
+
+@media print{
+  @page{ size:100mm 80mm; margin:0; }
+  html, body{ margin:0; padding:0; }
+  /* เดิม: ใช้ visibility:hidden + #printAllContainer{position:fixed} — แต่ position:fixed
+     ใน print/paged media จะถูก "ซ้ำทุกหน้า" เหมือน running header ทำให้แต่ละหน้าเหลื่อม/ไม่ตรงกัน
+     ใหม่: display:none เอาทุกอย่างออกจาก flow ไปเลย เหลือแค่ #printAllContainer อยู่ใน flow ปกติ
+     ให้ .label-page แต่ละใบ page-break ต่อกันเองตามธรรมชาติ ไม่ต้อง position พิเศษเลย */
+  body > *:not(#printAllContainer){ display:none !important; }
+  #printAllContainer{ display:block; }
+  .label-page{
+    transform:none !important; box-shadow:none; margin:0;
+    page-break-after:always; break-after:page;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .label-page:last-child{ page-break-after:auto; break-after:auto; }
+  .label-scale-box{ padding:0;background:none; }
+}
+
+/* ── PIN modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:999;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.show{opacity:1;pointer-events:auto;}
+.modal{background:#fff;border-radius:12px;padding:26px;width:340px;max-width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.3);}
+.modal h3{margin:0 0 4px;font-size:16px;}
+.modal .sub{font-size:12.5px;color:var(--gray-4);margin-bottom:14px;}
+.pin-dots{display:flex;gap:8px;justify-content:center;margin:14px 0;}
+.pin-dot{width:12px;height:12px;border-radius:50%;background:var(--gray-2);}
+.pin-dot.filled{background:var(--green);}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.pin-key{padding:13px;border:1.5px solid var(--gray-2);border-radius:8px;font-size:17px;font-weight:600;text-align:center;cursor:pointer;background:#fff;}
+.pin-key:hover{border-color:var(--green);}
+.pin-error{color:var(--red);font-size:12px;text-align:center;margin-top:6px;min-height:16px;}
+/* (2026-11-17) เวอร์ชันเว็บ: ล็อกอินรหัสพนักงาน + relay HIS ผ่านเครื่องห้องยา (เหมือน sticker.html) */
+.stk-user-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.stk-user-bar a.gear-btn{text-decoration:none;}
+#stkUser{font-size:13px;opacity:.9;}
+#loginOverlay .modal{max-width:340px;width:calc(100% - 32px);}
+#loginOverlay .pin-dots{gap:12px;}
+.stk-pdpa{font-size:12px;color:var(--gray-4);margin-top:12px;line-height:1.45;text-align:left;}
+.stk-err{color:#b3261e;font-size:13px;min-height:18px;margin-top:8px;text-align:center;font-weight:600;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ฉลากยาหลายภาษา — 处方标签 / 処方箋ラベル</h1>
+    <div class="sub">Lux Kor Hospital · Prescription Label Generator (中文 / 日本語) · ดึงข้อมูล HIS ผ่านเครื่องห้องยา</div>
+  </div>
+  <div class="stk-user-bar"><span id="stkUser"></span>
+    <a class="gear-btn" href="sticker.html">ฉลากยา (ไทย)</a>
+    <a class="gear-btn" href="portal.html">← หน้ารวมระบบ</a>
+    <button class="gear-btn" onclick="stkLogout()">ออกจากระบบ</button></div>
+  <div class="lang-select">
+    <select id="langSelect" onchange="onLangChange()">
+      <option value="">-- เลือกภาษา / 选择语言 / 言語選択 --</option>
+      <option value="zh">中文 (Chinese)</option>
+      <option value="ja">日本語 (Japanese)</option>
+    </select>
+    <button class="gear-btn" onclick="openSettings()">⚙ ตั้งค่า</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- ══ LEFT: FORM ══ -->
+  <div>
+
+    <div class="panel">
+      <div class="panel-head">ดึงข้อมูลจาก HIS (real-time)</div>
+      <div class="panel-body">
+        <div class="row">
+          <div class="field mb0">
+            <label>Presc No. (MEI)</label>
+            <input type="text" id="fPrescNo" placeholder="เช่น MEI-2607270008">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-green btn-sm" onclick="fetchFromHIS()">⤓ ดึงข้อมูลจาก HIS</button>
+          <span id="fetchStatus" class="fetch-status"></span>
+        </div>
+        <div id="drugPickWrap" style="display:none;margin-top:10px;">
+          <div class="field mb0">
+            <label>เลือกรายการยา <span class="opt">(พบหลายรายการภายใต้ Presc No นี้)</span></label>
+            <select id="drugPick" onchange="applyFetchedRow()"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">ข้อมูลผู้ป่วย / Ward</div>
+      <div class="panel-body">
+        <div class="row">
+          <div class="field"><label>Ward</label><input id="fWard"></div>
+          <div class="field"><label>Room</label><input id="fRoom"></div>
+          <div class="field"><label>Bed <span class="opt">(เตียง)</span></label><input id="fBed"></div>
+        </div>
+        <div class="row">
+          <div class="field" style="flex:2;"><label>ชื่อผู้ป่วย (Latin)</label><input id="fPatientName" placeholder="เช่น ZHIBIN HUANG"></div>
+          <div class="field"><label>เพศ</label>
+            <select id="fGender"><option value="M">男 / 男性 (M)</option><option value="F">女 / 女性 (F)</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label>HN</label><input id="fHN"></div>
+          <div class="field"><label>AN</label><input id="fAN"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>DOB วัน/เดือน/ปี พ.ศ. <span class="opt">(auto จาก HIS birthDate)</span></label>
+            <div style="display:flex;gap:4px;">
+              <input type="number" id="fDobD" placeholder="วัน" style="width:26%;">
+              <input type="number" id="fDobM" placeholder="เดือน" style="width:32%;">
+              <input type="number" id="fDobY" placeholder="ปี พ.ศ." style="width:42%;">
+            </div>
+          </div>
+          <div class="field"><label>ประเภทยา <span class="opt">(auto จาก orderType)</span></label>
+            <select id="fRxType">
+              <option value="discharge">Discharge</option>
+              <option value="oneday">ONE-DAY</option>
+              <option value="continuous">Continuous</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>ที่อยู่ รพ. <span class="opt">(auto-hide ถ้ายาวเกินไป — แก้ในตั้งค่า)</span></label>
+          <input id="fAddrPreview" disabled>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">ยา / ขนาดยา</div>
+      <div class="panel-body">
+        <div class="field"><label>ชื่อยา (English, คงเดิม)</label><input id="fDrugEn" placeholder="Paracetamol TAB 500 mg (Tylenol®)"></div>
+        <div class="row">
+          <div class="field" style="flex:2;"><label>ชื่อสามัญ <span class="opt">(คลัง HIS 218 รายการ, auto)</span></label>
+            <select id="fDrugDict" onchange="onDrugDictChange()"></select>
+          </div>
+          <div class="field"><label>รูปแบบยา <span class="opt">(auto)</span></label>
+            <select id="fDrugForm" onchange="renderLabel()"></select>
+          </div>
+        </div>
+        <div class="hint" id="drugDictHint"></div>
+        <div class="row" style="margin-top:8px;">
+          <div class="field"><label>จำนวนที่จ่าย</label><input type="number" id="fQty" placeholder="7"></div>
+          <div class="field"><label>ครั้งละ (โดส)</label><input type="number" id="fDose" placeholder="1"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">แพทย์</div>
+      <div class="panel-body">
+        <div class="row">
+          <div class="field"><label>ชื่อแพทย์ (ไทย)</label><input id="fDoctorTh" placeholder="นพ. ยศ ตันอริยกุล"></div>
+          <div class="field"><label>ชื่อแพทย์ (English) <span class="opt">(auto จาก HIS)</span></label><input id="fDoctorEn" placeholder="Yot Tanariyakul"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">วิธีใช้ / ข้อบ่งใช้ / คำเตือน</div>
+      <div class="panel-body">
+        <div class="field">
+          <label>ความถี่ / วิธีรับประทาน <span class="opt">(auto จาก HIS drugUsage code, 71 รายการ)</span></label>
+          <select id="fFreqPreset" onchange="onPresetChange()"></select>
+          <textarea id="fFreqCustom" placeholder="กำหนดเอง (แสดงตามภาษาที่เลือก)" oninput="renderLabel()"></textarea>
+        </div>
+        <div class="field">
+          <label>ข้อบ่งใช้ <span class="opt">(ข้อความอิสระจาก HIS — จำคำแปลที่เคยพิมพ์ไว้ให้อัตโนมัติ)</span></label>
+          <textarea id="fIndicCustom" placeholder="กำหนดเอง" oninput="renderLabel()"></textarea>
+          <div class="hint" id="indicHint"></div>
+        </div>
+        <div class="field">
+          <label>คำเตือน <span class="opt">(ข้อความอิสระจาก HIS — จำคำแปลที่เคยพิมพ์ไว้ให้อัตโนมัติ)</span></label>
+          <textarea id="fWarnCustom" placeholder="กำหนดเอง" oninput="renderLabel()"></textarea>
+          <div class="hint" id="warnHint"></div>
+        </div>
+        <div class="field">
+          <label>เวลาให้ยา <span class="opt">(auto จาก medicationSchedule)</span></label>
+          <input id="fTimes" placeholder="04.00, 10.00, 16.00, 22.00">
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">ข้อมูลอื่น ๆ</div>
+      <div class="panel-body">
+        <div class="row">
+          <div class="field"><label>Location <span class="opt">(auto จาก binLocation)</span></label><input id="fLocation"></div>
+          <div class="field"><label>Lot</label><input id="fLot"></div>
+          <div class="field"><label>Exp</label><input id="fExp"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Presc No <span class="opt">(bottom)</span></label><input id="fPrescNoBottom"></div>
+          <div class="field"><label>หน้า <span class="opt">(เช่น 1/4)</span></label>
+            <div style="display:flex;gap:4px;">
+              <input type="number" id="fPageNo" value="1" style="width:48%;">
+              <input type="number" id="fPageTotal" value="1" style="width:48%;">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Admin from <span class="opt">(IPD)</span></label><input id="fAdminFrom" placeholder="dd/MM/yy HH:mm"></div>
+          <div class="field"><label>Admin to <span class="opt">(IPD)</span></label><input id="fAdminTo" placeholder="dd/MM/yy HH:mm"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ RIGHT: PREVIEW (sticky, Premiere-style monitor) ══ -->
+  <div class="preview-col">
+    <div class="panel">
+      <div class="panel-head">
+        ตัวอย่างฉลาก
+        <div class="btn-row">
+          <button class="btn btn-gold btn-sm" onclick="sendIntlToPharmacy()">🖨 Print (Pharmacy Room)</button>
+          <button class="btn btn-green btn-sm" onclick="printLabel()">🖨 พิมพ์เครื่องนี้</button>
+        </div>
+      </div>
+      <div id="remotePrintStatus" class="fetch-status" style="text-align:right;padding:0 16px;"></div>
+      <div class="panel-body preview-outer">
+        <div id="gateMsg" class="gate-msg">กรุณาเลือกภาษาก่อนเริ่มใช้งาน<br>请先选择语言 / まず言語を選択してください</div>
+        <div id="labelScaleBox" class="label-scale-box" style="display:none;">
+          <button class="nav-btn nav-prev" id="navPrevBtn" onclick="navDrug(-1)">‹</button>
+          <div class="label-stage">
+            <div id="labelPrint"></div>
+          </div>
+          <button class="nav-btn nav-next" id="navNextBtn" onclick="navDrug(1)">›</button>
+        </div>
+        <div class="drug-counter" id="drugCounter" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ล็อกอินรหัสพนักงาน (sticker.html) ══ -->
+<div class="modal-overlay show" id="loginOverlay">
+  <div class="modal" style="text-align:center;">
+    <h3>กรอกรหัสพนักงาน</h3>
+    <div class="sub">เฉพาะบุคลากรที่ได้รับสิทธิ์เท่านั้น</div>
+    <div class="pin-dots"><div class="pin-dot" id="lp0"></div><div class="pin-dot" id="lp1"></div><div class="pin-dot" id="lp2"></div><div class="pin-dot" id="lp3"></div><div class="pin-dot" id="lp4"></div></div>
+    <div class="pin-grid">
+      <button class="pin-key" onclick="lpPress('1')">1</button><button class="pin-key" onclick="lpPress('2')">2</button><button class="pin-key" onclick="lpPress('3')">3</button>
+      <button class="pin-key" onclick="lpPress('4')">4</button><button class="pin-key" onclick="lpPress('5')">5</button><button class="pin-key" onclick="lpPress('6')">6</button>
+      <button class="pin-key" onclick="lpPress('7')">7</button><button class="pin-key" onclick="lpPress('8')">8</button><button class="pin-key" onclick="lpPress('9')">9</button>
+      <button class="pin-key" onclick="lpClear()" style="font-size:12px;">ลบ</button><button class="pin-key" onclick="lpPress('0')">0</button><a class="pin-key" href="portal.html" style="font-size:12px;color:var(--gray-4);text-decoration:none;">กลับ</a>
+    </div>
+    <div class="stk-err" id="lpError"></div>
+    <div class="stk-pdpa">ข้อมูลผู้ป่วยเป็นข้อมูลส่วนบุคคลตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล (PDPA) ใช้เพื่อพิมพ์ฉลากยาตามคำสั่งการรักษาเท่านั้น ระบบบันทึกผู้เข้าใช้ การค้นหา HN และการสั่งพิมพ์ทุกครั้ง</div>
+  </div>
+</div>
+<!-- ══ Settings modal ══ -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal">
+    <div id="pinStep">
+      <h3>ตั้งค่า</h3>
+      <div class="sub">กรอก PIN เพื่อเข้าถึงการตั้งค่า</div>
+      <div class="pin-dots"><div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div><div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div></div>
+      <div class="pin-grid">
+        <button class="pin-key" onclick="pinPress('1')">1</button>
+        <button class="pin-key" onclick="pinPress('2')">2</button>
+        <button class="pin-key" onclick="pinPress('3')">3</button>
+        <button class="pin-key" onclick="pinPress('4')">4</button>
+        <button class="pin-key" onclick="pinPress('5')">5</button>
+        <button class="pin-key" onclick="pinPress('6')">6</button>
+        <button class="pin-key" onclick="pinPress('7')">7</button>
+        <button class="pin-key" onclick="pinPress('8')">8</button>
+        <button class="pin-key" onclick="pinPress('9')">9</button>
+        <button class="pin-key" onclick="pinClear()" style="font-size:12px;">ลบ</button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key" onclick="closeSettings()" style="font-size:12px;color:var(--gray-4);">✕</button>
+      </div>
+      <div class="pin-error" id="pinError"></div>
+    </div>
+    <div id="urlStep" style="display:none;">
+      <h3>ตั้งค่า</h3>
+      <div class="sub">Bridge URL ของ his_bridge.py (local HTTP server ที่เครื่องรัน bridge)</div>
+      <div class="field"><input type="text" id="bridgeUrlInput" placeholder="http://localhost:8765"></div>
+      <div class="field" style="margin-top:10px;">
+        <label>ที่อยู่ (中文)</label>
+        <textarea id="addrZhInput" oninput="renderLabel()"></textarea>
+        <div class="charcount" id="addrZhCount"></div>
+      </div>
+      <div class="field">
+        <label>ที่อยู่ (日本語)</label>
+        <textarea id="addrJaInput" oninput="renderLabel()"></textarea>
+        <div class="charcount" id="addrJaCount"></div>
+      </div>
+      <div class="btn-row" style="margin-top:12px;justify-content:flex-end;">
+        <button class="btn btn-outline btn-sm" onclick="closeSettings()">ปิด</button>
+        <button class="btn btn-green btn-sm" onclick="saveSettings()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   I18N — static label dictionary
+   ══════════════════════════════════════════════════════════════ */
+const I18N = {
+  zh: {
+    tel:'电话', ward:'病区', room:'房间', bed:'床位',
+    dobLabel:'出生日期',
+    male:'男', female:'女',
+    rxType:{discharge:'出院带药', oneday:'单日医嘱', continuous:'长期医嘱'},
+    doctorPrefix:'医师',
+    qtyLabel:'数量',
+    printed:'打印时间', prescNo:'处方编号',
+    adminFrom:'给药开始', adminTo:'给药结束',
+    lot:'批号', exp:'有效期至',
+    doseTemplate:(n,unit)=>`每次口服${n}${unit}`,
+    timesLabel:'服药时间',
+    prnSuffix:'，仅在有症状时使用'
+  },
+  ja: {
+    tel:'電話', ward:'病棟', room:'部屋', bed:'ベッド',
+    dobLabel:'生年月日',
+    male:'男', female:'女',
+    rxType:{discharge:'退院時処方', oneday:'単日指示', continuous:'定期処方'},
+    doctorPrefix:'医師',
+    qtyLabel:'数量',
+    printed:'印刷日時', prescNo:'処方箋番号',
+    adminFrom:'投与開始', adminTo:'投与終了',
+    lot:'ロット', exp:'使用期限',
+    doseTemplate:(n,unit)=>`1回${n}${unit}を服用`,
+    timesLabel:'服用時間',
+    prnSuffix:'、症状がある時のみ使用'
+  }
+};
+
+const DEFAULT_ADDR = {
+  zh: '帕拉侬-佛统路68号\n邦普仑区挽古仑县 曼谷 10170',
+  ja: 'プラーノック=プッタモントン通り68番\nバーンプロム区タリンチャン郡 バンコク 10170'
+};
+const ADDR_MAX_CHARS = 62; // รวมสองบรรทัด — เกินนี้ถือว่ายาวเกินไป ให้ซ่อนอัตโนมัติ
+
+/* ══════════════════════════════════════════════════════════════
+   HIS reference dictionaries — ดึงจาก HIS API จริง (/pharmacy/drugs/,
+   /pharmacy/drug-usages/, /pharmacy/drug-forms/) แล้วแปล CN/JP เก็บเป็น
+   hard-code ไว้ที่นี่ (ตามที่ตกลง) — ถ้า HIS เพิ่มยา/usage code ใหม่ในอนาคต
+   ต้องมาเพิ่มในนี้เอง (ไม่มี auto-sync จาก HIS มาที่ dictionary นี้)
+   ══════════════════════════════════════════════════════════════ */
+const HIS_FORM_DICT = {
+  ACCU:{en:'Accurate-dose Inhaler',zh:'定量吸入器',ja:'定量吸入器'},
+  BALM:{en:'Balm',zh:'药膏(擦剂)',ja:'塗布剤'},
+  CAPS:{en:'Capsule',zh:'胶囊',ja:'カプセル'},
+  CLNS:{en:'Cleanser',zh:'清洁剂',ja:'洗浄剤'},
+  CREA:{en:'Cream',zh:'乳膏',ja:'クリーム'},
+  EARD:{en:'Ear Drops',zh:'滴耳剂',ja:'点耳薬'},
+  ELIX:{en:'Elixir',zh:'酏剂',ja:'エリキシル剤'},
+  ENEM:{en:'Enema',zh:'灌肠剂',ja:'浣腸剤'},
+  EVOH:{en:'Ethanol',zh:'乙醇溶液',ja:'エタノール溶液'},
+  EYED:{en:'Eye Drops',zh:'滴眼剂',ja:'点眼薬'},
+  EYEGL:{en:'Eye Gel',zh:'眼用凝胶',ja:'眼科用ゲル'},
+  EYEO:{en:'Eye Ointment',zh:'眼膏',ja:'眼軟膏'},
+  FOAM:{en:'Foam',zh:'泡沫剂',ja:'フォーム剤'},
+  GEL:{en:'Gel',zh:'凝胶',ja:'ゲル'},
+  GRAN:{en:'Granule',zh:'颗粒剂',ja:'顆粒剤'},
+  IMPL:{en:'Implant',zh:'植入剂',ja:'インプラント'},
+  INHA:{en:'Inhaler',zh:'吸入剂',ja:'吸入剤'},
+  INJ:{en:'Injection',zh:'注射剂',ja:'注射剤'},
+  LIQO:{en:'Oral Liquid',zh:'口服液',ja:'内用液剤'},
+  LIQX:{en:'External Liquid',zh:'外用液',ja:'外用液剤'},
+  LOT:{en:'Lotion',zh:'洗剂',ja:'ローション'},
+  LOZ:{en:'Lozenge',zh:'含片',ja:'トローチ'},
+  MIXT:{en:'Mixture',zh:'合剂',ja:'混合剤'},
+  ND:{en:'Not Defined',zh:'未指定剂型',ja:'剤形未指定'},
+  NS:{en:'Normal Saline',zh:'生理盐水',ja:'生理食塩水'},
+  OD:{en:'Ophthalmic Drops',zh:'滴眼剂',ja:'点眼薬'},
+  OIL:{en:'Oil',zh:'油剂',ja:'オイル'},
+  OINT:{en:'Ointment',zh:'软膏',ja:'軟膏'},
+  OTH:{en:'Other',zh:'其他',ja:'その他'},
+  PFS:{en:'Pre-Filled Syringe',zh:'预充式注射器',ja:'プレフィルドシリンジ'},
+  POWD:{en:'Powder',zh:'散剂',ja:'散剤'},
+  SACH:{en:'Sachet',zh:'药粉袋',ja:'分包散剤'},
+  SCRU:{en:'Scrub',zh:'磨砂膏',ja:'スクラブ剤'},
+  SHAM:{en:'Shampoo',zh:'洗发水',ja:'シャンプー'},
+  SOAP:{en:'Soap',zh:'肥皂',ja:'石鹸'},
+  SOLI:{en:'Solid',zh:'固体制剂',ja:'固形剤'},
+  SOLR:{en:'Solution for Reconstitution',zh:'复溶用溶液',ja:'溶解用液'},
+  SOLU:{en:'Solution',zh:'溶液',ja:'溶液'},
+  SOLX:{en:'External Solution',zh:'外用溶液',ja:'外用液'},
+  SPYO:{en:'Oral Spray',zh:'口腔喷雾剂',ja:'口腔用スプレー'},
+  SPYX:{en:'External Spray',zh:'外用喷雾剂',ja:'外用スプレー'},
+  SUPR:{en:'Rectal Suppository',zh:'栓剂(直肠用)',ja:'坐薬(直腸用)'},
+  SUPV:{en:'Vaginal Suppository',zh:'栓剂(阴道用)',ja:'腟坐薬'},
+  SUSP:{en:'Suspension',zh:'混悬液',ja:'懸濁剤'},
+  SYR:{en:'Syrup',zh:'糖浆',ja:'シロップ'},
+  TAB:{en:'Tablet',zh:'片',ja:'錠'},
+  TDM:{en:'Therapeutic Drug Monitoring',zh:'治疗药物监测',ja:'治療薬物モニタリング'},
+  TINC:{en:'Tincture',zh:'酊剂',ja:'チンキ剤'}
+};
+
+const HIS_USAGE_DICT = {
+  '5TIMES':{zh:'每日5次',ja:'1日5回'},
+  'ASD':{zh:'遵医嘱',ja:'指示通り'},
+  'AS DIRECTED':{zh:'遵医嘱',ja:'医師の指示通り'},
+  'BIDACBD':{zh:'每日2次，早晚饭前服用',ja:'1日2回、朝夕食前に服用'},
+  'BIDAE':{zh:'每日2次，晚饭后服用',ja:'1日2回、夕食後に服用'},
+  'BIDMB':{zh:'每日2次，晨起及睡前',ja:'1日2回、朝と就寝前'},
+  'BIDME':{zh:'每日2次，早晚',ja:'1日2回、朝夕'},
+  'BIDPC1B2D':{zh:'每日2次，早餐后1片，晚餐后2片',ja:'1日2回、朝食後1錠・夕食後2錠'},
+  'BIDPCBD':{zh:'每日2次，早晚饭后服用',ja:'1日2回、朝夕食後に服用'},
+  'BIDWBD':{zh:'每日2次，随早晚餐服用',ja:'1日2回、朝夕食と一緒に服用'},
+  'BIWASD':{zh:'每周2次',ja:'週2回'},
+  'HS':{zh:'睡前',ja:'就寝前'},
+  'MIPHR00001':{zh:'(参考代码，无说明)',ja:'(参照コード、説明なし)'},
+  'OD':{zh:'每日1次',ja:'1日1回'},
+  'ODACB':{zh:'每日1次，早餐前',ja:'1日1回、朝食前'},
+  'ODE':{zh:'每日1次，晚上',ja:'1日1回、夕方'},
+  'ODM':{zh:'每日1次，早上',ja:'1日1回、朝'},
+  'ODPCB':{zh:'每日1次，早餐后',ja:'1日1回、朝食後'},
+  'ODPCD':{zh:'每日1次，晚餐后',ja:'1日1回、夕食後'},
+  'ODWB':{zh:'每日1次，随早餐服用',ja:'1日1回、朝食と一緒に服用'},
+  'ONCE':{zh:'单次剂量',ja:'1回のみ'},
+  'ORS':{zh:'口服补液盐(按症状使用)',ja:'経口補水液(症状に応じて使用)'},
+  'POM':{zh:'术后用药',ja:'術後投与'},
+  'PRNASTHMA':{zh:'哮喘发作时使用',ja:'喘息発作時に使用'},
+  'PRNITCHY':{zh:'瘙痒时使用',ja:'かゆみがある時に使用'},
+  'PRNMIGRAINE':{zh:'偏头痛发作时使用',ja:'片頭痛時に使用'},
+  'Q12HR':{zh:'每12小时1次',ja:'12時間ごと'},
+  'Q12HR0820':{zh:'每12小时1次(08:00及20:00)',ja:'12時間ごと(8時・20時)'},
+  'Q12HRPRN':{zh:'每12小时1次，需要时使用',ja:'12時間ごと、必要時に使用'},
+  'Q12HRPRNPAIN':{zh:'每12小时1次，疼痛时使用',ja:'12時間ごと、疼痛時に使用'},
+  'Q1HR':{zh:'每小时1次',ja:'1時間ごと'},
+  'Q1HRPRNPAIN':{zh:'每小时1次，疼痛时使用',ja:'1時間ごと、疼痛時に使用'},
+  'Q24HR':{zh:'每24小时1次',ja:'24時間ごと'},
+  'Q2HR':{zh:'每2小时1次',ja:'2時間ごと'},
+  'Q2HRPRNPAIN':{zh:'每2小时1次，疼痛时使用',ja:'2時間ごと、疼痛時に使用'},
+  'Q3DAYS':{zh:'每3天1次',ja:'3日ごと'},
+  'Q3HR':{zh:'每3小时1次',ja:'3時間ごと'},
+  'Q3HRPRNPAIN':{zh:'每3小时1次，疼痛时使用',ja:'3時間ごと、疼痛時に使用'},
+  'Q4HR':{zh:'每4小时1次',ja:'4時間ごと'},
+  'Q4HRPRN':{zh:'每4小时1次，需要时使用',ja:'4時間ごと、必要時に使用'},
+  'Q4HRPRNPAIN':{zh:'每4小时1次，疼痛时使用',ja:'4時間ごと、疼痛時に使用'},
+  'Q4HRPRNST':{zh:'每4小时1次，喉咙痛时使用',ja:'4時間ごと、のどの痛み時に使用'},
+  'Q5MINS':{zh:'每5分钟1次',ja:'5分ごと'},
+  'Q6HR':{zh:'每6小时1次',ja:'6時間ごと'},
+  'Q6HRPRN':{zh:'每6小时1次，需要时使用',ja:'6時間ごと、必要時に使用'},
+  'Q6HRPRNPAIN':{zh:'每6小时1次，疼痛时使用',ja:'6時間ごと、疼痛時に使用'},
+  'Q6HRPRNPOF':{zh:'每6小时1次，发热时使用',ja:'6時間ごと、発熱時に使用'},
+  'Q8HR':{zh:'每8小时1次',ja:'8時間ごと'},
+  'Q8HRPRN':{zh:'每8小时1次，需要时使用',ja:'8時間ごと、必要時に使用'},
+  'Q8HRPRNDIZ':{zh:'每8小时1次，眩晕时使用',ja:'8時間ごと、めまい時に使用'},
+  'Q8HRPRNNV':{zh:'每8小时1次，恶心呕吐时使用',ja:'8時間ごと、吐き気・嘔吐時に使用'},
+  'Q8HRPRNPAIN':{zh:'每8小时1次，疼痛时使用',ja:'8時間ごと、疼痛時に使用'},
+  'QID':{zh:'每日4次',ja:'1日4回'},
+  'QIDACBLDHS':{zh:'每日4次，早中晚饭前及睡前',ja:'1日4回、朝昼夕食前・就寝前'},
+  'QIDBLDHS':{zh:'每日4次，早中晚及睡前',ja:'1日4回、朝昼夕・就寝前'},
+  'QIDPCBLDHS':{zh:'每日4次，早中晚饭后及睡前',ja:'1日4回、朝昼夕食後・就寝前'},
+  'STAT':{zh:'立即给药',ja:'直ちに投与'},
+  'TID':{zh:'每日3次',ja:'1日3回'},
+  'TIDACBLD':{zh:'每日3次，三餐饭前',ja:'1日3回、三食前'},
+  'TIDBLD':{zh:'每日3次，饭后',ja:'1日3回、食後'},
+  'TIDMAE':{zh:'每日3次，早中晚',ja:'1日3回、朝昼夕'},
+  'TIDPCBLD':{zh:'每日3次，三餐饭后',ja:'1日3回、三食後'},
+  'TIDWBLD':{zh:'每日3次，随三餐服用',ja:'1日3回、三食と一緒に服用'},
+  'VIAGARA':{zh:'性功能所需时使用',ja:'必要時に使用(勃起不全治療)'},
+  'WEEKLY FRIDAY':{zh:'每周1次(星期五)',ja:'週1回(金曜日)'},
+  'WEEKLY MONDAY':{zh:'每周1次(星期一)',ja:'週1回(月曜日)'},
+  'WEEKLY SATURDAY':{zh:'每周1次(星期六)',ja:'週1回(土曜日)'},
+  'WEEKLY SUNDAY':{zh:'每周1次(星期日)',ja:'週1回(日曜日)'},
+  'WEEKLY THURSDAY':{zh:'每周1次(星期四)',ja:'週1回(木曜日)'},
+  'WEEKLY TUESDAY':{zh:'每周1次(星期二)',ja:'週1回(火曜日)'},
+  'WEEKLY WEDNESDAY':{zh:'每周1次(星期三)',ja:'週1回(水曜日)'}
+};
+
+// key = generic name normalize แล้ว lowercase — ดู normalizeGenericName()
+const HIS_DRUG_DICT = {
+  '5% dextrose in water':{en:'5% Dextrose in water',zh:'5%葡萄糖注射液',ja:'5%ブドウ糖液'},
+  'acetar':{en:'Acetar',zh:'醋酸林格氏液',ja:'酢酸リンゲル液'},
+  'activated charcoal':{en:'Activated Charcoal',zh:'活性炭',ja:'活性炭'},
+  'adenosine':{en:'Adenosine',zh:'腺苷',ja:'アデノシン'},
+  'aescin':{en:'Aescin',zh:'七叶皂苷',ja:'エスシン'},
+  'aescin 1 g / diethylamine sailicylate 5 g':{en:'Aescin/Diethylamine Salicylate',zh:'七叶皂苷/水杨酸二乙胺',ja:'エスシン/サリチル酸ジエチルアミン'},
+  'alcohol':{en:'Alcohol',zh:'酒精',ja:'アルコール'},
+  'alendronate':{en:'Alendronate',zh:'阿仑膦酸钠',ja:'アレンドロン酸'},
+  'allopurinol':{en:'Allopurinol',zh:'别嘌醇',ja:'アロプリノール'},
+  'alprazolam':{en:'Alprazolam',zh:'阿普唑仑',ja:'アルプラゾラム'},
+  'amiodarone':{en:'Amiodarone',zh:'胺碘酮',ja:'アミオダロン'},
+  'amitriptyline':{en:'Amitriptyline',zh:'阿米替林',ja:'アミトリプチリン'},
+  'amlodipine':{en:'Amlodipine',zh:'氨氯地平',ja:'アムロジピン'},
+  'amoxicillin':{en:'Amoxicillin',zh:'阿莫西林',ja:'アモキシシリン'},
+  'amoxicillin + clavulanate':{en:'Amoxicillin + Clavulanate',zh:'阿莫西林/克拉维酸',ja:'アモキシシリン/クラブラン酸'},
+  'aspirin':{en:'Aspirin',zh:'阿司匹林',ja:'アスピリン'},
+  'atenolol':{en:'Atenolol',zh:'阿替洛尔',ja:'アテノロール'},
+  'atorvastatin':{en:'Atorvastatin',zh:'阿托伐他汀',ja:'アトルバスタチン'},
+  'atropine':{en:'Atropine',zh:'阿托品',ja:'アトロピン'},
+  'augmentin':{en:'Augmentin',zh:'阿莫西林/克拉维酸(安灭菌)',ja:'アモキシシリン/クラブラン酸'},
+  'betahistine dihydrochloride':{en:'Betahistine Dihydrochloride',zh:'倍他司汀',ja:'ベタヒスチン'},
+  'bisoprolol':{en:'Bisoprolol',zh:'比索洛尔',ja:'ビソプロロール'},
+  'bupivacaine':{en:'Bupivacaine',zh:'布比卡因',ja:'ブピバカイン'},
+  'bupivacaine isobaric':{en:'Bupivacaine ISOBARIC',zh:'布比卡因(等比重)',ja:'ブピバカイン(等比重)'},
+  'calcitonin':{en:'Calcitonin',zh:'降钙素',ja:'カルシトニン'},
+  'calcium carbonate':{en:'Calcium carbonate',zh:'碳酸钙',ja:'炭酸カルシウム'},
+  'calcium carbonate + vitamin d3':{en:'Calcium carbonate + Vitamin D3',zh:'碳酸钙/维生素D3',ja:'炭酸カルシウム/ビタミンD3'},
+  'calcium carbonate with minerals':{en:'Calcium Carbonate with minerals',zh:'碳酸钙(复方矿物质)',ja:'炭酸カルシウム(ミネラル配合)'},
+  'calcium gluconate':{en:'Calcium gluconate',zh:'葡萄糖酸钙',ja:'グルコン酸カルシウム'},
+  'calcium polystyrene sulfonate':{en:'Calcium polystyrene sulfonate',zh:'聚苯乙烯磺酸钙',ja:'ポリスチレンスルホン酸カルシウム'},
+  'captopril':{en:'Captopril',zh:'卡托普利',ja:'カプトプリル'},
+  'carbomer + cetrimide':{en:'Carbomer + Cetrimide',zh:'卡波姆/西曲溴铵',ja:'カルボマー/セトリミド'},
+  'cefazolin':{en:'Cefazolin',zh:'头孢唑林',ja:'セファゾリン'},
+  'ceftriaxone':{en:'Ceftriaxone',zh:'头孢曲松',ja:'セフトリアキソン'},
+  'celecoxib':{en:'Celecoxib',zh:'塞来昔布',ja:'セレコキシブ'},
+  'cephalexin':{en:'Cephalexin',zh:'头孢氨苄',ja:'セファレキシン'},
+  'cetirizine':{en:'Cetirizine',zh:'西替利嗪',ja:'セチリジン'},
+  'chamomile extract':{en:'Chamomile extract',zh:'洋甘菊提取物',ja:'カモミールエキス'},
+  'chloral hydrate':{en:'Chloral Hydrate',zh:'水合氯醛',ja:'抱水クロラール'},
+  'chloramphenicol':{en:'Chloramphenicol',zh:'氯霉素',ja:'クロラムフェニコール'},
+  'chlorhexidine':{en:'Chlorhexidine',zh:'氯己定',ja:'クロルヘキシジン'},
+  'chlorphenamine':{en:'Chlorphenamine',zh:'氯苯那敏',ja:'クロルフェニラミン'},
+  'chlorpheniramine':{en:'Chlorpheniramine',zh:'氯苯那敏',ja:'クロルフェニラミン'},
+  'cholecalciferol':{en:'Cholecalciferol',zh:'胆钙化醇(维生素D3)',ja:'コレカルシフェロール(ビタミンD3)'},
+  'ciprofloxacin':{en:'Ciprofloxacin',zh:'环丙沙星',ja:'シプロフロキサシン'},
+  'cisatracurium':{en:'Cisatracurium',zh:'顺阿曲库铵',ja:'シスアトラクリウム'},
+  'clindamycin':{en:'Clindamycin',zh:'克林霉素',ja:'クリンダマイシン'},
+  'clopidogrel':{en:'Clopidogrel',zh:'氯吡格雷',ja:'クロピドグレル'},
+  'colchicine':{en:'Colchicine',zh:'秋水仙碱',ja:'コルヒチン'},
+  'dantrolene':{en:'Dantrolene',zh:'丹曲林',ja:'ダントロレン'},
+  'dapagliflozin':{en:'Dapagliflozin',zh:'达格列净',ja:'ダパグリフロジン'},
+  'dengue vaccine':{en:'Dengue Vaccine',zh:'登革热疫苗',ja:'デング熱ワクチン'},
+  'denosumab':{en:'Denosumab',zh:'地舒单抗',ja:'デノスマブ'},
+  'desflurane':{en:'Desflurane',zh:'地氟烷',ja:'デスフルラン'},
+  'dexamethasone':{en:'Dexamethasone',zh:'地塞米松',ja:'デキサメタゾン'},
+  'dexketoprofen':{en:'Dexketoprofen',zh:'右酮洛芬',ja:'デクスケトプロフェン'},
+  'dextromethorphan':{en:'Dextromethorphan',zh:'右美沙芬',ja:'デキストロメトルファン'},
+  'dextrose':{en:'Dextrose',zh:'葡萄糖',ja:'ブドウ糖'},
+  'diacerein':{en:'Diacerein',zh:'双醋瑞因',ja:'ジアセレイン'},
+  'diazepam':{en:'Diazepam',zh:'地西泮',ja:'ジアゼパム'},
+  'diclofenac':{en:'Diclofenac',zh:'双氯芬酸',ja:'ジクロフェナク'},
+  'diclofenac gel':{en:'Diclofenac Gel',zh:'双氯芬酸凝胶',ja:'ジクロフェナクゲル'},
+  'dicloxacillin':{en:'Dicloxacillin',zh:'双氯西林',ja:'ジクロキサシリン'},
+  'dimenhydrinate':{en:'Dimenhydrinate',zh:'茶苯海明',ja:'ジメンヒドリナート'},
+  'dobutamine':{en:'Dobutamine',zh:'多巴酚丁胺',ja:'ドブタミン'},
+  'domperidone':{en:'Domperidone',zh:'多潘立酮',ja:'ドンペリドン'},
+  'dopamine':{en:'Dopamine',zh:'多巴胺',ja:'ドパミン'},
+  'doxazocin':{en:'Doxazosin',zh:'多沙唑嗪',ja:'ドキサゾシン'},
+  'doxofylline':{en:'Doxofylline',zh:'多索茶碱',ja:'ドキソフィリン'},
+  'doxycycline':{en:'Doxycycline',zh:'多西环素',ja:'ドキシサイクリン'},
+  'eperisone':{en:'Eperisone',zh:'依哌立松',ja:'エペリゾン'},
+  'ephedrine':{en:'Ephedrine',zh:'麻黄碱',ja:'エフェドリン'},
+  'epinephrine':{en:'Epinephrine',zh:'肾上腺素',ja:'エピネフリン(アドレナリン)'},
+  'equine rabies immunoglobulin (erig)':{en:'Equine Rabies Immunoglobulin',zh:'马源狂犬病免疫球蛋白',ja:'ウマ抗狂犬病免疫グロブリン'},
+  'ergocalciferol':{en:'Ergocalciferol',zh:'麦角钙化醇(维生素D2)',ja:'エルゴカルシフェロール(ビタミンD2)'},
+  'ertapenem':{en:'Ertapenem',zh:'厄他培南',ja:'エルタペネム'},
+  'esflurbiprofen':{en:'Esflurbiprofen',zh:'右氟比洛芬',ja:'エスフルルビプロフェン'},
+  'esmolol , esbloc':{en:'Esmolol',zh:'艾司洛尔',ja:'エスモロール'},
+  'esomeprazole':{en:'Esomeprazole',zh:'埃索美拉唑',ja:'エソメプラゾール'},
+  'ethyl alcohol':{en:'Ethyl Alcohol',zh:'乙醇',ja:'エチルアルコール'},
+  'etoricoxib':{en:'Etoricoxib',zh:'依托考昔',ja:'エトリコキシブ'},
+  'ezetimibe':{en:'Ezetimibe',zh:'依折麦布',ja:'エゼチミブ'},
+  'fenofibrate tab 145 mg (supralip)':{en:'Fenofibrate',zh:'非诺贝特',ja:'フェノフィブラート'},
+  'fentanyl':{en:'Fentanyl',zh:'芬太尼',ja:'フェンタニル'},
+  'ferrous fumarate':{en:'Ferrous Fumarate',zh:'富马酸亚铁',ja:'フマル酸第一鉄'},
+  'folic acid':{en:'Folic acid',zh:'叶酸',ja:'葉酸'},
+  'furosemide':{en:'Furosemide',zh:'呋塞米',ja:'フロセミド'},
+  'fusidic acid 2% cream (fusidin)':{en:'Fusidic acid',zh:'夫西地酸',ja:'フシジン酸'},
+  'gabapentin':{en:'Gabapentin',zh:'加巴喷丁',ja:'ガバペンチン'},
+  'gadolinium':{en:'Gadolinium',zh:'钆(造影剂)',ja:'ガドリニウム(造影剤)'},
+  'gentamicin':{en:'Gentamicin',zh:'庆大霉素',ja:'ゲンタマイシン'},
+  'glipizide':{en:'Glipizide',zh:'格列吡嗪',ja:'グリピジド'},
+  'glucosamine':{en:'Glucosamine',zh:'氨基葡萄糖',ja:'グルコサミン'},
+  'glucose':{en:'Glucose',zh:'葡萄糖',ja:'ブドウ糖'},
+  'glucose + sodium chloride':{en:'Glucose + Sodium Chloride',zh:'葡萄糖氯化钠注射液',ja:'ブドウ糖加塩化ナトリウム液'},
+  'glycopyrrolate':{en:'Glycopyrrolate',zh:'格隆溴铵',ja:'グリコピロレート'},
+  'haloperidol':{en:'Haloperidol',zh:'氟哌啶醇',ja:'ハロペリドール'},
+  'heparin':{en:'Heparin',zh:'肝素',ja:'ヘパリン'},
+  'hepatitis-b vaccine':{en:'Hepatitis-B Vaccine',zh:'乙型肝炎疫苗',ja:'B型肝炎ワクチン'},
+  'hpv vaccine':{en:'HPV Vaccine',zh:'人乳头瘤病毒疫苗',ja:'HPVワクチン'},
+  'human tetanus immunoglobulin':{en:'Human Tetanus Immunoglobulin',zh:'人破伤风免疫球蛋白',ja:'人破傷風免疫グロブリン'},
+  'hyaluronic acid':{en:'Hyaluronic acid',zh:'透明质酸',ja:'ヒアルロン酸'},
+  'hyaluronic acid 20 mg/2 ml':{en:'Hyaluronic acid',zh:'透明质酸',ja:'ヒアルロン酸'},
+  'hydralazine':{en:'Hydralazine',zh:'肼屈嗪',ja:'ヒドララジン'},
+  'hyoscine':{en:'Hyoscine',zh:'东莨菪碱',ja:'ヒヨスチン'},
+  'hyoscine-n-butylbromide':{en:'Hyoscine-N-Butylbromide',zh:'丁溴东莨菪碱',ja:'ブチルスコポラミン臭化物'},
+  'ibuprofen':{en:'Ibuprofen',zh:'布洛芬',ja:'イブプロフェン'},
+  'influenza vaccine':{en:'Influenza Vaccine',zh:'流感疫苗',ja:'インフルエンザワクチン'},
+  'iobitridol':{en:'Iobitridol',zh:'碘比醇(造影剂)',ja:'イオビトリドール(造影剤)'},
+  'iohexol inj':{en:'Iohexol',zh:'碘海醇(造影剂)',ja:'イオヘキソール(造影剤)'},
+  'ipratopium + fenoterol':{en:'Ipratropium + Fenoterol',zh:'异丙托溴铵/非诺特罗',ja:'イプラトロピウム/フェノテロール'},
+  'isosorbide dinitrate (isdn)':{en:'Isosorbide Dinitrate',zh:'硝酸异山梨酯',ja:'硝酸イソソルビド'},
+  'ketorolac':{en:'Ketorolac',zh:'酮咯酸',ja:'ケトロラク'},
+  'lactulose':{en:'Lactulose',zh:'乳果糖',ja:'ラクツロース'},
+  'levofloxacin':{en:'Levofloxacin',zh:'左氧氟沙星',ja:'レボフロキサシン'},
+  'levomenthol':{en:'Levomenthol',zh:'左旋薄荷脑',ja:'レボメントール'},
+  'lidocaine':{en:'Lidocaine',zh:'利多卡因',ja:'リドカイン'},
+  'lidocaine+adrenaline':{en:'Lidocaine + Adrenaline',zh:'利多卡因/肾上腺素',ja:'リドカイン/アドレナリン'},
+  'lorazepam':{en:'Lorazepam',zh:'劳拉西泮',ja:'ロラゼパム'},
+  'losartan':{en:'Losartan',zh:'氯沙坦',ja:'ロサルタン'},
+  'lubricating jelly sterile':{en:'Lubricating Jelly Sterile',zh:'无菌润滑剂',ja:'滅菌潤滑ゼリー'},
+  'magnesium hydroxide':{en:'Magnesium hydroxide',zh:'氢氧化镁',ja:'水酸化マグネシウム'},
+  'magnesium sulfate (mgso4)':{en:'Magnesium Sulfate',zh:'硫酸镁',ja:'硫酸マグネシウム'},
+  'manidipine':{en:'Manidipine',zh:'马尼地平',ja:'マニジピン'},
+  'mecobalamin':{en:'Mecobalamin',zh:'甲钴胺',ja:'メコバラミン'},
+  'meloxicam':{en:'Meloxicam',zh:'美洛昔康',ja:'メロキシカム'},
+  'meloxicam t':{en:'Meloxicam',zh:'美洛昔康',ja:'メロキシカム'},
+  'metformin':{en:'Metformin',zh:'二甲双胍',ja:'メトホルミン'},
+  'methyl salicylate':{en:'Methyl salicylate',zh:'水杨酸甲酯',ja:'サリチル酸メチル'},
+  'methylprednislone':{en:'Methylprednisolone',zh:'甲泼尼龙',ja:'メチルプレドニゾロン'},
+  'metoclopramide':{en:'Metoclopramide',zh:'甲氧氯普胺',ja:'メトクロプラミド'},
+  'metronidazole':{en:'Metronidazole',zh:'甲硝唑',ja:'メトロニダゾール'},
+  'midazolam':{en:'Midazolam',zh:'咪达唑仑',ja:'ミダゾラム'},
+  'morphine':{en:'Morphine',zh:'吗啡',ja:'モルヒネ'},
+  'morphine sulfate syrup':{en:'Morphine Sulfate Syrup',zh:'硫酸吗啡糖浆',ja:'硫酸モルヒネシロップ'},
+  'multivitamin':{en:'Multivitamin',zh:'复合维生素',ja:'マルチビタミン'},
+  'n-acetyl-cysteine':{en:'N-Acetyl-Cysteine',zh:'乙酰半胱氨酸',ja:'アセチルシステイン'},
+  'nacl':{en:'NaCl',zh:'氯化钠',ja:'塩化ナトリウム'},
+  'naloxone':{en:'Naloxone',zh:'纳洛酮',ja:'ナロキソン'},
+  'naproxen':{en:'Naproxen',zh:'萘普生',ja:'ナプロキセン'},
+  'nefopam':{en:'Nefopam',zh:'奈福泮',ja:'ネフォパム'},
+  'neostigmine':{en:'Neostigmine',zh:'新斯的明',ja:'ネオスチグミン'},
+  'nicardipine':{en:'Nicardipine',zh:'尼卡地平',ja:'ニカルジピン'},
+  'nifedipine':{en:'Nifedipine',zh:'硝苯地平',ja:'ニフェジピン'},
+  'norepinephrine':{en:'Norepinephrine',zh:'去甲肾上腺素',ja:'ノルアドレナリン'},
+  'norfloxacin':{en:'Norfloxacin',zh:'诺氟沙星',ja:'ノルフロキサシン'},
+  'normal saline':{en:'Normal Saline',zh:'生理盐水',ja:'生理食塩水'},
+  'normal saline solution':{en:'Normal Saline Solution',zh:'生理盐水',ja:'生理食塩水'},
+  'omacor':{en:'OMACOR',zh:'欧米伽3脂肪酸乙酯',ja:'オメガ3脂肪酸エチル'},
+  'omega-3-acid ethyl esters 90 - 1,000 mg':{en:'Omega-3-acid ethyl esters',zh:'欧米伽3脂肪酸乙酯',ja:'オメガ3脂肪酸エチル'},
+  'omeprazole':{en:'Omeprazole',zh:'奥美拉唑',ja:'オメプラゾール'},
+  'ondansetron':{en:'Ondansetron',zh:'昂丹司琼',ja:'オンダンセトロン'},
+  'orphenadrine + paracetamol 35/450 mg':{en:'Orphenadrine + Paracetamol',zh:'奥芬那君/对乙酰氨基酚',ja:'オルフェナドリン/パラセタモール'},
+  'orphenadrine/paracetamol':{en:'Orphenadrine + Paracetamol',zh:'奥芬那君/对乙酰氨基酚',ja:'オルフェナドリン/パラセタモール'},
+  'oxymetazoline':{en:'Oxymetazoline',zh:'羟甲唑啉',ja:'オキシメタゾリン'},
+  'oxytetracycline':{en:'Oxytetracycline',zh:'土霉素',ja:'オキシテトラサイクリン'},
+  'pantoprazole':{en:'Pantoprazole',zh:'泮托拉唑',ja:'パントプラゾール'},
+  'paracetamol':{en:'Paracetamol',zh:'对乙酰氨基酚',ja:'パラセタモール'},
+  'paracetamol + codeine':{en:'Paracetamol + Codeine',zh:'对乙酰氨基酚/可待因',ja:'パラセタモール/コデイン'},
+  'paracetamol + tramadol':{en:'Paracetamol + Tramadol',zh:'对乙酰氨基酚/曲马多',ja:'パラセタモール/トラマドール'},
+  'paracetamol+tramadol':{en:'Paracetamol + Tramadol',zh:'对乙酰氨基酚/曲马多',ja:'パラセタモール/トラマドール'},
+  'parecoxib':{en:'Parecoxib',zh:'帕瑞昔布',ja:'パレコキシブ'},
+  'pethidine':{en:'Pethidine',zh:'哌替啶',ja:'ペチジン'},
+  'petrolatum':{en:'Petrolatum',zh:'凡士林',ja:'ワセリン'},
+  'pitavastatin':{en:'Pitavastatin',zh:'匹伐他汀',ja:'ピタバスタチン'},
+  'pneumococcal vaccine':{en:'Pneumococcal Vaccine',zh:'肺炎球菌疫苗',ja:'肺炎球菌ワクチン'},
+  'potassium chloride (kcl)':{en:'Potassium Chloride',zh:'氯化钾',ja:'塩化カリウム'},
+  'potassium chloride (kcl) 10% eilxir 60 cc':{en:'Potassium Chloride',zh:'氯化钾',ja:'塩化カリウム'},
+  'povidone iodine':{en:'Povidone iodine',zh:'聚维酮碘',ja:'ポビドンヨード'},
+  'pravastatin':{en:'Pravastatin',zh:'普伐他汀',ja:'プラバスタチン'},
+  'prednisolone':{en:'Prednisolone',zh:'泼尼松龙',ja:'プレドニゾロン'},
+  'pregabalin':{en:'Pregabalin',zh:'普瑞巴林',ja:'プレガバリン'},
+  'propofol':{en:'Propofol',zh:'丙泊酚',ja:'プロポフォール'},
+  'pseudoephedrine':{en:'Pseudoephedrine',zh:'伪麻黄碱',ja:'プソイドエフェドリン'},
+  'rabeprazole':{en:'Rabeprazole',zh:'雷贝拉唑',ja:'ラベプラゾール'},
+  'rabies vaccine':{en:'Rabies vaccine',zh:'狂犬病疫苗',ja:'狂犬病ワクチン'},
+  'regular insulin':{en:'Regular Insulin',zh:'普通胰岛素',ja:'レギュラーインスリン'},
+  'risedronate':{en:'Risedronate',zh:'利塞膦酸钠',ja:'リセドロン酸'},
+  'rivaroxaban':{en:'Rivaroxaban',zh:'利伐沙班',ja:'リバーロキサバン'},
+  'rocuronium':{en:'Rocuronium',zh:'罗库溴铵',ja:'ロクロニウム'},
+  'romosozumab':{en:'Romosozumab',zh:'罗莫单抗',ja:'ロモソズマブ'},
+  'ropivacaine':{en:'Ropivacaine',zh:'罗哌卡因',ja:'ロピバカイン'},
+  'rosuvastatin':{en:'Rosuvastatin',zh:'瑞舒伐他汀',ja:'ロスバスタチン'},
+  'salbutamol':{en:'Salbutamol',zh:'沙丁胺醇',ja:'サルブタモール'},
+  'semaglutide':{en:'Semaglutide',zh:'司美格鲁肽',ja:'セマグルチド'},
+  'sevoflurane':{en:'Sevoflurane',zh:'七氟烷',ja:'セボフルラン'},
+  'silver sulfadiazine':{en:'Silver Sulfadiazine',zh:'磺胺嘧啶银',ja:'スルファジアジン銀'},
+  'simethicone':{en:'Simethicone',zh:'二甲硅油',ja:'ジメチコン'},
+  'simvastatin':{en:'Simvastatin',zh:'辛伐他汀',ja:'シンバスタチン'},
+  'smoflipid':{en:'SMOFlipid',zh:'复合脂肪乳注射液',ja:'脂肪乳剤'},
+  'sodium bicarbonate':{en:'Sodium bicarbonate',zh:'碳酸氢钠',ja:'炭酸水素ナトリウム'},
+  'sodium chloride':{en:'Sodium Chloride',zh:'氯化钠',ja:'塩化ナトリウム'},
+  'sodium chloride 3%':{en:'Sodium Chloride 3%',zh:'3%氯化钠',ja:'3%塩化ナトリウム'},
+  'sterile water':{en:'Sterile Water',zh:'灭菌注射用水',ja:'滅菌水'},
+  'sterile water for irrigation (swi) irr':{en:'Sterile Water for Irrigation',zh:'灭菌冲洗用水',ja:'滅菌洗浄水'},
+  'suxamethonium':{en:'Suxamethonium',zh:'琥珀胆碱',ja:'スキサメトニウム'},
+  'suxamethonium (succinylcholine) inj 50 mg/ml 10 ml (pinyo)':{en:'Suxamethonium',zh:'琥珀胆碱',ja:'スキサメトニウム'},
+  'tea tree oil':{en:'Tea Tree Oil',zh:'茶树油',ja:'ティーツリーオイル'},
+  'teriparatide':{en:'Teriparatide',zh:'特立帕肽',ja:'テリパラチド'},
+  'tetanus':{en:'Tetanus',zh:'破伤风(疫苗/类毒素)',ja:'破傷風(ワクチン/トキソイド)'},
+  'tetanus toxoid':{en:'Tetanus Toxoid',zh:'破伤风类毒素',ja:'破傷風トキソイド'},
+  'thiopental':{en:'Thiopental',zh:'硫喷妥钠',ja:'チオペンタール'},
+  'tolperisone':{en:'Tolperisone',zh:'托哌酮',ja:'トルペリゾン'},
+  'tramadol':{en:'Tramadol',zh:'曲马多',ja:'トラマドール'},
+  'tranexamic acid':{en:'Tranexamic acid',zh:'氨甲环酸',ja:'トラネキサム酸'},
+  'tranexamic acid cap 250 mg':{en:'Tranexamic acid',zh:'氨甲环酸',ja:'トラネキサム酸'},
+  'triamcinolone':{en:'Triamcinolone',zh:'曲安奈德',ja:'トリアムシノロン'},
+  'urea':{en:'Urea',zh:'尿素',ja:'尿素'},
+  'vancomycin':{en:'Vancomycin',zh:'万古霉素',ja:'バンコマイシン'},
+  'vitamin b complex':{en:'Vitamin B Complex',zh:'复合维生素B',ja:'ビタミンB群'},
+  'vitamin b1, b6, b12':{en:'Vitamin B1, B6, B12',zh:'维生素B1、B6、B12',ja:'ビタミンB1・B6・B12'},
+  'vitamin d':{en:'Vitamin D',zh:'维生素D',ja:'ビタミンD'},
+  'vitamin k1 (phytomenadione)':{en:'Vitamin K1',zh:'维生素K1(植物甲萘醌)',ja:'ビタミンK1(フィトナジオン)'},
+  'volulyte':{en:'Volulyte',zh:'平衡电解质注射液',ja:'電解質輸液'},
+  'xylocaine':{en:'Xylocaine',zh:'利多卡因(Xylocaine)',ja:'キシロカイン(リドカイン)'},
+  'zoledronic acid':{en:'Zoledronic Acid',zh:'唑来膦酸',ja:'ゾレドロン酸'}
+};
+
+// ข้อบ่งใช้ (drug.uses/thaiUses — ระดับ drug master คงที่ ไม่ใช่ freeform ต่อใบสั่ง)
+// key = ข้อความไทยดิบ (trim แล้ว) จาก HIS ตรง ๆ — ดึงจาก /pharmacy/drugs/ ทั้ง 348 รายการ แปลไว้ล่วงหน้า
+const HIS_USES_DICT = {
+  '-':{zh:'-',ja:'-'},
+  'Anesthesia':{zh:'麻醉',ja:'麻酔'},
+  'Anti-bacteria':{zh:'抗菌',ja:'抗菌'},
+  'Antiseptics':{zh:'消毒防腐',ja:'消毒'},
+  'Contrast':{zh:'造影剂',ja:'造影剤'},
+  'Influenza Vaccine':{zh:'流感疫苗',ja:'インフルエンザワクチン'},
+  'Malignant Hyperthermia':{zh:'恶性高热',ja:'悪性高熱症'},
+  'NSS':{zh:'生理盐水',ja:'生理食塩水'},
+  'Neuromuscular Blocking Agents':{zh:'神经肌肉阻断剂',ja:'神経筋遮断薬'},
+  'OR.':{zh:'手术室用',ja:'手術室用'},
+  'Tea Tree Oil - Spray 200 Ml (Cast Comfort)':{zh:'茶树油喷雾',ja:'ティーツリーオイルスプレー'},
+  'Tetanus vaccine':{zh:'破伤风疫苗',ja:'破傷風ワクチン'},
+  'กลูโคส':{zh:'葡萄糖',ja:'ブドウ糖'},
+  'ข้อเข่าเสื่อม':{zh:'退化性膝关节炎',ja:'変形性膝関節症'},
+  'คลายกล้ามเนื้อ':{zh:'肌肉松弛',ja:'筋弛緩'},
+  'ควบคุมน้ำหนัก':{zh:'控制体重',ja:'体重管理'},
+  'ฆ่าเชื้อ':{zh:'杀菌消毒',ja:'殺菌'},
+  'ฆ่าเชื้อแบคทีเรีย':{zh:'杀灭细菌',ja:'殺菌(細菌)'},
+  'ฉีดน้ำเลี้ยงข้อเข่า':{zh:'注射膝关节润滑液',ja:'膝関節注射(関節液補充)'},
+  'ชักนำและรักษาสภาวะการสลบ':{zh:'诱导及维持麻醉',ja:'麻酔の導入・維持'},
+  'ช่วยขับลม':{zh:'帮助排气(驱风)',ja:'駆風(ガスの排出を助ける)'},
+  'ดูดซับสารพิษ ลดอาการท้องเสีย':{zh:'吸附毒素，缓解腹泻',ja:'毒素吸着、下痢の緩和'},
+  'ตามแพทย์สั่ง':{zh:'遵医嘱',ja:'医師の指示通り'},
+  'ต้านการอักเสบ':{zh:'抗炎',ja:'抗炎症'},
+  'ต้านพิษ Opioids':{zh:'阿片类药物解毒',ja:'オピオイド中毒の解毒'},
+  'น้ำตาเทียม':{zh:'人工泪液',ja:'人工涙液'},
+  'น้ำยาฆ่าเชื้อ':{zh:'消毒液',ja:'消毒液'},
+  'น้ำเกลือ':{zh:'生理盐水',ja:'生理食塩水'},
+  'บรรรเทาอาการปวด ลดอาการอักเสบ':{zh:'缓解疼痛，减轻炎症',ja:'鎮痛・抗炎症'},
+  'บรรเทาปวด':{zh:'缓解疼痛',ja:'鎮痛'},
+  'บรรเทาอาการคัดจมูก':{zh:'缓解鼻塞',ja:'鼻づまりの緩和'},
+  'บรรเทาอาการบวม ฟกช้ำ หรือแผลห้อเลือดจากการบาดเจ็บ':{zh:'缓解外伤引起的肿胀、瘀伤或血肿',ja:'外傷による腫れ・打撲・血腫の緩和'},
+  'บรรเทาอาการปวด ลดการอักเสบ':{zh:'缓解疼痛，减轻炎症',ja:'鎮痛・抗炎症'},
+  'บรรเทาอาการปวด ลดไข้':{zh:'缓解疼痛、退烧',ja:'鎮痛・解熱'},
+  'บรรเทาอาการปวดปลายประสาท':{zh:'缓解神经痛',ja:'神経痛の緩和'},
+  'บรรเทาอาการปวดระดับปานกลาง-รุนแรง':{zh:'缓解中至重度疼痛',ja:'中等度から重度の疼痛の緩和'},
+  'บรรเทาอาการภูมิแพ้ คัน ผื่น ลดน้ำมูก':{zh:'缓解过敏、瘙痒、皮疹，减少鼻涕',ja:'アレルギー・かゆみ・発疹の緩和、鼻水の軽減'},
+  'บรรเทาอาการวิงเวียนศีรษะ':{zh:'缓解眩晕',ja:'めまいの緩和'},
+  'บำรุงข้อเสื่อม':{zh:'保健退化性关节',ja:'関節の保護・変形性関節症のケア'},
+  'ปวดปลายประสาท':{zh:'神经痛',ja:'神経痛'},
+  'ป้องกันหรือรักษาโรคบาดทะยัก':{zh:'预防或治疗破伤风',ja:'破傷風の予防または治療'},
+  'ป้องกันและบำบัดภาวะขาดวิตามินบี':{zh:'预防及治疗维生素B缺乏症',ja:'ビタミンB欠乏症の予防・治療'},
+  'ภาวะแคลเซียมในเลือดสูง, กระดูกพรุน':{zh:'高钙血症、骨质疏松症',ja:'高カルシウム血症、骨粗鬆症'},
+  'ภาวะโซเดียมต่ำในเลือด':{zh:'低钠血症',ja:'低ナトリウム血症'},
+  'ภาวะโปแทสเซียมในร่างกายต่ำ':{zh:'低钾血症',ja:'低カリウム血症'},
+  'ยาขยายหลอดลม':{zh:'支气管扩张剂',ja:'気管支拡張薬'},
+  'ยาขับปัสสาวะ':{zh:'利尿剂',ja:'利尿薬'},
+  'ยาขับปัสสาวะ ลดความดันโลหิต':{zh:'利尿剂，降血压',ja:'利尿薬、血圧を下げる'},
+  'ยาคลายกล้ามเนื้อ':{zh:'肌肉松弛剂',ja:'筋弛緩薬'},
+  'ยาคลายกังวล':{zh:'抗焦虑药',ja:'抗不安薬'},
+  'ยาคลายกังวล ช่วยให้นอนหลับ วัตถุออกฤทธิ์ประเภท 2 ***':{zh:'抗焦虑助眠药（第2类管制精神药物）',ja:'抗不安・睡眠導入薬（規制薬物第2種）'},
+  'ยาคลายกังวล ช่วยให้นอนหลับ วัตถุออกฤทธิ์ประเภท 4 ***':{zh:'抗焦虑助眠药（第4类管制精神药物）',ja:'抗不安・睡眠導入薬（規制薬物第4種）'},
+  'ยาฆ่าเชื้อ':{zh:'抗菌药',ja:'殺菌薬'},
+  'ยาฆ่าเชื้อ ยาปฏิชีวนะ':{zh:'抗菌药、抗生素',ja:'殺菌薬・抗生物質'},
+  'ยาฆ่าเชื้อแบคทีเรีย':{zh:'抗菌药',ja:'抗菌薬'},
+  'ยาฆ่าเชื้อแบคทีเรีย - Tetracyclines':{zh:'抗菌药－四环素类',ja:'抗菌薬－テトラサイクリン系'},
+  'ยาฆ่่าเชื้อแบคทีเรีย - Penicllins':{zh:'抗菌药－青霉素类',ja:'抗菌薬－ペニシリン系'},
+  'ยาฉีดลดน้ำตาลในเลือด':{zh:'降血糖注射剂',ja:'血糖降下注射薬'},
+  'ยาฉีดสำหรับรักษากระดูกพรุน กระตุ้นการสร้างกระดูกใหม่':{zh:'骨质疏松症注射药，促进新骨生成',ja:'骨粗鬆症治療注射薬（骨形成を促進）'},
+  'ยาชา':{zh:'麻醉药',ja:'麻酔薬'},
+  'ยาชาเฉพาะที่':{zh:'局部麻醉药',ja:'局所麻酔薬'},
+  'ยาชาเฉพาะที่ และ ยาฉุกเฉินสำหรับหัวใจเต้นผิดจังหวะ':{zh:'局部麻醉药及心律不齐急救药',ja:'局所麻酔薬及び不整脈の緊急治療薬'},
+  'ยาต้านการอักเสบ':{zh:'抗炎药',ja:'抗炎症薬'},
+  'ยาต้านการแข็งตัวของเกล็ดเลือด':{zh:'抗血小板药',ja:'抗血小板薬'},
+  'ยาต้านการแข็งตัวของเลือด / On Hep Lock':{zh:'抗凝血药／肝素锁管用',ja:'抗凝固薬／ヘパリンロック用'},
+  'ยาต้านฮีสตามีน ยาแก้แพ้':{zh:'抗组织胺药，抗过敏药',ja:'抗ヒスタミン薬・抗アレルギー薬'},
+  'ยาต้านเกล็ดเลือด':{zh:'抗血小板药',ja:'抗血小板薬'},
+  'ยาทำให้หลอดเลือดหดหัว':{zh:'血管收缩药',ja:'血管収縮薬'},
+  'ยานำสลบ':{zh:'诱导麻醉药',ja:'麻酔導入薬'},
+  'ยานี้ทำให้ง่วงนอน':{zh:'本药会引起嗜睡',ja:'本剤は眠気を引き起こします'},
+  'ยาบรรเทาปวด ลดไข้':{zh:'缓解疼痛、退烧药',ja:'鎮痛・解熱薬'},
+  'ยาบรรเทาอาการคัดจมูก':{zh:'缓解鼻塞药',ja:'鼻づまり緩和薬'},
+  'ยาบรรเทาอาการคัดจมูก หูอื้อ **':{zh:'缓解鼻塞、耳鸣药',ja:'鼻づまり・耳鳴り緩和薬'},
+  'ยาบรรเทาอาการปวด ลดการอักเสบ':{zh:'缓解疼痛、抗炎药',ja:'鎮痛・抗炎症薬'},
+  'ยาบรรเทาอาการปวด ลดไข้ ลดการอักเสบ':{zh:'缓解疼痛、退烧、抗炎药',ja:'鎮痛・解熱・抗炎症薬'},
+  'ยาบรรเทาอาการปวด และลดไข้':{zh:'缓解疼痛及退烧药',ja:'鎮痛・解熱薬'},
+  'ยาบรรเทาอาการปวดชนิดปานกลาง':{zh:'中度止痛药',ja:'中等度疼痛の鎮痛薬'},
+  'ยาบรรเทาอาการปวดที่ไม่ใช่กลุ่ม Opioids และ NSAIDs':{zh:'非阿片类、非NSAIDs止痛药',ja:'非オピオイド・非NSAIDs系鎮痛薬'},
+  'ยาบรรเทาอาการปวดปานกลาง':{zh:'中度止痛药',ja:'中等度の鎮痛薬'},
+  'ยาบรรเทาอาการปวดรุนแรง **':{zh:'重度止痛药',ja:'重度疼痛の鎮痛薬'},
+  'ยาบรรเทาอาการปวดเกร็งในช่องท้อง':{zh:'缓解腹部绞痛药',ja:'腹部の痙痛緩和薬'},
+  'ยาบรรเทาอาการปวดแบบปานกลาง-รุนแรง':{zh:'缓解中至重度疼痛药',ja:'中等度から重度の鎮痛薬'},
+  'ยาบรรเทาอาการปวดแบบรุนแรง **':{zh:'重度止痛药',ja:'重度疼痛の鎮痛薬'},
+  'ยาบรรเทาอาการปวดและคลายกล้ามเนื้อ':{zh:'止痛及肌肉松弛药',ja:'鎮痛・筋弛緩薬'},
+  'ยาบรรเทาอาการไอ ระคายเคืองคอ':{zh:'缓解咳嗽、喉部不适药',ja:'咳・のどの刺激緩和薬'},
+  'ยาปฎิชีวนะ':{zh:'抗生素',ja:'抗生物質'},
+  'ยาปฎิชีวนะ  รับประทานติดต่อกันจนหมด':{zh:'抗生素，请按疗程连续服用完毕',ja:'抗生物質、最後まで服用してください'},
+  'ยาระงับความรู้สึกเฉพาะที่ ในการใช้เพื่อบล็อกเส้นประสาท':{zh:'局部麻醉药，用于神经阻滞',ja:'局所麻酔薬（神経ブロック用）'},
+  'ยาระบาย':{zh:'通便药',ja:'下剤'},
+  'ยารักษาอาการทางจิตเวช':{zh:'精神科用药',ja:'向精神薬'},
+  'ยารักษาเก๊าท์':{zh:'痛风治疗药',ja:'痛風治療薬'},
+  'ยารักษาโรคกระดูกพรุน':{zh:'骨质疏松症治疗药',ja:'骨粗鬆症治療薬'},
+  'ยารักษาโรคหัวใจ':{zh:'心脏病治疗药',ja:'心疾患治療薬'},
+  'ยารักษาโรคเบาหวานและช่วยควบคุมน้ำหนัก':{zh:'糖尿病治疗药兼助控体重',ja:'糖尿病治療薬（体重管理にも）'},
+  'ยาลดการบีบตัวของกล้ามเนื้อเรียบในช่องท้อง':{zh:'减少腹部平滑肌收缩药',ja:'腹部平滑筋の収縮を抑える薬'},
+  'ยาลดการหลั่งกรด':{zh:'抑酸药',ja:'制酸薬(胃酸分泌抑制)'},
+  'ยาลดการหลั่งกรดในกระเพาะอาหาร':{zh:'减少胃酸分泌药',ja:'胃酸分泌抑制薬'},
+  'ยาลดความดัน':{zh:'降血压药',ja:'降圧薬'},
+  'ยาลดความดัน - ใช้ใน EMERGENCY':{zh:'降血压药（急救用）',ja:'降圧薬（緊急時使用）'},
+  'ยาลดความดันโลหิต':{zh:'降血压药',ja:'降圧薬'},
+  'ยาลดความดันโลหิต ควบคุมการเต้นของหัวใจ':{zh:'降血压药，调节心律',ja:'降圧薬、心拍調整'},
+  'ยาลดระดับน้ำตาลในเลือด':{zh:'降血糖药',ja:'血糖降下薬'},
+  'ยาลดอาการบวม ฟกช้ำ':{zh:'消肿、消瘀药',ja:'腫れ・打撲の緩和薬'},
+  'ยาลดไขมัน':{zh:'降血脂药',ja:'脂質低下薬'},
+  'ยาลดไขมันในระดับเลือด':{zh:'降血脂药',ja:'血中脂質低下薬'},
+  'ยาลดไขมันในเลือด':{zh:'降血脂药',ja:'血中脂質低下薬'},
+  'ยาละลายลิ่มเลือด':{zh:'溶解血栓药',ja:'血栓溶解薬'},
+  'ยาละลายเสมหะ':{zh:'化痰药',ja:'去痰薬'},
+  'ยาสลบทั่วไปชนิดสูดดม ที่ใช้เพื่อให้ผู้ป่วยหมดสติเพื่อการผ่าตัด':{zh:'吸入性全身麻醉药，用于手术麻醉',ja:'吸入麻酔薬（手術のための全身麻酔）'},
+  'ยาหลอดเลือดหดตัว':{zh:'血管收缩药',ja:'血管収縮薬'},
+  'ยาหัวใจเต้นผิดจังหวะ':{zh:'抗心律不齐药',ja:'抗不整脈薬'},
+  'ยาห้ามเลือด':{zh:'止血药',ja:'止血薬'},
+  'ยาออกฤทธิ์ต่อสารสื่อประสาท':{zh:'作用于神经传导物质的药物',ja:'神経伝達物質に作用する薬'},
+  'ยาเกิดฟองง่าย แนะนำฉีด Solvant ให้ไหลลงข้างขวด หมุนเบาๆบนโต๊ะ':{zh:'本药易产生泡沫，注入溶剂时建议沿瓶壁缓慢注入，并在桌上轻轻转动',ja:'本剤は泡立ちやすいため、溶解液は瓶の壁に沿ってゆっくり注入し、卓上で軽く回転させてください'},
+  'ยาเก๊าท์':{zh:'痛风药',ja:'痛風薬'},
+  'ยาแก้คลื่นไส้ อาเจียน':{zh:'止吐药',ja:'制吐薬'},
+  'ยาแก้คลื่นไส้ อาเจียน ** บรรเทาอาการเมารถ เรือ':{zh:'止吐药，缓解晕车晕船',ja:'制吐薬、乗り物酔いの緩和'},
+  'ยาแก้ปวด':{zh:'止痛药',ja:'鎮痛薬'},
+  'ยาแก้ปวด คลายกล้ามเนื้อ':{zh:'止痛、肌肉松弛药',ja:'鎮痛・筋弛緩薬'},
+  'ยาแก้ปวด ลดการอักเสบ':{zh:'止痛、抗炎药',ja:'鎮痛・抗炎症薬'},
+  'ยาแก้ปวด ลดอักเสบ':{zh:'止痛、抗炎药',ja:'鎮痛・抗炎症薬'},
+  'ยาแก้ปวด ลดไข้':{zh:'止痛、退烧药',ja:'鎮痛・解熱薬'},
+  'ยาแก้ปวดปลายประสาท':{zh:'神经痛止痛药',ja:'神経痛治療薬'},
+  'ยาแก้เจ็บคอ':{zh:'喉痛药',ja:'のどの痛み治療薬'},
+  'ยาแก้เวียนหัว':{zh:'眩晕药',ja:'めまい治療薬'},
+  'ยาแก้แพ้ ลดน้ำมูก':{zh:'抗过敏、减少鼻涕药',ja:'抗アレルギー・鼻水緩和薬'},
+  'ยาแก้แพ้ แก้คัน':{zh:'抗过敏、止痒药',ja:'抗アレルギー・かゆみ止め薬'},
+  'ระงับความรู้สึก คลายวิตกกังวล':{zh:'镇静、抗焦虑',ja:'鎮静・抗不安'},
+  'รักษาการติดเชื้อจากแผลไฟไหม้ แผลที่ขา แผลกดทับ':{zh:'治疗烧伤、腿部伤口、压疮感染',ja:'熱傷・下肢創傷・褥瘡の感染治療'},
+  'รักษาความผิดปกติของการแข็งตัวของเลือด / รักษาภาวะขาดวิตามินเค':{zh:'治疗凝血功能异常／维生素K缺乏症',ja:'凝固異常の治療／ビタミンK欠乏症の治療'},
+  'รักษาโรคกระดูกพรุน':{zh:'治疗骨质疏松症',ja:'骨粗鬆症の治療'},
+  'รักษาโรคข้อ':{zh:'治疗关节疾病',ja:'関節疾患の治療'},
+  'ลดน้ำตาลในเลือด':{zh:'降血糖',ja:'血糖を下げる'},
+  'ลดน้ำหนัก':{zh:'减重',ja:'減量'},
+  'ลดปวดบริเวรณที่มีอาการ':{zh:'缓解患处疼痛',ja:'症状部位の疼痛緩和'},
+  'ลดระดับน้ำตาลในเลือด':{zh:'降低血糖',ja:'血糖値を下げる'},
+  'ลดไขมัน Triglyceride':{zh:'降低三酸甘油脂',ja:'中性脂肪(トリグリセリド)を下げる'},
+  'ลดไขมันในเลือด':{zh:'降血脂',ja:'血中脂質を下げる'},
+  'ลดไข้,แก้ปวด':{zh:'退烧、止痛',ja:'解熱・鎮痛'},
+  'ล้างแผล':{zh:'清洗伤口',ja:'創傷洗浄'},
+  'วัคซันป้อกันมะเร็งปากมดลูก':{zh:'子宫颈癌疫苗',ja:'子宮頸がんワクチン'},
+  'วัคซีนบาดทะยัก':{zh:'破伤风疫苗',ja:'破傷風ワクチン'},
+  'วัคซีนป้องกันเชื้อเฮชพีวี':{zh:'HPV疫苗',ja:'HPVワクチン'},
+  'วัคซีนป้องกันโรคปอดอักเสบ':{zh:'肺炎疫苗',ja:'肺炎ワクチン'},
+  'วัคซีนป้องกันโรคไข้หวัดใหญ่':{zh:'流感疫苗',ja:'インフルエンザワクチン'},
+  'วัคซีนป้องกันโรคไข้เลือดออก':{zh:'登革热疫苗',ja:'デング熱ワクチン'},
+  'วัคซีนพิษสุนับบ้า':{zh:'狂犬病疫苗',ja:'狂犬病ワクチン'},
+  'วัคซีนมะเร็งปากมดลูก':{zh:'子宫颈癌疫苗',ja:'子宮頸がんワクチン'},
+  'วัคซีนไข้หวัดใหญ่':{zh:'流感疫苗',ja:'インフルエンザワクチン'},
+  'วัคซีนไวรัสตับอักเสบบี':{zh:'乙型肝炎疫苗',ja:'B型肝炎ワクチン'},
+  'วิตตามินบำรุง':{zh:'营养维生素',ja:'栄養補給用ビタミン'},
+  'วิธีใช้':{zh:'用法',ja:'使用方法'},
+  'สารทึบรังสี':{zh:'造影剂',ja:'造影剤'},
+  'สารน้ำ':{zh:'输液',ja:'輸液'},
+  'สารละลาย':{zh:'溶液',ja:'溶液'},
+  'สารละลาย Dextrose':{zh:'葡萄糖溶液',ja:'ブドウ糖溶液'},
+  'สำหรับรักษาโรคกระดูกพรุน':{zh:'用于治疗骨质疏松症',ja:'骨粗鬆症治療用'},
+  'เจลหล่อลื่น':{zh:'润滑凝胶',ja:'潤滑ゼリー'},
+  'เซรุ่มป้องกันโรคพิษสุนัขบ้า':{zh:'狂犬病免疫血清',ja:'狂犬病免疫血清'},
+  'เพิ่มแรงบีบตัวของหัวใจ':{zh:'增强心脏收缩力',ja:'心収縮力を増強する'},
+  'เสริมธาตุเหล็ก':{zh:'补铁',ja:'鉄分補給'},
+  'เสริมวิตามิน B รวม':{zh:'补充复合维生素B',ja:'ビタミンB群の補給'},
+  'เสริมวิตามิน B12':{zh:'补充维生素B12',ja:'ビタミンB12の補給'},
+  'เสริมวิตามิน D':{zh:'补充维生素D',ja:'ビタミンDの補給'},
+  'เสริมวิตามิน D3':{zh:'补充维生素D3',ja:'ビタミンD3の補給'},
+  'เสริมสร้างเม็ดเลือดแดง':{zh:'促进红细胞生成',ja:'赤血球の生成を促進'},
+  'เสริมแคลเซียม':{zh:'补充钙质',ja:'カルシウム補給'},
+  'แก้ปวด':{zh:'止痛',ja:'鎮痛'},
+  'แก้ปวด ลดการอักเสบ':{zh:'止痛、抗炎',ja:'鎮痛・抗炎症'},
+  'แก้ปวด ลดอักเสบ':{zh:'止痛、抗炎',ja:'鎮痛・抗炎症'},
+  'แก้ปวด ลดไข้ ลดอาการอักเสบ':{zh:'止痛、退烧、抗炎',ja:'鎮痛・解熱・抗炎症'},
+  'แคลเซียม':{zh:'钙',ja:'カルシウム'},
+  'แคลเซี่ยมบำรุงกระดูก':{zh:'钙质，强健骨骼',ja:'カルシウム（骨の健康維持）'},
+  'แร่ธาต โปแตสเซียมคลอไรด์':{zh:'矿物质－氯化钾',ja:'ミネラル－塩化カリウム'},
+  'แร่ธาตุ':{zh:'矿物质',ja:'ミネラル'},
+  'แอลกอฮอล์':{zh:'酒精',ja:'アルコール'},
+  'โปรดระบุข้อมูล':{zh:'请提供资料',ja:'情報をご提供ください'},
+  'ใช้รักษาภาวะหัวใจเต้นเร็วผิดปกติ':{zh:'用于治疗心律过速',ja:'頻脈の治療に使用'},
+  'ใช้รักษาภาวะเลือดไหลหยุดยากหรือเลือดออกมากผิดปกติ':{zh:'用于治疗出血不止或异常大量出血',ja:'止血困難または異常な大量出血の治療に使用'},
+  'ใช้สำหรับฆ่าเชื้อ':{zh:'用于消毒杀菌',ja:'殺菌に使用'},
+  'ใช้สำหรับฆ่าเชื้อแบคทีเรีย':{zh:'用于杀灭细菌',ja:'細菌の殺菌に使用'},
+  'ใช้สำหรับต้านการอักเสบ ลดปวด ลดไข้':{zh:'用于抗炎、止痛、退烧',ja:'抗炎症・鎮痛・解熱に使用'},
+  'ใช้สำหรับภาวะมีโพแทสเซียมในเลือดสูง':{zh:'用于高血钾症',ja:'高カリウム血症に使用'},
+  'ใช้สำหรับลดการอักเสบ ลดปวด':{zh:'用于抗炎、止痛',ja:'抗炎症・鎮痛に使用'},
+  'ใช้สำหรับลดปวดปานกลาง ถึงรุนแรง':{zh:'用于缓解中至重度疼痛',ja:'中等度から重度の疼痛緩和に使用'},
+  'ใช้เพื่อทำให้บริเวณที่ต้องการผ่าตัดหรือทำหัตถการไม่รู้สึกเจ็บปวด':{zh:'用于使手术或处置部位无痛感',ja:'手術・処置部位の無痛化に使用'},
+  'ใช้แก้ฤทธิ์ยาหย่อนกล้ามเนื้อ':{zh:'用于逆转肌肉松弛药作用',ja:'筋弛緩薬の作用拮抗に使用'},
+  'ให้ความชุ่มชื้น':{zh:'保湿',ja:'保湿'}
+};
+
+// คำเตือน (drug.warnings/thaiWarnings — ระดับ drug master คงที่เช่นกัน)
+const HIS_WARNINGS_DICT = {
+  '25-50 mg/kg/dose PO':{zh:'口服 25-50 mg/kg/剂',ja:'経口 25-50 mg/kg/回'},
+  'Stable for 24hrs at 2-8 C and 6 hrs at 25 C after reconstitution':{zh:'配制后于2-8°C可稳定24小时，25°C可稳定6小时',ja:'調製後2-8°Cで24時間、25°Cで6時間安定'},
+  'Stable for 48 hrs at 2-8 C and 24 hrs at 25 C after reconstitution':{zh:'配制后于2-8°C可稳定48小时，25°C可稳定24小时',ja:'調製後2-8°Cで48時間、25°Cで24時間安定'},
+  'Use within 1 hour after reconstitution':{zh:'配制后请于1小时内使用',ja:'調製後1時間以内に使用してください'},
+  '[>40 - 250 mg] [NSS,D5W 100 ml] x 30 min':{zh:'[>40-250mg][NSS或D5W 100ml] 输注30分钟',ja:'[>40-250mg][NSSまたはD5W 100ml] 30分かけて投与'},
+  '[IV push - SWI] & [Infusion: NSS or D5W]':{zh:'[静脉推注-注射用水][输液：NSS或D5W]',ja:'[静注-注射用水][点滴：NSSまたはD5W]'},
+  'ก่อนอาหารอย่างน้อย 30 นาที ทานยานี้จนหมด':{zh:'餐前至少30分钟服用，请服用完整个疗程',ja:'食前少なくとも30分前に服用し、最後まで飲み切ってください'},
+  'ควรฉีด 2 ครั้ง ที่ 0 , 3 เดือน':{zh:'应于第0、3个月各注射一次，共2次',ja:'0か月目と3か月目に2回接種してください'},
+  'ฉีดยาสัปดาห์ละ 1 ครั้ง หรือตามแพทย์สั่ง':{zh:'每周注射1次，或遵医嘱',ja:'週1回注射、または医師の指示通り'},
+  'ฉีดใต้ผิวหนังเท่านั้น':{zh:'仅供皮下注射',ja:'皮下注射専用'},
+  'ทานติดต่อกันจนหมด,หลีกเลี่ยงทานพร้อมนม':{zh:'请按疗程服用完，避免与牛奶同服',ja:'最後まで服用し、牛乳と一緒に服用しないでください'},
+  'ยานี้อาจทำให้ง่วงนอน':{zh:'本药可能引起嗜睡',ja:'本剤は眠気を引き起こすことがあります'},
+  'ยานี้อาจทำให้ง่วงนอน ***':{zh:'本药可能引起嗜睡',ja:'本剤は眠気を引き起こすことがあります'},
+  'ยานี้อาจทำให้ง่วงนอน หรือ ท้องผูกบ้างในบางราย':{zh:'本药可能引起嗜睡或部分患者便秘',ja:'本剤は眠気や、一部の患者で便秘を起こすことがあります'},
+  'ยานี้อาจทำให้ง่วงนอนในบางราย':{zh:'本药可能使部分患者产生嗜睡',ja:'本剤は一部の患者で眠気を起こすことがあります'},
+  'ยานี้อาจทำให้ง่วงนอนได้ในบางราย':{zh:'本药可能使部分患者产生嗜睡',ja:'本剤は一部の患者で眠気を起こすことがあります'},
+  'ยานี้อาจทำให้ง่วงได้ในบางราย':{zh:'本药可能使部分患者产生嗜睡',ja:'本剤は一部の患者で眠気を起こすことがあります'},
+  'ยานี้อาจทำให้ระคายเคืองกระเพาะอาหาร':{zh:'本药可能刺激胃部',ja:'本剤は胃を刺激することがあります'},
+  'ยานี้อาจทำให้เกิดอาการถ่ายเหลวได้':{zh:'本药可能引起腹泻',ja:'本剤は下痢を起こすことがあります'},
+  'ยาอาจระคายเคืองกระเพาะ ควรรับประทานหลังอาหารทันที':{zh:'本药可能刺激胃部，请饭后立即服用',ja:'本剤は胃を刺激する可能性があるため、食後すぐに服用してください'},
+  'ยาเสพติดให้โทษประเภทที่ 2':{zh:'第2类管制药品',ja:'第2種規制薬物'},
+  'ยาเสพติดให้โทษประเภทที่ 2 **':{zh:'第2类管制药品',ja:'第2種規制薬物'},
+  'ยาใช้ภายนอก':{zh:'外用药',ja:'外用薬'},
+  'ระวังภาวะน้ำตาลตก':{zh:'注意低血糖',ja:'低血糖に注意してください'},
+  'รับประทานก่อนอาหาร 30 นาที':{zh:'餐前30分钟服用',ja:'食前30分に服用'},
+  'รับประทานก่อนอาหารประมาณ 30 นาที':{zh:'餐前约30分钟服用',ja:'食前約30分に服用'},
+  'รับประทานก่อนอาหารอย่างน้อย 30 นาที':{zh:'餐前至少30分钟服用',ja:'食前少なくとも30分前に服用'},
+  'รับประทานติดต่อกันจนหมด':{zh:'请按疗程连续服用完毕',ja:'最後まで服用してください'},
+  'รับประทานยาติดต่อกันจนหมด':{zh:'请按疗程连续服用完毕',ja:'最後まで服用してください'},
+  'รับประทานยานี้หลังอาหารทันที':{zh:'本药请饭后立即服用',ja:'本剤は食後すぐに服用してください'},
+  'รับประทานยานี้แล้วอาจทำให้ง่วงนอน':{zh:'服用本药后可能引起嗜睡',ja:'本剤服用後、眠気を起こすことがあります'},
+  'รับประทานยานี้ให้หมดตามแพทย์สั่ง':{zh:'请遵医嘱将本药服用完毕',ja:'医師の指示通り最後まで服用してください'},
+  'รับประทานหลังอาหารทันที':{zh:'请饭后立即服用',ja:'食後すぐに服用してください'},
+  'รับประทานห่างจากน้ำแร่ นม ยาลดกรด แร่ธาตุอย่างน้อย 2 ชม.':{zh:'服用时应与矿泉水、牛奶、抗酸剂、矿物质补充剂间隔至少2小时',ja:'ミネラルウォーター、牛乳、制酸剤、ミネラル剤とは少なくとも2時間空けて服用してください'},
+  'หลังเปิดใช้ ยามีอายุ 1 เดือน':{zh:'开封后有效期为1个月',ja:'開封後の使用期限は1か月です'},
+  'หลีกเลี่ยงการรับประทานคู่กับนม ผลิตภัณฑ์เสริมแคลเซียม ธาตุเหล็ก หรือยาลดกรด':{zh:'避免与牛奶、钙补充剂、铁剂或抗酸剂同时服用',ja:'牛乳、カルシウム剤、鉄剤、制酸剤と同時に服用しないでください'},
+  'หลีกเลี่ยงบริเวณที่มีแผล':{zh:'避开有伤口的部位',ja:'傷のある部位を避けてください'},
+  'ห้ามให้ IV push':{zh:'禁止静脉推注',ja:'静脈内急速投与（IVプッシュ）禁止'},
+  'เก็บยานี้ให้พ้นแสง':{zh:'本药应避光保存',ja:'本剤は遮光して保管してください'},
+  'เม็ดฟู่ละลายน้ำ':{zh:'泡腾片，溶于水后服用',ja:'発泡錠、水に溶かして服用'},
+  'โปรดระบุข้อมูล':{zh:'请提供资料',ja:'情報をご提供ください'},
+  'ไม่ควรใช้ติดต่อกันเกิน 5 วัน':{zh:'不宜连续使用超过5天',ja:'5日間を超えて継続使用しないでください'},
+  'ไม่ควรใช้ต่อเนื่องเกิน 5 วัน':{zh:'不宜连续使用超过5天',ja:'5日間を超えて継続使用しないでください'},
+  'ไม่เคยได้วัคซีน IM: 1 โดส, 5 ครั้ง Day 0, 3, 7, 14, 30\nเคยได้น้อยกว่า 6 เดือน IM: 1 โดส, 1 ครั้ง Day 0\nเคยได้มากกว่า 6 เดือนIM: 1 โดส, 2 ครั้ง Day 0, 3':{zh:'未曾接种：肌肉注射1剂，共5次，第0、3、7、14、30天\n曾接种(<6个月)：肌肉注射1剂，第0天\n曾接种(>6个月)：肌肉注射1剂，共2次，第0、3天',ja:'未接種：筋注1回×5回（0,3,7,14,30日目）\n6ヵ月未満に接種歴あり：筋注1回（0日目）\n6ヵ月以上前に接種歴あり：筋注1回×2回（0,3日目）'}
+};
+
+// ข้อบ่งใช้เฉพาะใบสั่ง (indication) เป็น freeform จริง ๆ แต่สุ่มตรวจ HIS จริง 30 ใบสั่งเจอแค่ 3 แบบซ้ำ ๆ
+// ใส่ dictionary เริ่มต้นไว้ก่อน ที่เหลือ (ไม่เจอในนี้) จะ fallback ไปใช้ phraseMemory ด้านล่างแทน
+const HIS_INDICATION_DICT = {
+  'เวลาปวด':{zh:'疼痛时',ja:'疼痛時'},
+  'NSS flush lock':{zh:'生理盐水冲管封管',ja:'生理食塩水フラッシュ・ロック'},
+  'ทำแผล 10 CC':{zh:'伤口护理 10 CC',ja:'創処置 10 CC'}
+};
+
+// ตัด strength/form/brand ท้ายชื่อออก แล้ว lowercase เพื่อ match กับ HIS_DRUG_DICT
+// (บาง genericName จาก HIS มีเลขขนาดยา/หน่วยติดมาด้วย เช่น "Amlodipine TAB 10 mg")
+function normalizeGenericName(raw){
+  if (!raw) return '';
+  let s = raw.trim();
+  if (HIS_DRUG_DICT[s.toLowerCase()]) return s.toLowerCase();
+  s = s.replace(/\s+(TAB|CAP|CAPS|INJ|SYR)\b.*$/i, '').trim();
+  s = s.replace(/\s+\d+([.,]\d+)?\s*(mg|g|ml|mcg|iu|%)\b.*$/i, '').trim();
+  return s.toLowerCase();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Phrase memory — ข้อบ่งใช้/คำเตือน เป็นข้อความอิสระจาก HIS (ไม่ใช่ code
+   คงที่แบบ drugUsage) จึงจำคำแปลที่เภสัชกรพิมพ์ไว้แล้วต่อ (คีย์ = ข้อความไทยดิบ)
+   แทนการ hard-code ล่วงหน้าทั้งหมดซึ่งไม่น่าเชื่อถือเท่าให้คนตรวจสอบเอง
+   ══════════════════════════════════════════════════════════════ */
+let phraseMemory = JSON.parse(localStorage.getItem('lbl_phrase_memory') || 'null') || {};
+function savePhraseMemory(){ localStorage.setItem('lbl_phrase_memory', JSON.stringify(phraseMemory)); }
+function rememberPhrase(rawTh, zhText, jaText){
+  if (!rawTh) return;
+  if (!zhText && !jaText) return;
+  phraseMemory[rawTh] = { zh: zhText || (phraseMemory[rawTh]||{}).zh || '', ja: jaText || (phraseMemory[rawTh]||{}).ja || '' };
+  savePhraseMemory();
+}
+
+let doctorDict = JSON.parse(localStorage.getItem('lbl_doctor_dict') || 'null') || {};
+function saveDoctorDict(){ localStorage.setItem('lbl_doctor_dict', JSON.stringify(doctorDict)); }
+
+/* ══════════════════════════════════════════════════════════════
+   State + persistence
+   ══════════════════════════════════════════════════════════════ */
+let BRIDGE_URL = localStorage.getItem('lbl_bridge_url') || 'http://localhost:8765';
+// สำรองไว้เผื่อ his_bridge.py ใช้ไม่ได้ — หน้านี้ไม่ได้เรียกใช้ GAS_URL อยู่ตอนนี้
+// (ดึงข้อมูลจริงผ่าน BRIDGE_URL ตรงจาก HIS)
+const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzuBl87e9Xc61jtFItkslSeJMsIMt8LaJQ4gmLO6_JxaarnCA5m2EecnqNIjNbwSaKP/exec';
+let ADDR_ZH    = localStorage.getItem('lbl_addr_zh') || DEFAULT_ADDR.zh;
+let ADDR_JA    = localStorage.getItem('lbl_addr_ja') || DEFAULT_ADDR.ja;
+let lang = '';
+let fetchedPatient = null;
+let fetchedRows = [];
+let rawIndicTh = '';  // ข้อบ่งใช้ดิบภาษาไทยจาก HIS ของแถวที่เลือกอยู่ (ไว้โชว์ hint)
+let rawWarnTh  = '';
+
+/* ══════════════════════════════════════════════════════════════
+   Populate dropdowns from HIS dictionaries
+   ══════════════════════════════════════════════════════════════ */
+function populateDrugDict(){
+  const sel = document.getElementById('fDrugDict');
+  const keys = Object.keys(HIS_DRUG_DICT).sort((a,b)=>HIS_DRUG_DICT[a].en.localeCompare(HIS_DRUG_DICT[b].en));
+  sel.innerHTML = '<option value="">-- ไม่พบในคลัง / พิมพ์เอง --</option>' +
+    keys.map(k=>`<option value="${k}">${HIS_DRUG_DICT[k].en}</option>`).join('');
+}
+function populateFormDict(){
+  const sel = document.getElementById('fDrugForm');
+  const keys = Object.keys(HIS_FORM_DICT).sort();
+  sel.innerHTML = keys.map(k=>`<option value="${k}">${k} — ${HIS_FORM_DICT[k].en}</option>`).join('');
+}
+function populateUsageDict(){
+  const sel = document.getElementById('fFreqPreset');
+  const keys = Object.keys(HIS_USAGE_DICT).sort();
+  sel.innerHTML = '<option value="">-- กำหนดเอง / ปรับข้อความด้านล่าง --</option>' +
+    keys.map(k=>`<option value="${k}">${k}</option>`).join('');
+}
+populateDrugDict();
+populateFormDict();
+populateUsageDict();
+
+function onDrugDictChange(){ renderLabel(); }
+function onPresetChange(){
+  const code = document.getElementById('fFreqPreset').value;
+  if (code && HIS_USAGE_DICT[code]) {
+    document.getElementById('fFreqCustom').value = '';
+  }
+  renderLabel();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Language gate
+   ══════════════════════════════════════════════════════════════ */
+function onLangChange(){
+  lang = document.getElementById('langSelect').value;
+  if (!lang){
+    document.getElementById('gateMsg').style.display='block';
+    document.getElementById('labelScaleBox').style.display='none';
+    return;
+  }
+  document.getElementById('gateMsg').style.display='none';
+  document.getElementById('labelScaleBox').style.display='flex';
+  if (fetchedRows.length) applyFetchedRow(); else renderLabel();
+  requestAnimationFrame(fitLabelToStage);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Print — ตั้งชื่อไฟล์ (document.title) ให้สื่อความหมายก่อนพิมพ์ เวลาเลือก
+   "Save as PDF" browser จะเอาชื่อนี้ไปตั้งเป็นชื่อไฟล์ PDF เริ่มต้นให้อัตโนมัติ
+   ส่วนขนาดกระดาษ 100mm x 80mm ถูกกำหนดตายตัวผ่าน @page ในโหมด print แล้ว
+   (ไม่ต้องตั้งเองใน dialog — เลือก Save as PDF ก็ได้ขนาดตรงเป๊ะทันที)
+   ══════════════════════════════════════════════════════════════ */
+const _origTitle = document.title;
+// field ที่เปลี่ยนไปตามยาแต่ละรายการ (ไม่ใช่ field ระดับผู้ป่วย/ใบสั่งที่เหมือนกันทุกหน้า)
+const PER_DRUG_FIELD_IDS = ['fDrugEn','fDrugDict','fDrugForm','fQty','fDose',
+  'fFreqPreset','fFreqCustom','fIndicCustom','fWarnCustom','fTimes','fLocation','fPageNo','fPageTotal'];
+
+// พิมพ์ฉลากยาทุกรายการในใบสั่งเดียวกันรวดเดียว (1 คลิก = ครบทุกรายการ ไม่ใช่ใบเดิมซ้ำ ๆ)
+// วิธีทำ: ไล่สลับไปแต่ละรายการผ่าน applyFetchedRow() ตัวเดิม (ได้ dictionary/คำแปล auto ครบ)
+// เก็บ HTML ผลลัพธ์แต่ละหน้าไว้ แล้วคืนฟอร์มกลับเป็นของรายการที่กำลังดูอยู่ก่อนพิมพ์จริง
+// (รายการที่กำลังดูอยู่ใช้ค่าปัจจุบันในฟอร์มตรง ๆ เผื่อเภสัชกรแก้คำแปลเองไว้ ไม่ให้ถูก overwrite ทับ)
+function printLabel(){
+  const pick = document.getElementById('drugPick');
+  const hasMultiple = fetchedRows.length > 1;
+  const originalIdx = hasMultiple ? (parseInt(pick.value) || 0) : 0;
+  const originalHTML = document.getElementById('labelPrint').innerHTML;
+
+  let pages = [originalHTML];
+  if (hasMultiple) {
+    const snapshot = {};
+    PER_DRUG_FIELD_IDS.forEach(id => snapshot[id] = document.getElementById(id).value);
+
+    pages = [];
+    for (let i = 0; i < fetchedRows.length; i++) {
+      if (i === originalIdx) { pages.push(originalHTML); continue; }
+      pick.value = i;
+      applyFetchedRow();
+      pages.push(document.getElementById('labelPrint').innerHTML);
+    }
+
+    // คืนฟอร์ม + preview กลับเป็นของรายการเดิมก่อนพิมพ์ (ไม่เรียก applyFetchedRow ซ้ำ กัน overwrite คำแปลที่แก้ไว้)
+    pick.value = originalIdx;
+    PER_DRUG_FIELD_IDS.forEach(id => document.getElementById(id).value = snapshot[id]);
+    document.getElementById('labelPrint').innerHTML = originalHTML;
+  }
+
+  let printAllEl = document.getElementById('printAllContainer');
+  if (!printAllEl) {
+    printAllEl = document.createElement('div');
+    printAllEl.id = 'printAllContainer';
+    document.body.appendChild(printAllEl);
+  }
+  printAllEl.innerHTML = pages.map(html => `<div class="label-page">${html}</div>`).join('');
+
+  const prescNo = (document.getElementById('fPrescNoBottom').value || '').trim();
+  const name    = (document.getElementById('fPatientName').value || '').trim().replace(/\s+/g, '_');
+  document.title = ['Label', prescNo, name].filter(Boolean).join('_') || _origTitle;
+  if (window.__noPrint) return;
+  window.print();
+}
+window.addEventListener('afterprint', () => {
+  document.title = _origTitle;
+  const c = document.getElementById('printAllContainer');
+  if (c) c.innerHTML = '';
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Scale the label up to fill the available preview area (เหมือน
+   video monitor object-fit:contain) แทนที่จะ render ขนาดจริง 100mm
+   ลอยเล็ก ๆ กลางกล่องใหญ่ ๆ เฉย ๆ — คำนวณ scale ใหม่ทุกครั้งที่กล่องเปลี่ยนขนาด
+   ══════════════════════════════════════════════════════════════ */
+const LABEL_MM_W = 100, LABEL_MM_H = 80;
+function fitLabelToStage(){
+  const box = document.getElementById('labelScaleBox');
+  const el  = document.getElementById('labelPrint');
+  if (!box || !el || box.style.display === 'none') return;
+  const padding = 26 * 2; // ให้ตรงกับ .label-scale-box padding ทั้งสองด้าน
+  const availW = box.clientWidth  - padding;
+  const availH = box.clientHeight - padding;
+  if (availW <= 0 || availH <= 0) return;
+  // offsetWidth/Height ไม่ถูกกระทบจาก transform:scale() อยู่แล้ว (แค่ผลการ render ที่เปลี่ยน)
+  // จึงใช้เป็นขนาดจริง (100mm x 80mm แปลงเป็น px) ได้ตรง ๆ โดยไม่ต้องหารย้อนกลับ
+  const baseW = el.offsetWidth;
+  const baseH = el.offsetHeight;
+  const scale = Math.max(0.5, Math.min(availW / baseW, availH / baseH));
+  el.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', () => requestAnimationFrame(fitLabelToStage));
+if (window.ResizeObserver) {
+  new ResizeObserver(() => requestAnimationFrame(fitLabelToStage))
+    .observe(document.getElementById('labelScaleBox'));
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DOB conversion (พ.ศ. -> target format)
+   ══════════════════════════════════════════════════════════════ */
+function formatDOB(){
+  const d = parseInt(document.getElementById('fDobD').value);
+  const m = parseInt(document.getElementById('fDobM').value);
+  let y   = parseInt(document.getElementById('fDobY').value);
+  if (!d || !m || !y) return '';
+  if (y > 2400) y = y - 543; // พ.ศ. -> ค.ศ.
+  return `${y}年${m}月${d}日`;
+}
+function setDobFromISO(iso){
+  // iso = "YYYY-MM-DD" (ค.ศ. ตรงจาก HIS) -> เติมลงช่อง D/M/Y(พ.ศ.) เดิม
+  // เพื่อให้ formatDOB() (แปลง พ.ศ.->ค.ศ.) ทำงานเหมือนเดิมโดยไม่ต้องแก้ logic
+  if (!iso) return;
+  const parts = iso.split('-');
+  if (parts.length !== 3) return;
+  const y = parseInt(parts[0]), m = parseInt(parts[1]), d = parseInt(parts[2]);
+  if (!y || !m || !d) return;
+  document.getElementById('fDobY').value = y + 543;
+  document.getElementById('fDobM').value = m;
+  document.getElementById('fDobD').value = d;
+}
+
+function formatSchedule(raw){
+  // "4,10,16,22" -> "04.00, 10.00, 16.00, 22.00"
+  if (!raw) return '';
+  return String(raw).split(',').map(s=>{
+    s = s.trim(); if (!s) return null;
+    const n = parseInt(s);
+    if (isNaN(n)) return s;
+    return String(n).padStart(2,'0') + '.00';
+  }).filter(Boolean).join(', ');
+}
+function formatDose(raw){
+  const n = parseFloat(raw);
+  if (isNaN(n)) return raw || '';
+  return (n % 1 === 0) ? String(n) : String(n);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Fetch from HIS bridge (his_bridge.py local endpoint /labelData)
+   ══════════════════════════════════════════════════════════════ */
+function fetchFromHIS(){
+  const prescNo = document.getElementById('fPrescNo').value.trim();
+  const statusEl = document.getElementById('fetchStatus');
+  if (!prescNo){ statusEl.textContent='กรอก Presc No (MEI) ก่อน'; statusEl.className='fetch-status err'; return; }
+  statusEl.textContent='กำลังขอข้อมูลจาก HIS ผ่านเครื่องห้องยา...'; statusEl.className='fetch-status';
+  // (เวอร์ชันเว็บ) relay ผ่าน GAS → LKPC-08 → his_bridge.py /labelData (ผลรูปเดียวกับเรียก bridge ตรง)
+  relay('label', prescNo, statusEl).then(res=>{
+    if (res.status !== 'ok' || !res.rows || !res.rows.length){
+      statusEl.textContent='ไม่พบข้อมูล (' + (res.status||'error') + ') — ตรวจเลข Presc No (MEI) หรือกรอกมือ';
+      statusEl.className='fetch-status err';
+      return;
+    }
+    fetchedPatient = res.patient;
+    fetchedRows = res.rows;
+    statusEl.textContent=`พบ ${res.rows.length} รายการยา — ${fetchedPatient.patientNameEn||fetchedPatient.patientNameTh}`;
+    statusEl.className='fetch-status ok';
+    const pickWrap = document.getElementById('drugPickWrap');
+    const pick = document.getElementById('drugPick');
+    if (res.rows.length > 1){
+      pickWrap.style.display='block';
+      pick.innerHTML = res.rows.map((r,i)=>`<option value="${i}">${r.tradeName} (qty ${r.qty})</option>`).join('');
+    } else {
+      pickWrap.style.display='none';
+    }
+    applyFetchedRow();
+  }).catch(e=>{
+    statusEl.textContent='ดึงข้อมูลไม่สำเร็จ: ' + e.message;
+    statusEl.className='fetch-status err';
+  });
+}
+
+function applyFetchedRow(){
+  if (!fetchedPatient) return;
+  const idx = parseInt(document.getElementById('drugPick').value) || 0;
+  const r = fetchedRows[idx];
+  const p = fetchedPatient;
+  if (!r) return;
+
+  document.getElementById('fRoom').value = p.room || '';
+  document.getElementById('fPatientName').value = p.patientNameEn || p.patientNameTh || '';
+  document.getElementById('fGender').value = (p.gender === 'หญิง') ? 'F' : 'M';
+  document.getElementById('fHN').value = p.hn || '';
+  document.getElementById('fAN').value = p.an || '';
+  setDobFromISO(p.birthDate);
+  document.getElementById('fRxType').value = p.rxType || 'continuous';
+
+  document.getElementById('fDrugEn').value = r.tradeName || '';
+  const normKey = normalizeGenericName(r.genericName);
+  document.getElementById('fDrugDict').value = HIS_DRUG_DICT[normKey] ? normKey : '';
+  document.getElementById('drugDictHint').textContent = HIS_DRUG_DICT[normKey] ? '' :
+    (r.genericName ? `ไม่พบ "${r.genericName}" ในคลัง — เลือก/พิมพ์เองด้านบน` : '');
+  document.getElementById('fDrugForm').value = HIS_FORM_DICT[r.formCode] ? r.formCode : 'TAB';
+  document.getElementById('fQty').value = r.qty || '';
+  document.getElementById('fDose').value = formatDose(r.dosage) || '1';
+
+  document.getElementById('fDoctorTh').value = p.doctorNameTh || '';
+  const enName = (p.doctorNameEn || '').replace(/^dr\.?\s+/i,'').trim();
+  document.getElementById('fDoctorEn').value = enName || doctorDict[p.doctorNameTh] || '';
+
+  // ── ความถี่: auto จาก usageCode + PRN suffix ──
+  document.getElementById('fFreqPreset').value = HIS_USAGE_DICT[r.usageCode] ? r.usageCode : '';
+  document.getElementById('fFreqCustom').value = '';
+
+  // ── ข้อบ่งใช้ / คำเตือน: ข้อความอิสระ — ใช้ phrase memory ถ้าเคยแปลไว้ ──
+  // ข้อบ่งใช้ = uses (การใช้ทั่วไปของยา ระดับ drug master) + indication (หมายเหตุเฉพาะใบสั่งนี้ ถ้ามี)
+  // เดิมโค้ดนี้ใช้ r.indication อย่างเดียว ทำให้ถ้า order ไม่มี indication เฉพาะ (ว่าง) บรรทัด
+  // ข้อบ่งใช้ทั้งบรรทัดหายไปเลย ทั้งที่ uses มีข้อมูลอยู่ — และ warnings เดิมพลาดไป fallback เป็น uses
+  // ── ข้อบ่งใช้ / คำเตือน: แปล real-time จาก dictionary ทันที ──
+  // uses/warnings เป็น field คงที่ระดับ drug master (แปลไว้ล่วงหน้าครบจาก HIS จริงแล้ว) จึงแปลอัตโนมัติได้เสมอ
+  // indication เป็นหมายเหตุอิสระต่อใบสั่ง ใช้ seed dict ก่อน ถ้าไม่เจอ (แพทย์พิมพ์แปลกใหม่) ค่อย fallback ไป phraseMemory
+  const usesTh       = (r.uses || '').trim();
+  const indicationTh = (r.indication || '').trim();
+  rawIndicTh = [usesTh, indicationTh].filter(Boolean).join(' ');
+  rawWarnTh  = (r.warnings || '').trim();
+
+  const usesTr       = usesTh ? (HIS_USES_DICT[usesTh] || {})[lang] : '';
+  const indicationTr = indicationTh ? ((HIS_INDICATION_DICT[indicationTh] || phraseMemory[indicationTh] || {})[lang]) : '';
+  const warnTr       = rawWarnTh ? (HIS_WARNINGS_DICT[rawWarnTh] || {})[lang] : '';
+
+  const indicFullyTranslated = (!usesTh || usesTr) && (!indicationTh || indicationTr);
+  const warnFullyTranslated  = !rawWarnTh || !!warnTr;
+
+  const indicEl = document.getElementById('fIndicCustom');
+  const warnEl  = document.getElementById('fWarnCustom');
+  const indicHintEl = document.getElementById('indicHint');
+  const warnHintEl  = document.getElementById('warnHint');
+
+  indicEl.value = indicFullyTranslated ? [usesTr, indicationTr].filter(Boolean).join(' ') : rawIndicTh;
+  warnEl.value  = warnFullyTranslated  ? warnTr : rawWarnTh;
+  indicEl.classList.toggle('needs-translate', !!rawIndicTh && !indicFullyTranslated);
+  warnEl.classList.toggle('needs-translate', !!rawWarnTh && !warnFullyTranslated);
+  indicHintEl.classList.toggle('needs-translate', !!rawIndicTh && !indicFullyTranslated);
+  warnHintEl.classList.toggle('needs-translate', !!rawWarnTh && !warnFullyTranslated);
+  indicHintEl.textContent = rawIndicTh ?
+    (indicFullyTranslated ? '' : `⚠️ พบข้อความใหม่ไม่อยู่ในคลัง — ไทย: ${rawIndicTh} — แก้เป็นคำแปลด้านบนก่อนพิมพ์ ระบบจะจำไว้ใช้ครั้งหน้า`) : '';
+  warnHintEl.textContent = rawWarnTh && !warnFullyTranslated ?
+    `⚠️ พบข้อความใหม่ไม่อยู่ในคลัง — ไทย: ${rawWarnTh} — แก้เป็นคำแปลด้านบนก่อนพิมพ์ ระบบจะจำไว้ใช้ครั้งหน้า` : '';
+
+  document.getElementById('fTimes').value = formatSchedule(r.medicationSchedule);
+  document.getElementById('fLocation').value = r.binLocation || '';
+  document.getElementById('fPrescNoBottom').value = p.prescNo || '';
+
+  // ── หน้า: auto ตามจำนวนยาที่ดึงมาจริงในใบสั่งนี้ (เช่น 1/4, 2/4, ... ตามที่เลือกใน dropdown) ──
+  document.getElementById('fPageNo').value = idx + 1;
+  document.getElementById('fPageTotal').value = fetchedRows.length;
+
+  updateNavUI(idx);
+  renderLabel();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Carousel nav (Premiere-style prev/next ระหว่างฉลากยาหลายรายการ)
+   ══════════════════════════════════════════════════════════════ */
+function updateNavUI(idx){
+  const counter = document.getElementById('drugCounter');
+  const prevBtn = document.getElementById('navPrevBtn');
+  const nextBtn = document.getElementById('navNextBtn');
+  const total = fetchedRows.length;
+  if (total > 1){
+    counter.style.display = 'block';
+    counter.innerHTML = `รายการยา <b>${idx+1}</b> / ${total}`;
+    prevBtn.style.display = 'flex';
+    nextBtn.style.display = 'flex';
+    prevBtn.disabled = false;
+    nextBtn.disabled = false;
+  } else {
+    counter.style.display = total === 1 ? 'block' : 'none';
+    if (total === 1) counter.innerHTML = `รายการยา <b>1</b> / 1`;
+    prevBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+  }
+}
+
+function navDrug(delta){
+  if (fetchedRows.length < 2) return;
+  const pick = document.getElementById('drugPick');
+  let idx = parseInt(pick.value) || 0;
+  idx = (idx + delta + fetchedRows.length) % fetchedRows.length;
+  pick.value = idx;
+
+  const stage = document.getElementById('labelPrint');
+  stage.style.transform = `translateX(${delta > 0 ? '-24px' : '24px'})`;
+  stage.style.opacity = '0';
+  setTimeout(() => {
+    applyFetchedRow();
+    stage.style.transition = 'none';
+    stage.style.transform = `translateX(${delta > 0 ? '24px' : '-24px'})`;
+    stage.style.opacity = '0';
+    requestAnimationFrame(() => {
+      stage.style.transition = 'transform .22s ease, opacity .22s ease';
+      stage.style.transform = 'translateX(0)';
+      stage.style.opacity = '1';
+    });
+  }, 220);
+}
+
+// จำคำแปล indication/warning ที่พิมพ์เองไว้ใช้ครั้งหน้า
+document.getElementById('fIndicCustom').addEventListener('change', function(){
+  this.classList.remove('needs-translate');
+  document.getElementById('indicHint').classList.remove('needs-translate');
+  if (!rawIndicTh) return;
+  const zh = lang==='zh' ? this.value.trim() : (phraseMemory[rawIndicTh]||{}).zh;
+  const ja = lang==='ja' ? this.value.trim() : (phraseMemory[rawIndicTh]||{}).ja;
+  rememberPhrase(rawIndicTh, zh, ja);
+});
+document.getElementById('fWarnCustom').addEventListener('change', function(){
+  this.classList.remove('needs-translate');
+  document.getElementById('warnHint').classList.remove('needs-translate');
+  if (!rawWarnTh) return;
+  const zh = lang==='zh' ? this.value.trim() : (phraseMemory[rawWarnTh]||{}).zh;
+  const ja = lang==='ja' ? this.value.trim() : (phraseMemory[rawWarnTh]||{}).ja;
+  rememberPhrase(rawWarnTh, zh, ja);
+});
+document.getElementById('fDoctorEn').addEventListener('change', function(){
+  const th = document.getElementById('fDoctorTh').value.trim();
+  if (th && this.value.trim()) { doctorDict[th] = this.value.trim(); saveDoctorDict(); }
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Render label
+   ══════════════════════════════════════════════════════════════ */
+function renderLabel(){
+  if (!lang) return;
+  const t = I18N[lang];
+  const g = v => v || '';
+
+  const gender = document.getElementById('fGender').value;
+  const genderTxt = gender==='F' ? t.female : t.male;
+  const patientName = g(document.getElementById('fPatientName').value);
+  const ward = g(document.getElementById('fWard').value);
+  const room = g(document.getElementById('fRoom').value);
+  const bed  = g(document.getElementById('fBed').value);
+  const hn = g(document.getElementById('fHN').value);
+  const an = g(document.getElementById('fAN').value);
+  const rxType = t.rxType[document.getElementById('fRxType').value];
+  const dob = formatDOB();
+
+  const drugEn = g(document.getElementById('fDrugEn').value);
+  const dictKey = document.getElementById('fDrugDict').value;
+  const form = document.getElementById('fDrugForm').value;
+  const formSuffix = (HIS_FORM_DICT[form]||{})[lang] || '';
+  let genericName = '';
+  if (dictKey && HIS_DRUG_DICT[dictKey]) genericName = HIS_DRUG_DICT[dictKey][lang] || '';
+  const genericLine = genericName ? `${genericName} ${formSuffix}` : '';
+
+  const qty = document.getElementById('fQty').value || '';
+  const dose = document.getElementById('fDose').value || '1';
+  const qtyLine = qty ? `${t.qtyLabel}：${qty}${formSuffix}` : '';
+
+  const doctorEn = g(document.getElementById('fDoctorEn').value);
+  const doctorLine = doctorEn ? `${t.doctorPrefix} ${doctorEn}` : '';
+
+  const freqCode = document.getElementById('fFreqPreset').value;
+  const freqCustom = document.getElementById('fFreqCustom').value.trim();
+  const isPRN = fetchedRows.length && fetchedPatient ? !!(fetchedRows[parseInt(document.getElementById('drugPick').value)||0]||{}).isPRN : false;
+  let freqText = freqCustom || (freqCode && HIS_USAGE_DICT[freqCode] ? HIS_USAGE_DICT[freqCode][lang] : '');
+  if (freqText && isPRN && !freqCustom) freqText += t.prnSuffix;
+
+  const indicText = document.getElementById('fIndicCustom').value.trim();
+  const warnText = document.getElementById('fWarnCustom').value.trim();
+
+  const times = g(document.getElementById('fTimes').value);
+  const location = g(document.getElementById('fLocation').value);
+  const lot = g(document.getElementById('fLot').value);
+  const exp = g(document.getElementById('fExp').value);
+  const prescNoBottom = g(document.getElementById('fPrescNoBottom').value);
+  const pageNo = document.getElementById('fPageNo').value || '1';
+  const pageTotal = document.getElementById('fPageTotal').value || '1';
+  const adminFrom = g(document.getElementById('fAdminFrom').value);
+  const adminTo = g(document.getElementById('fAdminTo').value);
+
+  const doseLine = t.doseTemplate(dose, formSuffix);
+
+  const now = new Date();
+  const printedStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getFullYear()).slice(-2)} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  // ── address auto-hide by length ──
+  const addrRaw = lang==='zh' ? ADDR_ZH : ADDR_JA;
+  const addrLen = addrRaw.replace(/\n/g,'').length;
+  const showAddr = addrLen > 0 && addrLen <= ADDR_MAX_CHARS;
+  document.getElementById('fAddrPreview').value = showAddr ? addrRaw.replace(/\n/g,' / ') : '(ซ่อน — ยาวเกินไป)';
+  updateAddrCharCounts();
+
+  const html = `
+    <div class="lp-page">${pageNo}/${pageTotal}</div>
+    <div class="lp-top">
+      <div class="lp-top-left">
+        <div class="lp-logo-space"></div>
+        ${showAddr ? `<div class="lp-addr-left">${addrRaw.split('\n').join('<br>')}</div>` : ''}
+      </div>
+      <div class="lp-top-center">
+        <div class="lp-top-center-inner">
+          <div class="lp-line-c">${t.ward}：${ward}</div>
+          <div class="lp-line-c">${t.room}：${room}</div>
+          <div class="lp-line-c">${t.bed}：${bed}</div>
+        </div>
+      </div>
+      <div class="lp-top-right">
+        <div class="lp-rline">${t.tel}：02-017-0999</div>
+        <div class="lp-rline">HN：${hn}</div>
+        <div class="lp-rline">AN：${an}</div>
+        <div class="lp-rline">${t.dobLabel}：${dob}</div>
+        <div class="lp-rline lp-drugtype">${rxType}</div>
+      </div>
+    </div>
+    <div class="lp-patient">（${genderTxt}）${patientName}</div>
+    <hr class="lp-divider">
+    <div class="lp-drugname">${drugEn}</div>
+    <hr class="lp-divider">
+    <div class="lp-drugrow"><span>${genericLine}</span><span>${qtyLine}</span></div>
+    <div class="lp-doctor">${doctorLine}</div>
+    <div class="lp-instr">${doseLine}</div>
+    <div class="lp-freqrow">
+      <div class="lp-freq">${freqText}</div>
+      <div>${location ? '['+location+']' : ''}</div>
+    </div>
+    <div class="lp-times">${times ? t.timesLabel+': '+times : ''}</div>
+    <div class="lp-bottomtext-row">
+      <div class="lp-indic">${indicText}</div>
+      <div class="lp-warn">${warnText}</div>
+    </div>
+    <div class="lp-bottom">
+      <div class="lp-bottom-row"><span>${t.printed}: ${printedStr}</span><span>${t.prescNo}: ${prescNoBottom}</span><span>${t.lot}: ${lot||'-'}</span><span>${t.exp}: ${exp||'-'}</span></div>
+      ${(adminFrom||adminTo) ? `<div class="lp-bottom-row"><span>${t.adminFrom}: ${adminFrom}</span><span>${t.adminTo}: ${adminTo}</span></div>` : ''}
+    </div>
+  `;
+  document.getElementById('labelPrint').innerHTML = html;
+}
+
+// bind all remaining inputs to re-render live
+['fWard','fRoom','fBed','fPatientName','fGender','fHN','fAN','fDobD','fDobM','fDobY','fRxType',
+ 'fDrugEn','fDrugForm','fQty','fDose','fDoctorEn','fTimes','fLocation','fLot','fExp',
+ 'fPrescNoBottom','fPageNo','fPageTotal','fAdminFrom','fAdminTo'
+].forEach(id=>{
+  const el = document.getElementById(id);
+  el.addEventListener('input', renderLabel);
+  el.addEventListener('change', renderLabel);
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Settings modal + PIN (per Ground Rule: PIN 2580 บนทุก settings/URL)
+   ══════════════════════════════════════════════════════════════ */
+const SETTINGS_PIN = '2580';
+let pinBuffer = '';
+function openSettings(){
+  pinBuffer=''; updatePinDots();
+  document.getElementById('pinError').textContent='';
+  document.getElementById('pinStep').style.display='block';
+  document.getElementById('urlStep').style.display='none';
+  document.getElementById('settingsOverlay').classList.add('show');
+}
+function closeSettings(){ document.getElementById('settingsOverlay').classList.remove('show'); }
+function pinPress(n){
+  if (pinBuffer.length>=4) return;
+  pinBuffer+=n; updatePinDots();
+  if (pinBuffer.length===4) setTimeout(checkPin,150);
+}
+function pinClear(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
+function updatePinDots(){
+  for (let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled', i<pinBuffer.length);
+}
+function checkPin(){
+  if (pinBuffer===SETTINGS_PIN){
+    document.getElementById('pinStep').style.display='none';
+    document.getElementById('urlStep').style.display='block';
+    document.getElementById('bridgeUrlInput').value = BRIDGE_URL;
+    document.getElementById('addrZhInput').value = ADDR_ZH;
+    document.getElementById('addrJaInput').value = ADDR_JA;
+    updateAddrCharCounts();
+  } else {
+    document.getElementById('pinError').textContent='PIN ไม่ถูกต้อง';
+    pinBuffer=''; updatePinDots();
+  }
+}
+function updateAddrCharCounts(){
+  const zhLen = document.getElementById('addrZhInput').value.replace(/\n/g,'').length;
+  const jaLen = document.getElementById('addrJaInput').value.replace(/\n/g,'').length;
+  const zhEl = document.getElementById('addrZhCount');
+  const jaEl = document.getElementById('addrJaCount');
+  zhEl.textContent = `${zhLen}/${ADDR_MAX_CHARS} ตัวอักษร` + (zhLen>ADDR_MAX_CHARS?' — ยาวเกินไป จะถูกซ่อนอัตโนมัติ':'');
+  zhEl.className = 'charcount' + (zhLen>ADDR_MAX_CHARS?' over':'');
+  jaEl.textContent = `${jaLen}/${ADDR_MAX_CHARS} ตัวอักษร` + (jaLen>ADDR_MAX_CHARS?' — ยาวเกินไป จะถูกซ่อนอัตโนมัติ':'');
+  jaEl.className = 'charcount' + (jaLen>ADDR_MAX_CHARS?' over':'');
+}
+document.getElementById('addrZhInput')?.addEventListener('input', updateAddrCharCounts);
+document.getElementById('addrJaInput')?.addEventListener('input', updateAddrCharCounts);
+function saveSettings(){
+  BRIDGE_URL = document.getElementById('bridgeUrlInput').value.trim();
+  ADDR_ZH = document.getElementById('addrZhInput').value;
+  ADDR_JA = document.getElementById('addrJaInput').value;
+  localStorage.setItem('lbl_bridge_url', BRIDGE_URL);
+  localStorage.setItem('lbl_addr_zh', ADDR_ZH);
+  localStorage.setItem('lbl_addr_ja', ADDR_JA);
+  closeSettings();
+  renderLabel();
+}
+document.getElementById('settingsOverlay').addEventListener('click', e=>{
+  if (e.target.id==='settingsOverlay') closeSettings();
+});
+
+/* ══════════════════════════════════════════════════════════════
+   (2026-11-17) เวอร์ชันเว็บ — ล็อกอินรหัสพนักงาน / relay HIS / ส่งพิมพ์ห้องยา (คัดจาก sticker.html)
+   session ใช้ร่วมกับ sticker.html (sessionStorage 'stk_session' โดเมนเดียวกัน)
+   ══════════════════════════════════════════════════════════════ */
+let STK_TOKEN = '';
+function stkPost(p){
+  return fetch(GAS_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(p) }).then(r => r.json());
+}
+function stkLoadSession(){
+  try {
+    const s = JSON.parse(sessionStorage.getItem('stk_session') || 'null');
+    if (s && s.token && s.exp > Date.now()){ STK_TOKEN = s.token; document.getElementById('stkUser').textContent = '👤 ' + s.name; return true; }
+  } catch(e){}
+  return false;
+}
+function showLogin(msg){
+  STK_TOKEN = '';
+  try { sessionStorage.removeItem('stk_session'); } catch(e){}
+  lpBuf = ''; lpDots();
+  document.getElementById('lpError').textContent = msg || '';
+  document.getElementById('loginOverlay').classList.add('show');
+}
+function stkLogout(){ showLogin('ออกจากระบบแล้ว'); }
+let lpBuf = '', lpBusy = false;
+function lpDots(){ for (let i=0;i<5;i++) document.getElementById('lp'+i).classList.toggle('filled', i < lpBuf.length); }
+function lpClear(){ if (!lpBusy){ lpBuf=''; lpDots(); } }
+function lpPress(k){
+  if (lpBusy || lpBuf.length >= 5) return;
+  lpBuf += k; lpDots();
+  if (lpBuf.length < 5) return;
+  lpBusy = true;
+  document.getElementById('lpError').textContent = 'กำลังตรวจสอบ...';
+  stkPost({ action:'stickerLogin', empCode: lpBuf }).then(res => {
+    if (res.status === 'ok'){
+      STK_TOKEN = res.token;
+      try { sessionStorage.setItem('stk_session', JSON.stringify({ token: res.token, name: res.name, exp: Date.now() + (res.ttlSec||7200)*1000 - 60000 })); } catch(e){}
+      document.getElementById('stkUser').textContent = '👤 ' + res.name;
+      document.getElementById('loginOverlay').classList.remove('show');
+      document.getElementById('lpError').textContent = '';
+    } else {
+      document.getElementById('lpError').textContent = res.msg || 'เข้าสู่ระบบไม่สำเร็จ';
+    }
+  }).catch(() => { document.getElementById('lpError').textContent = 'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'; })
+    .finally(() => { lpBusy = false; lpBuf = ''; lpDots(); });
+}
+/* ขอข้อมูล HIS ผ่าน GAS → เครื่องห้องยา (LK-PC08) → his_bridge.py แล้วรอผล — คืน JSON รูปเดียวกับ bridge เดิม */
+function relay(kind, q, statusEl){
+  if (!STK_TOKEN){ showLogin(''); return Promise.reject(new Error('กรุณากรอกรหัสพนักงาน')); }
+  return stkPost({ action:'stickerLookup', token: STK_TOKEN, kind: kind, q: q }).then(res => {
+    if (res.status === 'auth'){ showLogin(res.msg); throw new Error(res.msg); }
+    if (res.status !== 'ok') throw new Error(res.msg || 'ส่งคำขอไม่สำเร็จ');
+    if (statusEl && (res.workerAgeSec === null || res.workerAgeSec > 60)) statusEl.textContent = '⚠️ เครื่องห้องยายังไม่ตอบ กำลังรอ...';
+    const id = res.id, started = Date.now();
+    return new Promise((resolve, reject) => {
+      const tick = () => stkPost({ action:'stickerResult', token: STK_TOKEN, id: id }).then(r => {
+        if (r.status === 'auth'){ showLogin(r.msg); return reject(new Error(r.msg)); }
+        if (r.state === 'done') return resolve(r.data || {});
+        if (r.state === 'error') return reject(new Error((r.data && r.data.msg) || 'ดึงข้อมูลไม่สำเร็จ'));
+        if (r.state === 'expired' || Date.now() - started > 45000) return reject(new Error('เครื่องห้องยาไม่ตอบภายใน 45 วินาที — ลองใหม่ หรือกรอกมือ'));
+        setTimeout(tick, 1500);
+      }).catch(() => { if (Date.now() - started > 45000) reject(new Error('เชื่อมต่อไม่สำเร็จ')); else setTimeout(tick, 2500); });
+      setTimeout(tick, 2000);
+    });
+  });
+}
+function trackPrintJob(jobId, workerAgeSec){
+  const statusEl = document.getElementById('remotePrintStatus');
+  const short = String(jobId||'').slice(0,8);
+  const dead = s => s === null || s === undefined || s > 60;
+  const warnDead = () => {
+    statusEl.textContent = `⚠️ ส่งเข้าคิวแล้ว (Job ${short}) แต่เครื่องพิมพ์ห้องยาไม่ตอบ — ระบบกำลังเปิดใหม่อัตโนมัติ (ภายใน ~5-10 นาที) งานจะพิมพ์ออกเองเมื่อกลับมา ห้ามกดส่งซ้ำ ถ้าด่วนให้โทรแจ้งห้องยา`;
+    statusEl.className = 'fetch-status err';
+  };
+  if (dead(workerAgeSec)) warnDead();
+  else { statusEl.textContent = `⏳ ส่งแล้ว รอห้องยาพิมพ์... (Job ${short})`; statusEl.className = 'fetch-status'; }
+  const started = Date.now();
+  const tick = () => {
+    fetch(GAS_URL + '?action=getPrintJobStatus&jobId=' + encodeURIComponent(jobId))
+      .then(r => r.json()).then(res => {
+        if (res.jobStatus === 'PRINTED'){
+          statusEl.textContent = `✅ พิมพ์ออกแล้วที่ห้องยา (Job ${short}, ${Math.round((Date.now()-started)/1000)} วิหลังส่ง)`;
+          statusEl.className = 'fetch-status ok'; return;
+        }
+        if (res.jobStatus === 'ERROR'){
+          statusEl.textContent = `❌ ห้องยาพิมพ์ไม่สำเร็จ: ${res.errorMsg || ''} — โทรแจ้งห้องยา`;
+          statusEl.className = 'fetch-status err'; return;
+        }
+        if (dead(res.workerAgeSec)) warnDead();
+        if (Date.now() - started < 120000) setTimeout(tick, 4000);
+        else if (!dead(res.workerAgeSec)) { statusEl.textContent = `⏳ งาน ${short} ยังไม่ขึ้นว่าพิมพ์เสร็จ — ตรวจที่เครื่องพิมพ์ห้องยา`; statusEl.className = 'fetch-status err'; }
+      }).catch(() => { if (Date.now() - started < 120000) setTimeout(tick, 5000); });
+  };
+  setTimeout(tick, 3000);
+}
+
+function sendIntlToPharmacy(){
+  const statusEl = document.getElementById('remotePrintStatus');
+  if (!lang){ statusEl.textContent='เลือกภาษาก่อน'; statusEl.className='fetch-status err'; return; }
+  if (!STK_TOKEN){ showLogin(''); return; }
+  window.__noPrint = true;
+  try { printLabel(); } finally { window.__noPrint = false; }
+  const c = document.getElementById('printAllContainer');
+  const pagesHtml = c ? c.innerHTML : '';
+  if (c) c.innerHTML = '';
+  document.title = _origTitle;
+  if (!pagesHtml){ statusEl.textContent='ไม่มีฉลากให้พิมพ์'; statusEl.className='fetch-status err'; return; }
+  const head = [...document.querySelectorAll('head style, head link[rel=stylesheet]')].map(e => e.outerHTML).join('\n');
+  const html = '<!doctype html><html><head><meta charset="utf-8">' + head + '</head><body><div id="printAllContainer">' + pagesHtml + '</div></body></html>';
+  statusEl.textContent = 'กำลังส่งไปพิมพ์ที่ห้องยา...'; statusEl.className = 'fetch-status';
+  stkPost({ action:'stickerPrint', token: STK_TOKEN, ref: document.getElementById('fHN').value.trim(), html: html })
+    .then(res => {
+      if (res.status === 'auth'){ showLogin(res.msg); statusEl.textContent = res.msg; statusEl.className = 'fetch-status err'; return; }
+      if (res.status === 'ok'){ trackPrintJob(res.jobId, res.workerAgeSec); statusEl.className = 'fetch-status ok'; }
+      else { statusEl.textContent = 'ส่งไม่สำเร็จ: ' + (res.msg || 'unknown error'); statusEl.className = 'fetch-status err'; }
+    })
+    .catch(e => { statusEl.textContent = 'ส่งไม่สำเร็จ (เน็ตมีปัญหา?): ' + e.message; statusEl.className = 'fetch-status err'; });
+}
+if (stkLoadSession()) document.getElementById('loginOverlay').classList.remove('show');
+</script>
+</body>
+</html>
