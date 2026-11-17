@@ -253,7 +253,10 @@
       <select id="printMonth" onchange="loadMonth(this.value)"></select>
       <div style="height:12px"></div>
       <div class="hint" id="printList" style="margin-bottom:10px">-</div>
-      <button class="btn" onclick="doPrint('all')">พิมพ์ทุกแบบฟอร์มของเดือนนี้</button>
+      <button class="btn" id="pdfBtn" onclick="requestPdf('all')">ขอไฟล์ PDF ตามแบบฟอร์ม (มือถือ/แท็บเล็ต)</button>
+      <div class="hint" id="pdfStatus" style="margin-top:8px">เครื่องห้องยาสร้าง PDF ด้วยฟอนต์ Cordia New ให้ ใช้เวลาประมาณ 1–5 นาที</div>
+      <div style="height:10px"></div>
+      <button class="btn ghost" onclick="doPrint('all')">พิมพ์ทันที (คอมพิวเตอร์ Windows ที่มีฟอนต์ Cordia New)</button>
       <div class="hint" style="margin-top:10px">ตั้งค่าเครื่องพิมพ์: A4 แนวนอน, ไม่ย่อ/ขยาย (100%), ปิด Headers and footers</div>
     </div>
   </section>
@@ -265,6 +268,7 @@
 <div id="printArea"></div>
 
 <script>
+  const PDF_MODE = new URLSearchParams(location.search).get('pdf') === '1';
   const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzuBl87e9Xc61jtFItkslSeJMsIMt8LaJQ4gmLO6_JxaarnCA5m2EecnqNIjNbwSaKP/exec";
   const ROOM = 'ห้องยา';
   const TH_MONTH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -640,15 +644,50 @@
     if (kind === 'fridge' || kind === 'all') fridges.forEach(function (f, i) { h += pageFridge(i); });
     if (kind === 'problem' || kind === 'all') h += pageProblem();
     document.getElementById('printArea').innerHTML = h;
+    if (PDF_MODE) { document.title = 'PDF_READY'; return; }
     setTimeout(function () { window.print(); }, 150);
+  }
+
+  // (2026-11-17) มือถือไม่มีฟอนต์ Cordia New → ขอให้เครื่องห้องยา (print_queue_worker) สร้าง PDF แล้วดึงไฟล์กลับ
+  function requestPdf(kind) {
+    const month = document.getElementById('printMonth').value, st = document.getElementById('pdfStatus'), btn = document.getElementById('pdfBtn');
+    btn.disabled = true; st.textContent = 'ส่งคำขอแล้ว รอเครื่องห้องยาสร้าง PDF...';
+    fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'pharmPdfRequest', month: month, kind: kind }) })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.status !== 'ok') throw new Error(d.msg || 'ส่งคำขอไม่สำเร็จ');
+        const t0 = Date.now();
+        (function poll() {
+          fetch(WEBAPP_URL + '?action=pharmPdfStatus&id=' + d.id + '&_=' + Date.now()).then(function (r) { return r.json(); }).then(function (s2) {
+            if (s2.st === 'DONE' && s2.b64) {
+              const bin = atob(s2.b64), u8 = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+              const url = URL.createObjectURL(new Blob([u8], { type: 'application/pdf' }));
+              st.innerHTML = 'PDF พร้อมแล้ว — <a href="' + url + '" download="' + esc(s2.name) + '" target="_blank">เปิด / บันทึกไฟล์</a> (กดแชร์ → พิมพ์)';
+              btn.disabled = false; window.open(url, '_blank'); return;
+            }
+            if (s2.st === 'ERROR') { st.textContent = 'สร้าง PDF ไม่สำเร็จ: ' + s2.err; btn.disabled = false; return; }
+            const sec = Math.round((Date.now() - t0) / 1000);
+            if (sec > 600) { st.textContent = 'เครื่องห้องยายังไม่ตอบใน 10 นาที (อาจปิดเครื่องอยู่) — ลองใหม่ภายหลัง หรือพิมพ์จากคอมพิวเตอร์'; btn.disabled = false; return; }
+            st.textContent = (s2.st === 'WORKING' ? 'เครื่องห้องยากำลังสร้าง PDF' : 'รอเครื่องห้องยารับงาน') + '... ' + sec + ' วิ';
+            setTimeout(poll, 4000);
+          }).catch(function () { setTimeout(poll, 6000); });
+        })();
+      })
+      .catch(function (e) { st.textContent = 'ส่งคำขอไม่สำเร็จ: ' + e.message; btn.disabled = false; });
   }
 
   const roomTemp = document.getElementById('roomTemp'), roomRh = document.getElementById('roomRh');
   document.getElementById('name').value = lsGet('lkh_pharmtemp_name') || '';
   const hv = location.hash.replace('#', '');
   if (['rec', 'chart', 'print'].indexOf(hv) !== -1) goView(hv);
-  loadNames(); loadMonth(bkkMonth());
-  setInterval(function () { if (document.visibilityState === 'visible') loadMonth(document.getElementById('chartMonth').value); }, 120000);
+  if (PDF_MODE) {   // ?pdf=1&month=yyyy-MM&kind=all — worker เครื่องห้องยาเปิดด้วย Chrome headless แล้ว print-to-pdf
+    const qp = new URLSearchParams(location.search), pm = qp.get('month') || bkkMonth();
+    ['chartMonth', 'printMonth'].forEach(function (id) { const el = document.getElementById(id); if (el && el.tagName === 'SELECT' && !el.querySelector('option[value="' + pm + '"]')) el.insertAdjacentHTML('beforeend', '<option value="' + pm + '">' + pm + '</option>'); if (el) el.value = pm; });
+    loadMonth(pm).then(function () { doPrint(qp.get('kind') || 'all'); });
+  } else { loadNames(); loadMonth(bkkMonth()); }
+  if (!PDF_MODE) setInterval(function () { if (document.visibilityState === 'visible') loadMonth(document.getElementById('chartMonth').value); }, 120000);
 </script>
 </body>
 </html>
