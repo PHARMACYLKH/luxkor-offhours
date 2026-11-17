@@ -343,7 +343,7 @@
   }
 
   function fmtDue(due) { return due ? due.split(' ')[1] : ''; }
-  function thDate(iso) { const p = iso.split('-'); return (+p[2]) + ' ' + TH_MONTH[+p[1] - 1].slice(0, 3) + '. ' + (+p[0] + 543); }
+  function thDate(iso) { const p = iso.split('-'); return (+p[2]) + ' ' + TH_MONTH[+p[1] - 1] + ' ' + (+p[0] + 543); }
 
   function renderStatus() {
     const c = document.getElementById('statusCard');
@@ -538,7 +538,8 @@
     g += '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none" stroke="#000" stroke-width="0.4"/>';
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" font-family="Cordia New, Sarabun, sans-serif">' + g + '</svg>';
   }
-  function shortName(n) { return String(n || '').replace(/^(ภก\.|ภญ\.|นาย|นางสาว|นาง|น\.ส\.)\s*/, '').split(/\s+/)[0].slice(0, 12); }
+  // ช่องลงชื่อ: "รหัสพนักงาน ชื่อ" (ตามตารางเวร) → แสดงรหัสพนักงาน, เภสัชกร part time → P/T
+  function shortName(n) { n = String(n || ''); if (/^ไม่ระบุ/.test(n)) return ''; const c = n.match(/^(\d{4,6})\s/); if (c) return c[1]; if (/part time/i.test(n)) return 'P/T'; return String(n || '').replace(/^(ภก\.|ภญ\.|นาย|นางสาว|นาง|น\.ส\.)\s*/, '').split(/\s+/)[0].slice(0, 12); }
 
   function renderProblems() {
     const sets = problemRows();
