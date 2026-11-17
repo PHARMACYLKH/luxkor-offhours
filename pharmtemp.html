@@ -198,12 +198,18 @@
           <div><label>ความชื้น (%RH) <span class="req">*</span></label>
             <input type="text" id="roomRh" inputmode="numeric" maxlength="3" placeholder="เช่น 55" oninput="clean(this,0,false)"></div>
         </div>
-        <div class="crit">เกณฑ์: อุณหภูมิ 25 ± 5 °C (20–30) · ความชื้นสัมพัทธ์ไม่เกิน 60 ± 5 % (≤ 65)</div>
+        <div class="crit">เกณฑ์: อุณหภูมิ 15–25 °C · ความชื้นสัมพัทธ์ไม่เกิน 60 ± 5 % (≤ 65)</div>
         <div class="live" id="liveRoom"></div>
       </div>
 
+      <div class="card" id="cabCard">
+        <h2>2. ตู้เก็บยา</h2>
+        <div id="cabInputs"></div>
+        <div class="crit">เกณฑ์: อุณหภูมิ 15–25 °C · ความชื้นสัมพัทธ์ไม่เกิน 60 ± 5 % (≤ 65)</div>
+      </div>
+
       <div class="card">
-        <h2>2. ตู้เย็นแช่ยา</h2>
+        <h2>3. ตู้เย็นแช่ยา</h2>
         <div id="fridgeInputs"></div>
         <div class="crit">เกณฑ์: 2–8 °C</div>
       </div>
@@ -246,7 +252,7 @@
       <label>เดือน</label>
       <input type="month" id="printMonth" onchange="loadMonth(this.value)">
       <div style="height:12px"></div>
-      <button class="btn ghost" onclick="doPrint('room')">PHA-0021 อุณหภูมิและความชื้น ห้องยา</button>
+      <button class="btn ghost" onclick="doPrint('room')">PHA-0021 อุณหภูมิและความชื้น ห้องยา / ตู้เก็บยา</button>
       <button class="btn ghost" onclick="doPrint('fridge')">PHA-0031 อุณหภูมิตู้เย็น</button>
       <button class="btn ghost" onclick="doPrint('problem')">แบบฟอร์มแจ้งปัญหา (เอกสารทดลองใช้)</button>
       <button class="btn" onclick="doPrint('all')">พิมพ์ทั้งหมด</button>
@@ -264,7 +270,7 @@
   const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzuBl87e9Xc61jtFItkslSeJMsIMt8LaJQ4gmLO6_JxaarnCA5m2EecnqNIjNbwSaKP/exec";
   const ROOM = 'ห้องยา';
   const TH_MONTH = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-  let DATA = null, fridges = [], chartSel = 'roomT';
+  let DATA = null, fridges = [], cabinets = [], chartSel = 'roomT';
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function toast(m, bad) { const t = document.getElementById('toast'); t.textContent = m; t.className = 'toast' + (bad ? ' err' : ''); t.style.display = 'block'; clearTimeout(toast._t); toast._t = setTimeout(function () { t.style.display = 'none'; }, 3500); }
@@ -293,10 +299,17 @@
     const fails = [];
     const t = parseFloat(roomTemp.value), h = parseFloat(roomRh.value);
     const rm = [];
-    if (!isNaN(t)) { const b = t < 20 || t > 30; rm.push('อุณหภูมิ ' + t + ' °C ' + (b ? '✗ ไม่ผ่าน' : '✓')); if (b) fails.push('ห้องยา อุณหภูมิ ' + t + ' °C'); }
+    if (!isNaN(t)) { const b = t < 15 || t > 25; rm.push('อุณหภูมิ ' + t + ' °C ' + (b ? '✗ ไม่ผ่าน' : '✓')); if (b) fails.push('ห้องยา อุณหภูมิ ' + t + ' °C'); }
     if (!isNaN(h)) { const b = h > 65; rm.push('ความชื้น ' + h + ' % ' + (b ? '✗ ไม่ผ่าน' : '✓')); if (b) fails.push('ห้องยา ความชื้น ' + h + ' %'); }
     const lr = document.getElementById('liveRoom');
     lr.className = 'live' + (rm.length ? (fails.length ? ' bad' : ' ok') : ''); lr.textContent = rm.join(' · ');
+    cabinets.forEach(function (c, i) {
+      const ct = parseFloat(document.getElementById('cbT' + i).value), ch = parseFloat(document.getElementById('cbH' + i).value), m = [], lv = document.getElementById('cbLive' + i);
+      let bad = false;
+      if (!isNaN(ct)) { const b = ct < 15 || ct > 25; bad = bad || b; m.push('อุณหภูมิ ' + ct + ' °C ' + (b ? '✗ ไม่ผ่าน' : '✓')); if (b) fails.push(c + ' อุณหภูมิ ' + ct + ' °C'); }
+      if (!isNaN(ch)) { const b = ch > 65; bad = bad || b; m.push('ความชื้น ' + ch + ' % ' + (b ? '✗ ไม่ผ่าน' : '✓')); if (b) fails.push(c + ' ความชื้น ' + ch + ' %'); }
+      lv.className = 'live' + (m.length ? (bad ? ' bad' : ' ok') : ''); lv.textContent = m.join(' · ');
+    });
     fridges.forEach(function (f, i) {
       const el = document.getElementById('fr' + i), lv = document.getElementById('frLive' + i), x = parseFloat(el.value);
       if (isNaN(x) || el.value === '-') { lv.className = 'live'; return; }
@@ -312,6 +325,15 @@
     document.getElementById('failList').textContent = fails.join(' · ');
   }
 
+  function renderCabInputs() {
+    document.getElementById('cabCard').style.display = cabinets.length ? '' : 'none';
+    document.getElementById('cabInputs').innerHTML = cabinets.map(function (c, i) {
+      return '<div style="font-weight:700;margin-top:8px">' + esc(c) + '</div><div class="grid2">' +
+        '<div><label>อุณหภูมิ (°C) <span class="req">*</span></label><input type="text" id="cbT' + i + '" inputmode="decimal" maxlength="4" placeholder="เช่น 24.0" oninput="clean(this,1,false)"></div>' +
+        '<div><label>ความชื้น (%RH) <span class="req">*</span></label><input type="text" id="cbH' + i + '" inputmode="numeric" maxlength="3" placeholder="เช่น 60" oninput="clean(this,0,false)"></div></div>' +
+        '<div class="live" id="cbLive' + i + '"></div>';
+    }).join('');
+  }
   function renderFridgeInputs() {
     document.getElementById('fridgeInputs').innerHTML = fridges.map(function (f, i) {
       return '<label>' + esc(f) + ' (°C) <span class="req">*</span></label>' +
@@ -348,6 +370,7 @@
       if (d.month !== document.getElementById('chartMonth').value) return; // คำตอบของเดือนที่เปลี่ยนไปแล้ว (โหลดซ้อนกัน)
       const first = !DATA; DATA = d;
       if (first || JSON.stringify(fridges) !== JSON.stringify(d.fridges)) { fridges = d.fridges; renderFridgeInputs(); }
+      if (first || JSON.stringify(cabinets) !== JSON.stringify(d.cabinets || [])) { cabinets = d.cabinets || []; renderCabInputs(); }
       renderStatus(); renderChips(); renderChart(); renderProblems();
     }).catch(function (e) { document.getElementById('statusCard').innerHTML = '<div class="hint">โหลดข้อมูลไม่สำเร็จ: ' + esc(e.message) + '</div>'; });
   }
@@ -365,6 +388,13 @@
     if (!name) return toast('กรุณาระบุชื่อผู้บันทึก', true);
     if (!/^\d{1,2}(\.\d)?$/.test(roomTemp.value)) return toast('กรุณากรอกอุณหภูมิห้องยา', true);
     if (!/^\d{1,3}$/.test(roomRh.value) || +roomRh.value > 100) return toast('กรุณากรอกความชื้น (%RH) เป็นจำนวนเต็ม', true);
+    const cb = {};
+    for (let i = 0; i < cabinets.length; i++) {
+      const t = document.getElementById('cbT' + i).value, h = document.getElementById('cbH' + i).value;
+      if (!/^\d{1,2}(\.\d)?$/.test(t)) return toast('กรุณากรอกอุณหภูมิ ' + cabinets[i], true);
+      if (!/^\d{1,3}$/.test(h) || +h > 100) return toast('กรุณากรอกความชื้น ' + cabinets[i] + ' เป็นจำนวนเต็ม', true);
+      cb[cabinets[i]] = { t: t, h: h };
+    }
     const fr = {};
     for (let i = 0; i < fridges.length; i++) {
       const v = document.getElementById('fr' + i).value;
@@ -377,7 +407,7 @@
     const btn = document.getElementById('saveBtn'); btn.disabled = true;
     document.getElementById('busy').classList.add('on');
     fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'addPharmTemp', name: name, roomTemp: roomTemp.value, roomRh: roomRh.value, fridges: fr,
+      body: JSON.stringify({ action: 'addPharmTemp', name: name, roomTemp: roomTemp.value, roomRh: roomRh.value, fridges: fr, cabinets: cb,
         problem: document.getElementById('problem').value, fixAction: document.getElementById('action').value }) })
       .then(function (r) { return r.json(); })
       .then(function (d) {
@@ -386,6 +416,7 @@
         showResult(d);
         ['roomTemp', 'roomRh', 'problem', 'action'].forEach(function (id) { document.getElementById(id).value = ''; });
         fridges.forEach(function (f, i) { document.getElementById('fr' + i).value = ''; });
+        cabinets.forEach(function (c, i) { document.getElementById('cbT' + i).value = ''; document.getElementById('cbH' + i).value = ''; });
         checkLive(); loadMonth(bkkMonth());
       })
       .catch(function (e) { document.getElementById('busy').classList.remove('on'); btn.disabled = false; toast('เชื่อมต่อไม่สำเร็จ: ' + e.message, true); });
@@ -408,8 +439,12 @@
   /* ───────── กราฟ (SVG ลักษณะเดียวกับแบบฟอร์ม) ───────── */
   // series: { key, title, unit, min, max, step, band:[lo,hi], loc, field }
   function seriesList() {
-    const s = [{ key: 'roomT', title: 'ห้องยา · อุณหภูมิ (°C)', loc: ROOM, field: 't', min: 10, max: 35, band: [20, 30] },
+    const s = [{ key: 'roomT', title: 'ห้องยา · อุณหภูมิ (°C)', loc: ROOM, field: 't', min: 10, max: 30, band: [15, 25] },
                { key: 'roomH', title: 'ห้องยา · ความชื้น (%)', loc: ROOM, field: 'h', min: 35, max: 80, band: [40, 65], bandFail: [null, 65] }];
+    cabinets.forEach(function (c, i) {
+      s.push({ key: 'cbT' + i, title: c + ' · อุณหภูมิ (°C)', loc: c, field: 't', min: 10, max: 30, band: [15, 25] });
+      s.push({ key: 'cbH' + i, title: c + ' · ความชื้น (%)', loc: c, field: 'h', min: 35, max: 80, band: [40, 65] });
+    });
     fridges.forEach(function (f, i) { s.push({ key: 'fr' + i, title: f + ' (°C)', loc: f, field: 't', min: 0, max: 10, band: [2, 8] }); });
     return s;
   }
@@ -534,11 +569,12 @@
   function monthInfo() { const p = DATA.month.split('-'); return { m: TH_MONTH[+p[1] - 1], y: +p[0] + 543, days: new Date(+p[0], +p[1], 0).getDate() }; }
   const ADDR = '68 Phran Nok Phutthamonthon, Bang Phrom, Taling Chan, Bangkok 10170, Thailand';
 
-  function pageRoom() {
-    const mi = monthInfo(), sl = seriesList();
+  function pageRoom(loc) {
+    loc = loc || ROOM;
+    const mi = monthInfo(), all = seriesList(), sl = [all.filter(function (x) { return x.loc === loc && x.field === 't'; })[0], all.filter(function (x) { return x.loc === loc && x.field === 'h'; })[0]];
     return '<div class="pp">' + head('แบบบันทึกอุณหภูมิ และ ความชื้นสัมพัทธ์ของสถานที่เก็บยา/เวชภัณฑ์', 'Temperature and Relative Humidity Record of Medication/Medical Supply Storage Area') +
-      '<div class="inf">1. แผนก / สถานที่: <span class="u">แผนกเภสัชกรรม / ห้องยา</span> 2. ประจำเดือน: <span class="u">' + mi.m + '</span> 3. ปี: <span class="u">' + mi.y + '</span><span style="margin-left:auto;font-weight:normal">(หน้า 1)</span></div>' +
-      '<div class="cr"><b>ข้อกำหนดเมื่ออุณหภูมิหรือความชื้นสัมพัทธ์ไม่อยู่ในช่วงที่กำหนด (ค่าอุณหภูมิที่เหมาะสม = 25 ± 5 °C / ค่าความชื้นสัมพัทธ์ที่เหมาะสม = 60 ± 5%)</b><br>' +
+      '<div class="inf">1. แผนก / สถานที่: <span class="u">แผนกเภสัชกรรม / ' + esc(loc) + '</span> 2. ประจำเดือน: <span class="u">' + mi.m + '</span> 3. ปี: <span class="u">' + mi.y + '</span><span style="margin-left:auto;font-weight:normal">(หน้า 1)</span></div>' +
+      '<div class="cr"><b>ข้อกำหนดเมื่ออุณหภูมิหรือความชื้นสัมพัทธ์ไม่อยู่ในช่วงที่กำหนด (ค่าอุณหภูมิที่เหมาะสม = 15–25 °C / ค่าความชื้นสัมพัทธ์ที่เหมาะสม = 60 ± 5%)</b><br>' +
       '1. ถ้าตรวจสอบได้ค่าไม่อยู่ในเกณฑ์ควบคุมให้รายงาน Incharge และหาสาเหตุขั้นต้น พร้อมลงบันทึกเหตุการณ์และการดำเนินการ (หน้า 2) &nbsp; <b><u>เวลาที่ลงบันทึก: เวรเช้า เวลา 08.00 น และเวรบ่าย เวลา 20.00 น.</u></b><br>' +
       '2. รีบดำเนินการแก้ไข หลังจากนั้น 1 ชั่วโมงติดตามผลแล้วทำการบันทึกใหม่ (จุดสีแดง) โดยลากเส้นประเชื่อมโยงกับจุดแรก &nbsp; 3. กรณีไม่สามารถควบคุมได้ตามข้อ 2 ให้แจ้งแผนกช่างเพื่อแก้ไข โทร 082-025-4528</div>' +
       '<div class="chart">' + chartSvg(sl[0], 1, 31, { w: 277, plotH: 52, labelW: 22 }) + '</div>' +
@@ -546,7 +582,7 @@
       '<div class="ft"><span>PHA-0021-GF-P-00-052025</span><span>' + ADDR + '</span></div></div>';
   }
   function pageFridge(i) {
-    const mi = monthInfo(), s = seriesList()[2 + i];
+    const mi = monthInfo(), s = seriesList().filter(function (x) { return x.loc === fridges[i]; })[0];
     return '<div class="pp">' + head('แบบบันทึกการตรวจสอบอุณหภูมิตู้เย็น', 'Refrigerator Temperature Monitoring Form') +
       '<div class="inf">1.แผนก : <span class="u">เภสัชกรรม</span> 2.ประจำเดือน/ปี: <span class="u">' + mi.m + ' / ' + mi.y + '</span> 3.Code: <span class="u">' + esc(fridges[i]) + '</span> 4.ตู้เย็นสำหรับเก็บ: ☑ ยา ☐ อาหารผสม/นม ☐ เวชภัณฑ์</div>' +
       '<div class="cr"><b>ข้อกำหนดเมื่ออุณหภูมิของตู้เย็นไม่อยู่ในช่วง 2-8 องศาเซลเซียส</b> &nbsp; <b><u>เวลาที่ลงบันทึก: ***เวรเช้า เวลา 08.00 น และเวรบ่าย เวลา 20.00 น***</u></b><br>' +
@@ -563,7 +599,7 @@
       const p = rows[i];
       tr += '<tr><td>' + (p ? esc(p.when) : '') + '</td><td>' + (p ? esc(p.problem) : '') + '</td><td>' + (p ? esc(p.action) : '') + '</td><td>' + (p ? esc(p.by) : '') + '</td></tr>';
     }
-    const locs = ['ห้องยา'].concat(fridges).join(', ');
+    const locs = [ROOM].concat(cabinets, fridges).join(', ');
     return '<div class="pp">' + head('แบบฟอร์มการแจ้งปัญหาการตรวจสอบอุณหภูมิและความชื้นสัมพัทธ์ ประจำแผนกเภสัชกรรม', 'Temperature and Relative Humidity Problem Report Form') +
       '<div class="inf">1.แผนก : เภสัชกรรม <span>2.ประจำเดือน/ปี : <span class="u">' + mi.m + ' / ' + mi.y + '</span></span><span>3.Location : <span class="u">' + esc(locs) + '</span></span></div>' +
       '<div class="grid"><table><colgroup><col style="width:12%"><col style="width:35%"><col style="width:37%"><col style="width:16%"></colgroup>' +
@@ -573,7 +609,7 @@
   function doPrint(kind) {
     if (!DATA) return toast('ยังโหลดข้อมูลไม่เสร็จ', true);
     let h = '';
-    if (kind === 'room' || kind === 'all') h += pageRoom();
+    if (kind === 'room' || kind === 'all') [ROOM].concat(cabinets).forEach(function (c) { h += pageRoom(c); });
     if (kind === 'fridge' || kind === 'all') fridges.forEach(function (f, i) { h += pageFridge(i); });
     if (kind === 'problem' || kind === 'all') h += pageProblem();
     document.getElementById('printArea').innerHTML = h;
