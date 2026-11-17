@@ -252,10 +252,8 @@
       <label>เดือน</label>
       <select id="printMonth" onchange="loadMonth(this.value)"></select>
       <div style="height:12px"></div>
-      <button class="btn ghost" onclick="doPrint('room')">PHA-0021 อุณหภูมิและความชื้น ห้องยา / ตู้เก็บยา</button>
-      <button class="btn ghost" onclick="doPrint('fridge')">PHA-0031 อุณหภูมิตู้เย็น</button>
-      <button class="btn ghost" onclick="doPrint('problem')">แบบฟอร์มแจ้งปัญหา (เอกสารทดลองใช้)</button>
-      <button class="btn" onclick="doPrint('all')">พิมพ์ทั้งหมด</button>
+      <div class="hint" id="printList" style="margin-bottom:10px">-</div>
+      <button class="btn" onclick="doPrint('all')">พิมพ์ทุกแบบฟอร์มของเดือนนี้</button>
       <div class="hint" style="margin-top:10px">ตั้งค่าเครื่องพิมพ์: A4 แนวนอน, ไม่ย่อ/ขยาย (100%), ปิด Headers and footers</div>
     </div>
   </section>
@@ -388,7 +386,7 @@
       const first = !DATA; DATA = d;
       if (first || JSON.stringify(fridges) !== JSON.stringify(d.fridges)) { fridges = d.fridges; renderFridgeInputs(); }
       if (first || JSON.stringify(cabinets) !== JSON.stringify(d.cabinets || [])) { cabinets = d.cabinets || []; renderCabInputs(); }
-      renderStatus(); renderChips(); renderChart(); renderProblems();
+      renderStatus(); renderChips(); renderChart(); renderProblems(); renderPrintList();
     }).catch(function (e) { document.getElementById('statusCard').innerHTML = '<div class="hint">โหลดข้อมูลไม่สำเร็จ: ' + esc(e.message) + '</div>'; });
   }
 
@@ -624,6 +622,17 @@
       '<thead><tr><th>วันที่เกิด</th><th>ปัญหาที่พบ</th><th>การดำเนินการแก้ไข</th><th>ผู้รับผิดชอบ</th></tr></thead><tbody>' + tr + '</tbody></table></div>' +
       '<div class="ft"><b>เอกสารทดลองใช้</b><span>' + ADDR + '</span></div></div>';
   }
+  // รายการแบบฟอร์มที่จะพิมพ์ (แสดงในแท็บพิมพ์) — PHA-0021 แยกใบต่อจุด, PHA-0031 แยกใบต่อตู้เย็น, แบบแจ้งปัญหา 1 ใบ
+  function renderPrintList() {
+    const el = document.getElementById('printList');
+    if (!el || !DATA) return;
+    const items = [ROOM].concat(cabinets).map(function (c) { return 'PHA-0021 อุณหภูมิและความชื้น · ' + esc(c); })
+      .concat(fridges.map(function (f) { return 'PHA-0031 อุณหภูมิตู้เย็น · ' + esc(f); }))
+      .concat(['แบบฟอร์มแจ้งปัญหา (เอกสารทดลองใช้)']);
+    el.innerHTML = 'พิมพ์รวม ' + items.length + ' หน้า ประจำเดือน ' + monthInfo().m + ' ' + monthInfo().y + ':<br>' +
+      items.map(function (t, i) { return (i + 1) + '. ' + t; }).join('<br>');
+  }
+
   function doPrint(kind) {
     if (!DATA) return toast('ยังโหลดข้อมูลไม่เสร็จ', true);
     let h = '';
