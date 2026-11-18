@@ -372,6 +372,28 @@ function attachAC(el, onPick) {
   });
 }
 
+// ชื่อสามัญ (Generic name) จากชื่อเต็มในบัญชียา — ใช้ในช่อง Medication Name และยาใน DRPs
+// ตัดชื่อการค้า รูปแบบยา ความแรง และเครื่องหมายภายใน ([SP], (HAD), (code N), **) ออก เหลือเฉพาะชื่อตัวยา
+// เช่น "Parecoxib INJ 40 mg/Vial (Dynastat®)" → "Parecoxib", "Amoxicillin/Clavulanate TAB 625 mg (Fleming®)" → "Amoxicillin/Clavulanate"
+const GEN_FORMS = 'TAB|TABS|TABLETS?|CAP|CAPS|INJ|SYR|SYRUP|SUSP|SUS|POW|POWDER|CREAM|CRM|GEL|OINT|OINTMENT|LOT|LOTION|SPRAY|DROPS?|EYE|EAR|NASAL|NEB|INHAL|INH|RESP|PATCH|SUPP|ELIX|EILXIR|E\\.TAB|FDT|ODT|MR|SR|XR|ER|CR|DR|EC|FC|IV|IM|SC|IRR|SACHET|SAC|GRAN|LOZ|PFS|BALM|SCRUB|TURB|SL|CHEWABLE|EFF|SKIN|SOL\.';
+const GEN_CUT = new RegExp('\\s(?:(?:' + GEN_FORMS + ')\\b|\\d|\\(|\\[)', 'i');
+function genericName(n) {
+  let x = String(n || '').replace(/\*+INACTIVE\*+/gi, ' ').replace(/\*/g, ' ').replace(/\[SP\]|\(SP\)/gi, ' ')
+    .replace(/\((HAD|code [A-Z])\)/gi, ' ').replace(/\(HD Mall\)\s*-?/gi, ' ').replace(/^\s*\[[^\]]*\]\s*/, '');
+  x = x.replace(/^\s*\([^)]*\)\s*-?\s*/, '');               // ชื่อการค้านำหน้า เช่น (FLEXA®) / (NORGESIC®) -
+  const m = x.match(GEN_CUT);
+  if (m) x = x.slice(0, m.index);
+  x = x.replace(/®/g, '').replace(/^(Glucosamine) Sulfate$/i, '$1').replace(/\s+(di)?HCl$/i, '').replace(/\s+SOL\.?$/i, '').replace(/\s{2,}/g, ' ').replace(/^[\s\-–]+|[\s\-–,]+$/g, '');
+  return x || String(n || '').trim();
+}
+function brandName(n) {
+  const m = String(n || '').match(/\(([^()]*®[^()]*)\)/);
+  if (!m) return '';
+  let b = m[1].replace(/®/g, '').replace(/\s*-\s*(GPO|PINYO)$/i, '').trim();
+  if (b.length > 3 && b === b.toUpperCase()) b = b.toLowerCase().replace(/(^|[\s\-])([a-z])/g, (q, p1, c) => p1 + c.toUpperCase()); // FLEXA → Flexa
+  return b;
+}
+
 // ── meds ────────────────────────────────────────────────────────────
 function newMed(o) { return Object.assign({ id: ++seq, code: '', name: '', brand: '', dose: '', unit: '', route: '', sig: '', source: '', lastDose: '', amount: '', rxVerified: false }, o || {}); }
 function addMed(o) { F.meds.push(newMed(o)); renderMeds(); const els = document.querySelectorAll('#medList .item'); if (!o && els.length) els[els.length - 1].querySelector('input').focus(); }
@@ -405,7 +427,9 @@ function renderMeds() {
     </div>`).join('') || '<div class="hint">ยังไม่มีรายการ — ดึงจาก HIS หรือกด "+ เพิ่มรายการยา"</div>';
   document.querySelectorAll('#medList .item').forEach(it => {
     const id = +it.dataset.id, inp = it.querySelector('.mname');
-    attachAC(inp, d => { setMed(id, 'name', d.n); setMed(id, 'code', d.c); inp.value = d.n; it.querySelector('.hd .hint').textContent = 'รหัส ' + d.c; });
+    attachAC(inp, d => { const g = genericName(d.n), m = F.meds.find(x => x.id === id); setMed(id, 'name', g); setMed(id, 'code', d.c); inp.value = g;
+      if (m && !m.brand) { m.brand = brandName(d.n); const b = it.querySelectorAll('input.t')[1]; if (b) b.value = m.brand; }
+      it.querySelector('.hd .hint').textContent = 'รหัส ' + d.c + ' · ' + d.n; });
   });
   renderDisp();
   renderDrpDrugOptions();
@@ -413,14 +437,14 @@ function renderMeds() {
 function renderDisp() {
   $('dispWrap').hidden = !dispensed.length || $('noCurrentMed').checked;
   $('dispChips').innerHTML = dispensed.map((d, i) => {
-    const used = F.meds.some(m => (d.code && m.code === d.code) || m.name === d.medication);
+    const used = F.meds.some(m => (d.code && m.code === d.code) || m.name === genericName(d.medication));
     return '<button class="' + (used ? 'used' : '') + '" onclick="addDisp(' + i + ')">' + (used ? '✓ ' : '+ ') + esc(d.medication) + '</button>';
   }).join('');
 }
 function addDisp(i) {
   const d = dispensed[i];
-  if (F.meds.some(m => (d.code && m.code === d.code) || m.name === d.medication)) { toast('มีรายการนี้แล้ว'); return; }
-  addMed({ code: d.code || '', name: d.medication, amount: d.qty ? (d.qty + ' ' + (d.uom || '')).trim() : '', source: 'HIS' });
+  if (F.meds.some(m => (d.code && m.code === d.code) || m.name === genericName(d.medication))) { toast('มีรายการนี้แล้ว'); return; }
+  addMed({ code: d.code || '', name: genericName(d.medication), brand: brandName(d.medication), amount: d.qty ? (d.qty + ' ' + (d.uom || '')).trim() : '', source: 'HIS' });
 }
 
 // ── DRPs ────────────────────────────────────────────────────────────
@@ -460,7 +484,7 @@ function renderDrps() {
   }).join('');
   document.querySelectorAll('#drpList .item').forEach(it => {
     const id = +it.dataset.id, inp = it.querySelector('.dname');
-    attachAC(inp, x => { setDrp(id, 'drug', x.n); setDrp(id, 'code', x.c); inp.value = x.n; });
+    attachAC(inp, x => { const g = genericName(x.n); setDrp(id, 'drug', g); setDrp(id, 'code', x.c); inp.value = g; });
   });
   renderDrpDrugOptions();
 }
@@ -608,7 +632,7 @@ function applyFetched(d, an) {
     if (x.comment && sig.indexOf(x.comment) < 0) sig = (sig ? sig + ' — ' : '') + x.comment;
     const n = String(x.medication || '').toUpperCase();
     const dose = x.dosage == null || x.dosage === '' ? '' : String(+x.dosage);
-    F.meds.push(newMed({ _hisMr: x.id, code: x.code || '', name: x.medication || '', dose: dose,
+    F.meds.push(newMed({ _hisMr: x.id, code: x.code || '', name: genericName(x.medication), brand: brandName(x.medication), dose: dose,
       unit: dose ? (/\bCAP\b/.test(n) ? 'cap' : /\bTAB\b|FDT/.test(n) ? 'tab' : '') : '',
       route: x.routeCode === 'ORAL' ? 'oral' : (x.routeName || x.routeCode || ''), sig: sig,
       source: x.origin === 'PATIENT' ? 'ผู้ป่วย/ญาติแจ้ง' : x.origin === 'TRANSFERRED_DOCUMENT' ? 'ใบส่งตัว/เอกสาร' : 'HIS',
