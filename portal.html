@@ -151,7 +151,10 @@
       links: [['เปิดระบบ', 'index.html'], ['เบิก/คืนกล่องยา', 'index.html#box'], ['กล่องยา OR', 'index.html#orbox']] },
     { icon: '🏷️', title: 'ฉลากยา (ไทย / 中文 / 日本語)', page: 'sticker.html',
       desc: 'พิมพ์ฉลากยาภาษาไทย หรือภาษาจีน/ญี่ปุ่น ดึงข้อมูลจาก HIS และส่งพิมพ์ที่เครื่องพิมพ์ห้องยา (ต้องกรอกรหัสพนักงาน)',
-      links: [['ฉลากไทย', 'sticker.html'], ['中文 / 日本語', 'label-intl.html']] }
+      links: [['ฉลากไทย', 'sticker.html'], ['中文 / 日本語', 'label-intl.html']] },
+    { icon: '💊', title: 'Medication Reconciliation และ DRPs', page: 'medrec.html',
+      desc: 'ทำ Medication Reconciliation ข้างเตียงจากมือถือ ดึงข้อมูลจาก HIS ด้วย AN บันทึกปัญหาจากการใช้ยา (DRPs) และพิมพ์แบบฟอร์ม A4 ที่ห้องยา (LKPC-08) หรือที่ Ward (LKPC-16) (ต้องกรอกรหัสพนักงาน)',
+      links: [['เปิดระบบ', 'medrec.html'], ['ที่บันทึกไว้ / พิมพ์', 'medrec.html#saved'], ['สรุป DRPs', 'medrec.html#stats']] }
   ];
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function qrSvg(url) {
