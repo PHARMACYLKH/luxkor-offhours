@@ -825,8 +825,8 @@ table.drp td{height:24px;} table.drp td:first-child{text-align:center;}
     <div class="cell"><span class="k">Name :</span><span class="v">${esc(first)}</span></div>
     <div class="cell"><span class="k">Date :</span><span class="v">${today}</span></div>
     <div class="cell"><span class="k">Last Name :</span><span class="v">${esc(last)}</span></div>
-    <div class="cell"><span class="k">Gender :</span><span class="v">${esc(pt.gender || '—')}</span><span class="k" style="margin-left:10px;">HN :</span><span class="v">${esc(pt.hn || '—')}</span></div>
-    <div class="cell"><span class="k">DOB :</span><span class="v">${esc(pt.dob || '—')}</span><span class="k" style="margin-left:10px;">Age :</span><span class="v">${pt.age ? esc(pt.age) + ' y' : '—'}</span></div>
+    <div class="cell"><span class="k">HN :</span><span class="v">${esc(pt.hn || '—')}</span><span class="k" style="margin-left:10px;">AN :</span><span class="v">${esc(pt.an || '—')}</span></div>
+    <div class="cell"><span class="k">Gender :</span><span class="v">${esc(pt.gender || '—')}</span><span class="k" style="margin-left:8px;">DOB :</span><span class="v">${esc(pt.dob || '—')}</span><span class="k" style="margin-left:8px;">Age :</span><span class="v">${pt.age ? esc(pt.age) + ' y' : '—'}</span></div>
     <div class="cell"><span class="k">Dept :</span><span class="v">${esc(pt.dept || 'IPD')}</span><span class="k" style="margin-left:10px;">Room :</span><span class="v">${esc(pt.room || '—')}</span></div>
     <div class="cell"><span class="k">Weight :</span><span class="v">${pt.weight ? esc(pt.weight) + ' kg' : '—'}</span><span class="k" style="margin-left:10px;">Height :</span><span class="v">${pt.height ? esc(pt.height) + ' cm' : '—'}</span></div>
     <div class="cell"><span class="k">Physician :</span><span class="v">${esc(pt.physician || '—')}</span></div>
@@ -835,7 +835,7 @@ table.drp td{height:24px;} table.drp td:first-child{text-align:center;}
 <div class="mr-p-allergy"><span class="mr-lbl">Drug Allergy :</span>${chk(p.drugNo)} No known of drug allergy &nbsp; ${chk(drugKnown)} Yes, Specify <span class="mr-p-blank">${drugKnown ? esc(p.drugText) : '&nbsp;'}</span></div>
 <div class="mr-p-allergy"><span class="mr-lbl">Food Allergy :</span>${chk(p.foodNo)} No known of food allergy &nbsp; ${chk(p.foodYes)} Yes, Specify <span class="mr-p-blank">${p.foodYes ? esc(p.foodText) : '&nbsp;'}</span></div>
 <div class="mr-p-allergy"><span class="mr-lbl">Other Allergy :</span>${chk(p.otherNo)} No &nbsp; ${chk(p.otherYes)} Yes. Please specify <span class="mr-p-blank">${p.otherYes ? esc(p.otherText) : '&nbsp;'}</span></div>
-<div class="mr-p-underlying"><b>Underlying Disease(s) :</b> ${esc(pt.underlying || '—')} &nbsp;&nbsp; <b>AN :</b> ${esc(pt.an || '—')}</div>
+<div class="mr-p-underlying"><b>Underlying Disease(s) :</b> ${esc(pt.underlying || '—')}</div>
 <div class="mr-p-tbl-wrap">
 <table class="mr-p-tbl">
 <colgroup><col style="width:3.85%"><col style="width:15.93%"><col style="width:9.89%"><col style="width:6.04%"><col style="width:5.49%"><col style="width:14.29%"><col style="width:8.79%"><col style="width:8.24%"><col style="width:6.04%"><col style="width:3.85%"><col style="width:3.85%"><col style="width:3.85%"><col style="width:3.30%"><col style="width:3.30%"><col style="width:3.30%"></colgroup>
