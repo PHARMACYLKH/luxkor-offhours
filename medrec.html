@@ -27,6 +27,9 @@ main{max-width:760px;margin:0 auto;padding:12px 16px;}
 label.f{display:block;font-size:14px;color:var(--muted);margin:8px 0 3px;font-weight:600;}
 input.t,select.t,textarea.t{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:17px;background:#fff;color:var(--text);outline:none;}
 input.t:focus,select.t:focus,textarea.t:focus{border-color:var(--green);}
+/* (2026-11-18) ข้อมูลผู้ป่วยมาจาก HIS/ระบบเท่านั้น — แสดงผลอย่างเดียว ไม่ให้กรอก */
+input.t.ro{background:#f3f7f5;border-color:transparent;color:var(--text);font-weight:600;padding:8px 10px;cursor:default;}
+input.t.ro:focus{border-color:transparent;}
 textarea.t{min-height:64px;resize:vertical;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 10px;}
@@ -118,26 +121,27 @@ textarea.t{min-height:64px;resize:vertical;}
     <div class="ref" id="refLabel">ฟอร์มใหม่ (ยังไม่บันทึก)</div>
     <div class="card">
       <h2>👤 ข้อมูลผู้ป่วย</h2>
+      <div class="hint" style="margin:-4px 0 6px">กรอก AN 3 ตัวท้าย ระบบดึงข้อมูลผู้ป่วยจาก HIS มาแสดงให้อัตโนมัติ</div>
       <div class="g2">
         <div><label class="f" for="an3">AN (กรอก 3 ตัวท้าย)</label><div class="row" style="flex-wrap:nowrap;gap:6px"><span class="t" id="anPre" title="แตะเพื่อสลับเป็นปีก่อน (ผู้ป่วย admit ข้ามปี)" onclick="togglePre()" style="width:auto;flex:0 0 auto;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:17px;background:var(--green-soft);font-weight:700;color:var(--green-dark);cursor:pointer;user-select:none"></span><input class="t" id="an3" inputmode="numeric" maxlength="3" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,3);syncAN();if(this.value.length===3&&S.token)fetchAN()"></div><input type="hidden" id="an"></div>
-        <div><label class="f" for="hn">HN</label><input class="t" id="hn" inputmode="numeric" autocomplete="off"></div>
+        <div><label class="f" for="hn">HN</label><input class="t ro" id="hn" readonly tabindex="-1"></div>
       </div>
       <button class="btn full" id="btnFetch" style="margin-top:10px" onclick="fetchAN()">⚡ ดึงข้อมูลผู้ป่วย + Med Rec จาก HIS ตาม AN</button>
       <div class="status" id="fetchStatus"></div>
-      <label class="f" for="pname">ชื่อ-นามสกุล</label><input class="t" id="pname" autocomplete="off">
+      <label class="f" for="pname">ชื่อ-นามสกุล</label><input class="t ro" id="pname" readonly tabindex="-1">
       <div class="g3">
-        <div><label class="f" for="gender">เพศ</label><select class="t" id="gender"><option value=""></option><option>Male</option><option>Female</option></select></div>
-        <div><label class="f" for="dob">วันเกิด</label><input class="t" id="dob"></div>
-        <div><label class="f" for="age">อายุ (ปี)</label><input class="t" id="age" inputmode="numeric"></div>
-        <div><label class="f" for="weight">น้ำหนัก (kg)</label><input class="t" id="weight" inputmode="decimal"></div>
-        <div><label class="f" for="height">ส่วนสูง (cm)</label><input class="t" id="height" inputmode="decimal"></div>
-        <div><label class="f" for="room">ห้อง</label><input class="t" id="room"></div>
+        <div><label class="f" for="gender">เพศ</label><input class="t ro" id="gender" readonly tabindex="-1"></div>
+        <div><label class="f" for="dob">วันเกิด</label><input class="t ro" id="dob" readonly tabindex="-1"></div>
+        <div><label class="f" for="age">อายุ (ปี)</label><input class="t ro" id="age" readonly tabindex="-1"></div>
+        <div><label class="f" for="weight">น้ำหนัก (kg)</label><input class="t ro" id="weight" readonly tabindex="-1"></div>
+        <div><label class="f" for="height">ส่วนสูง (cm)</label><input class="t ro" id="height" readonly tabindex="-1"></div>
+        <div><label class="f" for="room">ห้อง</label><input class="t ro" id="room" readonly tabindex="-1"></div>
       </div>
       <div class="g2">
-        <div><label class="f" for="dept">แผนก</label><input class="t" id="dept" value="IPD"></div>
-        <div><label class="f" for="physician">แพทย์เจ้าของไข้</label><input class="t" id="physician"></div>
+        <div><label class="f" for="dept">แผนก</label><input class="t ro" id="dept" readonly tabindex="-1" value="IPD"></div>
+        <div><label class="f" for="physician">แพทย์เจ้าของไข้</label><input class="t ro" id="physician" readonly tabindex="-1"></div>
       </div>
-      <label class="f" for="underlying">โรคประจำตัว (Underlying disease)</label><input class="t" id="underlying">
+      <label class="f" for="underlying">โรคประจำตัว (Underlying disease)</label><input class="t ro" id="underlying" readonly tabindex="-1">
     </div>
 
     <div class="card">
