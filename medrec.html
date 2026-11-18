@@ -704,11 +704,12 @@ function docHtml(p) {
 <style>
 @font-face{font-family:'LKThai';src:url(data:font/ttf;base64,${TH_FONT_R}) format('truetype');font-weight:400;unicode-range:U+0E00-0E7F;size-adjust:140%;}
 @font-face{font-family:'LKThai';src:url(data:font/ttf;base64,${TH_FONT_B}) format('truetype');font-weight:700;unicode-range:U+0E00-0E7F;size-adjust:140%;}
-@page{size:A4 portrait;margin:8mm 10mm;}
+@page{size:A4 portrait;margin:7mm 7mm 5mm 7mm;}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-html,body{margin:0;background:#fff;}
+html,body{margin:0;background:#fff;height:100%;}
 body{font-family:'LKThai',Arial,sans-serif;color:#111;}
-.mr-doc{font-size:11px;padding:2mm 4mm;width:190mm;}
+/* กว้างเต็มพื้นที่พิมพ์ + สูงเต็มหน้า: บล็อกลงนามและแถวเลขที่เอกสารถูกดันลงไปชิดขอบล่าง */
+.mr-doc{font-size:11px;width:196mm;min-height:100%;display:flex;flex-direction:column;}
 .mr-p-hdr{display:flex;gap:12px;align-items:stretch;border-bottom:3px double #0b4a2d;padding-bottom:6px;margin-bottom:6px;}
 .mr-p-logowrap{display:flex;align-items:center;justify-content:center;width:110px;flex-shrink:0;}
 .mr-p-logowrap svg{width:100%;height:auto;display:block;}
@@ -726,29 +727,29 @@ body{font-family:'LKThai',Arial,sans-serif;color:#111;}
 .mr-p-blank{flex:1 1 auto;min-width:60px;border-bottom:1px solid #333;padding:0 4px 1px;}
 .mr-p-underlying{border-bottom:1px solid #e3e7e5;padding:4px 0 6px;font-size:11px;}
 .mr-p-tbl-wrap{position:relative;display:block;}
-table.mr-p-tbl{width:182mm;table-layout:fixed;border-collapse:collapse;font-size:9.5px;margin-top:6px;}
+table.mr-p-tbl{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px;margin-top:6px;}
 .mr-p-tbl thead{display:table-header-group;}
 .mr-p-tbl tr{page-break-inside:avoid;}
 .mr-p-tbl th,.mr-p-tbl td{border:1px solid #555;padding:4px 3px;text-align:center;vertical-align:middle;height:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mr-p-tbl th{background:#f0f0f0;font-weight:700;white-space:normal;overflow:visible;line-height:1.15;padding:3px 1px;}
 .mr-p-tbl thead tr:nth-child(2) th{font-size:8.5px;}
-.mr-p-tbl td.l{text-align:left;}
+.mr-p-tbl td.l{text-align:left;white-space:normal;line-height:1.15;overflow-wrap:anywhere;}
 .mr-rxcheck{font-weight:900;font-size:13px;line-height:1;font-family:Arial,sans-serif;}
 .mr-p-watermark{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
 .mr-p-watermark span{position:absolute;top:50%;left:50%;font-weight:700;letter-spacing:.03em;color:rgba(70,70,70,.4);white-space:nowrap;text-transform:uppercase;transform-origin:center center;}
 .drp-ttl{margin-top:10px;font-weight:700;font-size:11px;color:#0b4a2d;display:flex;align-items:center;gap:10px;}
-table.drp{width:182mm;table-layout:fixed;border-collapse:collapse;font-size:9.5px;margin-top:4px;}
+table.drp{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.5px;margin-top:4px;}
 table.drp th,table.drp td{border:1px solid #555;padding:3px;vertical-align:middle;line-height:1.25;word-wrap:break-word;}
 table.drp th{background:#f0f0f0;font-weight:700;text-align:center;}
 table.drp td{height:24px;} table.drp td:first-child{text-align:center;}
 .sm{font-size:8.5px;color:#444;}
-.mr-p-bottom{margin-top:16px;font-size:11px;page-break-inside:avoid;}
+.mr-p-bottom{margin-top:auto;padding-top:16px;font-size:11px;page-break-inside:avoid;}
 .mr-p-bottom-row{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:16px;}
 .mr-p-bottom-chk{flex:1;}
 .mr-p-sig{width:200px;text-align:center;flex-shrink:0;}
 .mr-p-sig .ln{border-bottom:1px solid #999;height:30px;}
 .mr-p-sig .lb{font-size:10px;color:#7c8985;margin-top:2px;}
-.mr-p-docfooter{margin-top:12mm;padding-top:6px;border-top:1px solid #999;font-size:8.5px;color:#555;display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap;}
+.mr-p-docfooter{margin-top:9mm;padding-top:6px;border-top:1px solid #999;font-size:8.5px;color:#555;display:flex;justify-content:space-between;align-items:baseline;gap:10px;white-space:nowrap;}
 .mr-p-docfooter b{color:#111;font-size:10px;white-space:nowrap;}
 </style></head><body><div class="mr-doc">
 <div class="mr-p-hdr">
@@ -771,14 +772,14 @@ table.drp td{height:24px;} table.drp td:first-child{text-align:center;}
 <div class="mr-p-underlying"><b>Underlying Disease(s) :</b> ${esc(pt.underlying || '—')} &nbsp;&nbsp; <b>AN :</b> ${esc(pt.an || '—')}</div>
 <div class="mr-p-tbl-wrap">
 <table class="mr-p-tbl">
-<colgroup><col style="width:7mm"><col style="width:29mm"><col style="width:18mm"><col style="width:11mm"><col style="width:10mm"><col style="width:26mm"><col style="width:16mm"><col style="width:15mm"><col style="width:11mm"><col style="width:7mm"><col style="width:7mm"><col style="width:7mm"><col style="width:6mm"><col style="width:6mm"><col style="width:6mm"></colgroup>
+<colgroup><col style="width:3.85%"><col style="width:15.93%"><col style="width:9.89%"><col style="width:6.04%"><col style="width:5.49%"><col style="width:14.29%"><col style="width:8.79%"><col style="width:8.24%"><col style="width:6.04%"><col style="width:3.85%"><col style="width:3.85%"><col style="width:3.85%"><col style="width:3.30%"><col style="width:3.30%"><col style="width:3.30%"></colgroup>
 <thead><tr><th rowspan="2">No.</th><th rowspan="2">Medication Name</th><th rowspan="2">Brand Name®</th><th rowspan="2">Dose</th><th rowspan="2">Route</th><th rowspan="2">Dosage Regimen</th><th rowspan="2">Rx Source</th><th rowspan="2">Last Dose</th><th rowspan="2">Amount</th><th colspan="3">Verification</th><th colspan="3">Plan</th></tr>
 <tr><th>Nurse</th><th>Rx</th><th>Dr.</th><th>Hold</th><th>Con.</th><th>Off.</th></tr></thead>
 <tbody>${medRows}</tbody></table>
 ${p.noCurrentMed ? '<div class="mr-p-watermark"><span id="wm">No Current Medication</span></div>' : ''}
 </div>
 <div class="drp-ttl">Drug-Related Problems (DRPs) ที่พบจากการทำ Medication Reconciliation <span>${chk(!p.drps.length)} ไม่พบ</span><span>${chk(p.drps.length > 0)} พบ ${p.drps.length || '.....'} รายการ</span></div>
-<table class="drp"><colgroup><col style="width:7mm"><col style="width:38mm"><col style="width:36mm"><col style="width:61mm"><col style="width:40mm"></colgroup>
+<table class="drp"><colgroup><col style="width:3.85%"><col style="width:20.88%"><col style="width:19.78%"><col style="width:33.52%"><col style="width:21.98%"></colgroup>
 <thead><tr><th>No.</th><th>ยาที่เกี่ยวข้อง</th><th>ประเภท / สาเหตุ DRP</th><th>รายละเอียดปัญหา / ข้อเสนอของเภสัชกร</th><th>การดำเนินการ / ผลลัพธ์</th></tr></thead>
 <tbody>${drpRows}</tbody></table>
 <div class="mr-p-bottom">
@@ -791,7 +792,11 @@ ${p.noCurrentMed ? '<div class="mr-p-watermark"><span id="wm">No Current Medicat
 <script>
 function fitCells(){document.querySelectorAll('.mr-p-tbl tbody td').forEach(function(td){if(!td.textContent.trim())return;td.style.fontSize='';var s=9.5;while(td.scrollWidth>td.clientWidth+0.5&&s-0.5>=6){s-=0.5;td.style.fontSize=s+'px';}});}
 function wm(){var w=document.querySelector('.mr-p-tbl-wrap'),sp=document.getElementById('wm');if(!w||!sp)return;var W=w.clientWidth,H=w.clientHeight,d=Math.sqrt(W*W+H*H),a=-(Math.atan2(H,W)*180/Math.PI);sp.style.fontSize='16px';sp.style.transform='translate(-50%,-50%)';var n=sp.getBoundingClientRect().width||1;sp.style.fontSize=Math.max(10,16*(d*0.88/n))+'px';sp.style.transform='translate(-50%,-50%) rotate('+a+'deg)';}
-fitCells();wm();if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){fitCells();wm();});
+function fillRows(){var d=document.querySelector('.mr-doc'),tb=document.querySelector('.mr-p-tbl tbody');if(!d||!tb)return;
+tb.querySelectorAll('tr.fill').forEach(function(r){r.remove();});
+var pageH=285*96/25.4;d.style.minHeight='0';if(d.getBoundingClientRect().height<pageH){for(var n=0;n<40;n++){var tr=document.createElement('tr');tr.className='fill';tr.innerHTML=new Array(16).join('<td></td>');tb.appendChild(tr);if(d.getBoundingClientRect().height>pageH-3){tb.removeChild(tr);break;}}}d.style.minHeight='';}
+function go(){fitCells();fillRows();wm();}
+go();window.addEventListener('load',go);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(go);
 <\/script>
 </body></html>`;
 }
