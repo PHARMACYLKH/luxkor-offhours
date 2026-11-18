@@ -119,15 +119,15 @@ textarea.t{min-height:64px;resize:vertical;}
     <div class="card">
       <h2>👤 ข้อมูลผู้ป่วย</h2>
       <div class="g2">
-        <div><label class="f" for="an3">AN (กรอก 3 ตัวท้าย)</label><div class="row" style="flex-wrap:nowrap;gap:6px"><select class="t" id="anPre" style="width:auto;flex:0 0 auto;padding:10px 6px" onchange="syncAN()"></select><input class="t" id="an3" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="131" oninput="this.value=this.value.replace(/\D/g,'').slice(0,3);syncAN()"></div><input type="hidden" id="an"></div>
-        <div><label class="f" for="hn">HN</label><input class="t" id="hn" inputmode="numeric" autocomplete="off" placeholder="เช่น 6901234"></div>
+        <div><label class="f" for="an3">AN (กรอก 3 ตัวท้าย)</label><div class="row" style="flex-wrap:nowrap;gap:6px"><span class="t" id="anPre" title="แตะเพื่อสลับเป็นปีก่อน (ผู้ป่วย admit ข้ามปี)" onclick="togglePre()" style="width:auto;flex:0 0 auto;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:17px;background:var(--green-soft);font-weight:700;color:var(--green-dark);cursor:pointer;user-select:none"></span><input class="t" id="an3" inputmode="numeric" maxlength="3" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,3);syncAN();if(this.value.length===3&&S.token)fetchAN()"></div><input type="hidden" id="an"></div>
+        <div><label class="f" for="hn">HN</label><input class="t" id="hn" inputmode="numeric" autocomplete="off"></div>
       </div>
       <button class="btn full" id="btnFetch" style="margin-top:10px" onclick="fetchAN()">⚡ ดึงข้อมูลผู้ป่วย + Med Rec จาก HIS ตาม AN</button>
       <div class="status" id="fetchStatus"></div>
       <label class="f" for="pname">ชื่อ-นามสกุล</label><input class="t" id="pname" autocomplete="off">
       <div class="g3">
         <div><label class="f" for="gender">เพศ</label><select class="t" id="gender"><option value=""></option><option>Male</option><option>Female</option></select></div>
-        <div><label class="f" for="dob">วันเกิด</label><input class="t" id="dob" placeholder="10 พ.ค. 2528"></div>
+        <div><label class="f" for="dob">วันเกิด</label><input class="t" id="dob"></div>
         <div><label class="f" for="age">อายุ (ปี)</label><input class="t" id="age" inputmode="numeric"></div>
         <div><label class="f" for="weight">น้ำหนัก (kg)</label><input class="t" id="weight" inputmode="decimal"></div>
         <div><label class="f" for="height">ส่วนสูง (cm)</label><input class="t" id="height" inputmode="decimal"></div>
@@ -143,17 +143,17 @@ textarea.t{min-height:64px;resize:vertical;}
     <div class="card">
       <h2>⚠️ ประวัติการแพ้</h2>
       <label class="chk"><input type="checkbox" id="drugNo"> ไม่มีประวัติแพ้ยา (No known drug allergy)</label>
-      <label class="f" for="drugText">ยาที่แพ้ / อาการ</label><textarea class="t" id="drugText" rows="2" placeholder="ระบุยาที่แพ้ (ดึงจาก HIS อัตโนมัติถ้ามี)"></textarea>
+      <label class="f" for="drugText">ยาที่แพ้ / อาการ</label><textarea class="t" id="drugText" rows="2"></textarea>
       <div class="g2" style="margin-top:6px">
         <div>
           <label class="chk"><input type="checkbox" id="foodNo"> ไม่แพ้อาหาร</label>
           <label class="chk"><input type="checkbox" id="foodYes"> แพ้อาหาร</label>
-          <input class="t" id="foodText" placeholder="ระบุอาหาร">
+          <input class="t" id="foodText">
         </div>
         <div>
           <label class="chk"><input type="checkbox" id="otherNo"> ไม่แพ้สิ่งอื่น</label>
           <label class="chk"><input type="checkbox" id="otherYes"> แพ้สิ่งอื่น</label>
-          <input class="t" id="otherText" placeholder="ระบุ">
+          <input class="t" id="otherText">
         </div>
       </div>
     </div>
@@ -273,6 +273,7 @@ let dispensed = [];
 let printers = null;
 let lastSavedSig = '';
 let seq = 0;
+let lastFetchedAN = '';
 
 function blankForm() {
   return { ref: '', meds: [], drps: [] };
@@ -381,7 +382,7 @@ function renderMeds() {
   $('medList').innerHTML = F.meds.map((m, i) => `
     <div class="item" data-id="${m.id}">
       <div class="hd"><span class="no">${i + 1}</span><span class="hint">${m.code ? 'รหัส ' + esc(m.code) : 'ยานอกบัญชี / พิมพ์เอง'}</span><button class="del" title="ลบ" onclick="delMed(${m.id})">×</button></div>
-      <div class="ac"><label class="f">ชื่อยา (Medication name)</label><input class="t mname" value="${esc(m.name)}" placeholder="พิมพ์ชื่อยาอย่างน้อย 2 ตัวอักษร" oninput="setMed(${m.id},'name',this.value);setMed(${m.id},'code','')"></div>
+      <div class="ac"><label class="f">ชื่อยา (Medication name)</label><input class="t mname" value="${esc(m.name)}" oninput="setMed(${m.id},'name',this.value);setMed(${m.id},'code','')"></div>
       <div class="g2">
         <div><label class="f">ชื่อการค้า</label><input class="t" value="${esc(m.brand)}" oninput="setMed(${m.id},'brand',this.value)"></div>
         <div><label class="f">แหล่งที่มา (Rx source)</label><select class="t" onchange="setMed(${m.id},'source',this.value)">${opts(SOURCES, m.source)}</select></div>
@@ -391,7 +392,7 @@ function renderMeds() {
         <div><label class="f">หน่วย</label><select class="t" onchange="setMed(${m.id},'unit',this.value)">${opts(UNITS, m.unit)}</select></div>
         <div><label class="f">วิถีทาง</label><select class="t" onchange="setMed(${m.id},'route',this.value)">${opts(ROUTES, m.route)}</select></div>
       </div>
-      <label class="f">วิธีใช้ (Dosage regimen)</label><input class="t" value="${esc(m.sig)}" placeholder="เช่น 1 tab oral od pc เช้า" oninput="setMed(${m.id},'sig',this.value)">
+      <label class="f">วิธีใช้ (Dosage regimen)</label><input class="t" value="${esc(m.sig)}" oninput="setMed(${m.id},'sig',this.value)">
       <div class="g2">
         <div><label class="f">ใช้ครั้งล่าสุด (Last dose)</label><input class="t" type="date" value="${esc(m.lastDose)}" onchange="setMed(${m.id},'lastDose',this.value)"></div>
         <div><label class="f">จำนวนที่นำมา (Amount)</label><input class="t" value="${esc(m.amount)}" oninput="setMed(${m.id},'amount',this.value)"></div>
@@ -440,7 +441,7 @@ function renderDrps() {
       <div class="hd"><span class="no">DRP ${i + 1}</span><button class="del" title="ลบ" onclick="delDrp(${d.id})">×</button></div>
       <label class="f">ยาที่เกี่ยวข้อง</label>
       <select class="t dsel" data-id="${d.id}" onchange="if(this.value==='__other'){this.closest('.item').querySelector('.dfree').hidden=false;}else{setDrp(${d.id},'drug',this.value);const m=F.meds.find(x=>x.name===this.value);setDrp(${d.id},'code',m?m.code:'');this.closest('.item').querySelector('.dfree').hidden=true;}"></select>
-      <div class="ac dfree" ${d.drug && !inMeds ? '' : 'hidden'}><input class="t dname" style="margin-top:6px" value="${esc(inMeds ? '' : d.drug)}" placeholder="พิมพ์ชื่อยา (ยาใหม่ที่ควรได้รับ ฯลฯ)" oninput="setDrp(${d.id},'drug',this.value);setDrp(${d.id},'code','')"></div>
+      <div class="ac dfree" ${d.drug && !inMeds ? '' : 'hidden'}><input class="t dname" style="margin-top:6px" value="${esc(inMeds ? '' : d.drug)}" oninput="setDrp(${d.id},'drug',this.value);setDrp(${d.id},'code','')"></div>
       <label class="f">ประเภท DRP</label>
       <select class="t" onchange="setDrp(${d.id},'category',this.value)">${opts(DRP_CATS.map(c => c[0]), d.category)}</select>
       <label class="f">สาเหตุ</label>
@@ -489,11 +490,12 @@ function fill(p) {
 function collectSig() { const c = collect(); delete c.date; return c; }
 // AN = <ปี พ.ศ. 2 หลัก>00<ลำดับ 3 หลัก> เช่น 6900131 — เภสัชกรกรอกแค่ 3 ตัวท้าย, prefix เลือกปีนี้/ปีก่อน (ผู้ป่วย admit ข้ามปี)
 function anPrefixes() { const be = new Date().getFullYear() + 543; return [String(be % 100).padStart(2, '0') + '00', String((be - 1) % 100).padStart(2, '0') + '00']; }
-function syncAN() { const d = $('an3').value; $('an').value = d ? $('anPre').value + d.padStart(3, '0') : ''; }
+// 4 หลักแรก auto ตามปี พ.ศ. ปัจจุบัน (2569 → 6900, 2570 → 7000 …) แตะที่เลขเพื่อสลับเป็นปีก่อนได้กรณี admit ข้ามปี
+function syncAN() { const d = $('an3').value; $('an').value = d ? $('anPre').textContent + d.padStart(3, '0') : ''; }
+function togglePre() { const pres = anPrefixes(), cur = $('anPre').textContent; $('anPre').textContent = cur === pres[0] ? pres[1] : pres[0]; syncAN(); }
 function splitAN() {
-  const v = $('an').value.trim(), pres = anPrefixes(), pre = v.length > 3 ? v.slice(0, -3) : pres[0];
-  if (pres.indexOf(pre) < 0) pres.push(pre);
-  $('anPre').innerHTML = pres.map(x => '<option' + (x === pre ? ' selected' : '') + '>' + x + '</option>').join('');
+  const v = $('an').value.trim();
+  $('anPre').textContent = v.length > 3 ? v.slice(0, -3) : anPrefixes()[0];
   $('an3').value = v.length > 3 ? v.slice(-3) : v;
 }
 function setRef() { $('refLabel').textContent = F.ref ? 'เลขที่ฟอร์ม ' + F.ref : 'ฟอร์มใหม่ (ยังไม่บันทึก)'; }
@@ -517,6 +519,9 @@ function allergyText(a) {
 async function fetchAN() {
   const an = $('an').value.trim();
   if (!/^[0-9A-Za-z-]{4,20}$/.test(an)) { toast('กรุณากรอก AN 3 ตัวท้าย'); $('an3').focus(); return; }
+  // AN ใหม่ = ฟอร์มใหม่: ล้างข้อมูลผู้ป่วย/ยา/DRPs ของ AN ก่อนหน้า ให้ทุกช่องแสดงเฉพาะข้อมูลที่ดึงมาจาก AN นี้
+  if (an !== lastFetchedAN) { fill({ patient: { an: an, dept: 'IPD' } }); lastFetchedAN = an; }
+  if ($('btnFetch').disabled) return;
   const st = $('fetchStatus'); $('btnFetch').disabled = true;
   st.className = 'status'; st.textContent = '⏳ ส่งคำขอไปเครื่องห้องยา (LKPC-08)…';
   try {
@@ -541,7 +546,7 @@ function applyFetched(d, an) {
   const st = $('fetchStatus'), notes = [];
   const sh = d.sheet && d.sheet.status === 'ok' ? d.sheet.row : null;
   const his = d.his && d.his.status === 'ok' ? d.his : null;
-  const set = (id, v) => { if (v != null && String(v).trim() && !$(id).value.trim()) $(id).value = String(v).trim(); };
+  const set = (id, v) => { if (v != null && String(v).trim()) $(id).value = String(v).trim(); };
   if (sh) {
     set('hn', sh.hn); set('pname', sh.patientName); set('physician', sh.doctor); set('room', sh.room);
     set('age', String(sh.age || '').replace(/\s*ปี\s*/g, '')); set('weight', sh.weight); set('height', sh.height);
@@ -615,7 +620,7 @@ async function openSaved(ref) {
   try {
     const j = await api({ action: 'medrecGet', token: S.token, ref: ref });
     if (j.status !== 'ok') throw new Error(j.msg);
-    fill(j.payload); go('form'); toast('เปิดฟอร์ม ' + ref);
+    fill(j.payload); lastFetchedAN = (j.payload.patient || {}).an || ''; go('form'); toast('เปิดฟอร์ม ' + ref);
   } catch (e) { toast('❌ ' + e.message); }
 }
 function statBlock(title, obj, total) {
