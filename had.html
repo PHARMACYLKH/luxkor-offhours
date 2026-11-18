@@ -416,7 +416,7 @@
       for (let i = 0; i < 40; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const s = await fetch(GAS_URL + '?action=getPrintJobStatus&jobId=' + encodeURIComponent(j.jobId)).then(r => r.json());
-        if (s.jobStatus === 'PRINTED') { st.className = 'fst ok'; st.textContent = '✅ พิมพ์ ' + curForm + ' แล้วที่ ' + where + ; return; }
+        if (s.jobStatus === 'PRINTED') { st.className = 'fst ok'; st.textContent = '✅ พิมพ์ ' + curForm + ' แล้วที่ ' + where; return; }
         if (s.jobStatus === 'ERROR') throw new Error('เครื่องพิมพ์แจ้งข้อผิดพลาด: ' + (s.errorMsg || ''));
       }
       st.className = 'fst warn'; st.textContent = '⚠️ ยังไม่ได้รับการยืนยันการพิมพ์ — ตรวจที่เครื่องพิมพ์ ' + where;
