@@ -134,8 +134,8 @@ textarea.t{min-height:64px;resize:vertical;}
     <div class="ref" id="refLabel">ฟอร์มใหม่ (ยังไม่บันทึก)</div>
     <div class="card">
       <h2>👤 ข้อมูลผู้ป่วย</h2>
-      <label class="f" for="an3">AN — กรอก 3 ตัวท้าย ระบบดึงข้อมูลผู้ป่วยจาก HIS ให้อัตโนมัติ</label>
-      <div class="row" style="flex-wrap:nowrap;gap:8px"><span id="anPre" title="แตะเพื่อสลับเป็นปีก่อน (ผู้ป่วย admit ข้ามปี)" onclick="togglePre()"></span><input class="t" id="an3" inputmode="numeric" maxlength="3" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,3);syncAN();if(this.value.length===3&&S.token)fetchAN()"><button class="btn sm ghost" id="btnFetch" onclick="fetchAN()" title="โหลดข้อมูลใหม่">↻</button></div>
+      <label class="f" for="an3">AN — กรอก 3 ตัวท้าย แล้วกด "ดึงข้อมูล"</label>
+      <div class="row" style="flex-wrap:nowrap;gap:8px"><span id="anPre" title="แตะเพื่อสลับเป็นปีก่อน (ผู้ป่วย admit ข้ามปี)" onclick="togglePre()"></span><input class="t" id="an3" inputmode="numeric" maxlength="3" autocomplete="off" oninput="this.value=this.value.replace(/\D/g,'').slice(0,3);syncAN()" onkeydown="if(event.key==='Enter')fetchAN()"><button class="btn" id="btnFetch" onclick="fetchAN()" style="flex:1;white-space:nowrap">ดึงข้อมูล</button></div>
       <input type="hidden" id="an">
       <div id="ptLoader" hidden></div>
       <div class="status" id="fetchStatus"></div>
