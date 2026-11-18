@@ -119,7 +119,7 @@ textarea.t{min-height:64px;resize:vertical;}
     <div class="card">
       <h2>👤 ข้อมูลผู้ป่วย</h2>
       <div class="g2">
-        <div><label class="f" for="an">AN</label><input class="t" id="an" inputmode="numeric" autocomplete="off" placeholder="เช่น 6900126"></div>
+        <div><label class="f" for="an3">AN (กรอก 3 ตัวท้าย)</label><div class="row" style="flex-wrap:nowrap;gap:6px"><select class="t" id="anPre" style="width:auto;flex:0 0 auto;padding:10px 6px" onchange="syncAN()"></select><input class="t" id="an3" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="131" oninput="this.value=this.value.replace(/\D/g,'').slice(0,3);syncAN()"></div><input type="hidden" id="an"></div>
         <div><label class="f" for="hn">HN</label><input class="t" id="hn" inputmode="numeric" autocomplete="off" placeholder="เช่น 6901234"></div>
       </div>
       <button class="btn full" id="btnFetch" style="margin-top:10px" onclick="fetchAN()">⚡ ดึงข้อมูลผู้ป่วย + Med Rec จาก HIS ตาม AN</button>
@@ -482,10 +482,20 @@ function fill(p) {
   F.meds = (p.meds || []).map(m => newMed(m));
   F.drps = (p.drps || []).map(d => newDrp(d));
   dispensed = [];
+  splitAN();
   renderMeds(); renderDrps(); setRef();
   lastSavedSig = JSON.stringify(collectSig());
 }
 function collectSig() { const c = collect(); delete c.date; return c; }
+// AN = <ปี พ.ศ. 2 หลัก>00<ลำดับ 3 หลัก> เช่น 6900131 — เภสัชกรกรอกแค่ 3 ตัวท้าย, prefix เลือกปีนี้/ปีก่อน (ผู้ป่วย admit ข้ามปี)
+function anPrefixes() { const be = new Date().getFullYear() + 543; return [String(be % 100).padStart(2, '0') + '00', String((be - 1) % 100).padStart(2, '0') + '00']; }
+function syncAN() { const d = $('an3').value; $('an').value = d ? $('anPre').value + d.padStart(3, '0') : ''; }
+function splitAN() {
+  const v = $('an').value.trim(), pres = anPrefixes(), pre = v.length > 3 ? v.slice(0, -3) : pres[0];
+  if (pres.indexOf(pre) < 0) pres.push(pre);
+  $('anPre').innerHTML = pres.map(x => '<option' + (x === pre ? ' selected' : '') + '>' + x + '</option>').join('');
+  $('an3').value = v.length > 3 ? v.slice(-3) : v;
+}
 function setRef() { $('refLabel').textContent = F.ref ? 'เลขที่ฟอร์ม ' + F.ref : 'ฟอร์มใหม่ (ยังไม่บันทึก)'; }
 function newForm(ask) {
   if (ask && !confirm('ล้างข้อมูลในฟอร์มนี้และเริ่มฟอร์มใหม่?')) return;
@@ -506,7 +516,7 @@ function allergyText(a) {
 }
 async function fetchAN() {
   const an = $('an').value.trim();
-  if (!/^[0-9A-Za-z-]{4,20}$/.test(an)) { toast('กรุณากรอก AN'); $('an').focus(); return; }
+  if (!/^[0-9A-Za-z-]{4,20}$/.test(an)) { toast('กรุณากรอก AN 3 ตัวท้าย'); $('an3').focus(); return; }
   const st = $('fetchStatus'); $('btnFetch').disabled = true;
   st.className = 'status'; st.textContent = '⏳ ส่งคำขอไปเครื่องห้องยา (LKPC-08)…';
   try {
@@ -573,7 +583,7 @@ function applyFetched(d, an) {
 // ── save ────────────────────────────────────────────────────────────
 async function save(quiet) {
   const p = collect();
-  if (!p.ref && !/\d{3}$/.test(p.patient.an)) { toast('กรุณากรอก AN (ใช้ออกเลขที่ฟอร์ม LKH-PHA-MR-…)'); $('an').focus(); return null; }
+  if (!p.ref && !/\d{3}$/.test(p.patient.an)) { toast('กรุณากรอก AN 3 ตัวท้าย (ใช้ออกเลขที่ฟอร์ม LKH-PHA-MR-…)'); $('an3').focus(); return null; }
   const bad = p.drps.find(d => !d.category);
   if (bad) { toast('กรุณาเลือกประเภท DRP ให้ครบทุกรายการ'); return null; }
   $('btnSave').disabled = true;
