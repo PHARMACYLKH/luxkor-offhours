@@ -749,8 +749,10 @@ body{font-family:'LKThai',Arial,sans-serif;color:#111;}
 .mr-p-hdr{display:flex;gap:12px;align-items:stretch;border-bottom:3px double #0b4a2d;padding-bottom:6px;margin-bottom:6px;}
 .mr-p-logowrap{display:flex;align-items:center;justify-content:center;width:110px;flex-shrink:0;}
 .mr-p-logowrap svg{width:100%;height:auto;display:block;}
-.mr-p-photo{width:80px;height:96px;flex-shrink:0;border:1.5px dashed #999;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999;}
+.mr-p-photo{width:80px;min-height:96px;flex-shrink:0;border:1.5px dashed #999;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999;}
 .mr-p-right{flex:1;display:flex;flex-direction:column;gap:4px;}
+/* กรอบรูปอยู่แถวเดียวกับกล่องข้อมูล — สูงเท่ากล่องข้อมูลพอดี (ใต้หัวเรื่อง) */
+.mr-p-row{display:flex;gap:12px;align-items:stretch;}
 .mr-p-title{text-align:right;font-family:Arial,sans-serif;font-weight:700;font-size:17px;color:#0f613b;line-height:1.1;}
 .mr-p-info{flex:1;display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #0b4a2d;border-radius:4px;}
 .mr-p-info .cell{border-bottom:1px solid #bcd9c8;padding:3px 8px;font-size:11px;display:flex;flex-wrap:wrap;gap:3px;align-items:baseline;}
@@ -792,8 +794,8 @@ table.drp td{height:24px;} table.drp td:first-child{text-align:center;}
 </style></head><body><div class="mr-doc">
 <div class="mr-p-hdr">
   <div class="mr-p-logowrap">${LOGO_SVG}</div>
-  <div class="mr-p-photo">Photo</div>
   <div class="mr-p-right"><div class="mr-p-title">Medication Reconciliation (MR) Form</div>
+  <div class="mr-p-row"><div class="mr-p-photo">Photo</div>
   <div class="mr-p-info">
     <div class="cell"><span class="k">Name :</span><span class="v">${esc(first)}</span></div>
     <div class="cell"><span class="k">Date :</span><span class="v">${today}</span></div>
@@ -803,7 +805,7 @@ table.drp td{height:24px;} table.drp td:first-child{text-align:center;}
     <div class="cell"><span class="k">Dept :</span><span class="v">${esc(pt.dept || 'IPD')}</span><span class="k" style="margin-left:10px;">Room :</span><span class="v">${esc(pt.room || '—')}</span></div>
     <div class="cell"><span class="k">Weight :</span><span class="v">${pt.weight ? esc(pt.weight) + ' kg' : '—'}</span><span class="k" style="margin-left:10px;">Height :</span><span class="v">${pt.height ? esc(pt.height) + ' cm' : '—'}</span></div>
     <div class="cell"><span class="k">Physician :</span><span class="v">${esc(pt.physician || '—')}</span></div>
-  </div></div>
+  </div></div></div>
 </div>
 <div class="mr-p-allergy"><span class="mr-lbl">Drug Allergy :</span>${chk(p.drugNo)} No known of drug allergy &nbsp; ${chk(drugKnown)} Yes, Specify <span class="mr-p-blank">${drugKnown ? esc(p.drugText) : '&nbsp;'}</span></div>
 <div class="mr-p-allergy"><span class="mr-lbl">Food Allergy :</span>${chk(p.foodNo)} No known of food allergy &nbsp; ${chk(p.foodYes)} Yes, Specify <span class="mr-p-blank">${p.foodYes ? esc(p.foodText) : '&nbsp;'}</span></div>
