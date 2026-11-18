@@ -90,6 +90,10 @@
     header, .chips, .qrbtn, .back, footer { display:none !important; }
     body { background:#fff; }
     .card { break-inside:avoid; border-color:#bbb; }
+    /* เปิดหน้าต่าง QR อยู่ → พิมพ์เฉพาะ QR (ติดกล่อง/กระบะยา) */
+    body.qr-open main, body.qr-open .modal .box button, body.qr-open .modal .box p { display:none !important; }
+    body.qr-open .modal { position:static; background:none; display:block; padding:0; }
+    body.qr-open .modal .box { margin:0 auto; box-shadow:none; }
   }
 </style>
 </head>
@@ -326,9 +330,10 @@
       $('qrbox').innerHTML = svg + '<div style="font-size:14px;font-weight:700;margin-top:6px">' + esc(it.h || '') + ' ' + esc(it.n) + '</div>';
       $('qrurl').textContent = url;
       $('qrm').classList.add('show');
+      document.body.classList.add('qr-open');
     });
   }
-  window.closeQr = () => $('qrm').classList.remove('show');
+  window.closeQr = () => { $('qrm').classList.remove('show'); document.body.classList.remove('qr-open'); };
   $('qrm').addEventListener('click', e => { if (e.target.id === 'qrm') closeQr(); });
 
   function fitHeader() { document.documentElement.style.setProperty('--hh', $('hdr').offsetHeight + 'px'); }
