@@ -387,7 +387,8 @@ function genericName(n) {
   return x || String(n || '').trim();
 }
 function brandName(n) {
-  const m = String(n || '').match(/\(([^()]*®[^()]*)\)/);
+  // ชื่อการค้า = วงเล็บที่มี ® หรือ "(สูตร X)" / "[สูตร X]" เช่น (สูตร NORGESIC) → Norgesic
+  const m = String(n || '').match(/\(([^()]*®[^()]*)\)/) || String(n || '').match(/[\[(]\s*สูตร\s+([^\])]+?)\s*[\])]/);
   if (!m) return '';
   let b = m[1].replace(/®/g, '').replace(/\s*-\s*(GPO|PINYO)$/i, '').trim();
   if (b.length > 3 && b === b.toUpperCase()) b = b.toLowerCase().replace(/(^|[\s\-])([a-z])/g, (q, p1, c) => p1 + c.toUpperCase()); // FLEXA → Flexa
