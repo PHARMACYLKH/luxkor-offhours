@@ -1725,7 +1725,7 @@ function trackPrintJob(jobId, workerAgeSec){
   else { statusEl.textContent = `⏳ ส่งแล้ว รอห้องยาพิมพ์... (Job ${short})`; statusEl.className = 'fetch-status'; }
   const started = Date.now();
   const tick = () => {
-    fetch(GAS_URL + '?action=getPrintJobStatus&jobId=' + encodeURIComponent(jobId))
+    fetch(GAS_URL + '?action=getPrintJobStatus&wait=20&jobId=' + encodeURIComponent(jobId))
       .then(r => r.json()).then(res => {
         if (res.jobStatus === 'PRINTED'){
           statusEl.textContent = `✅ พิมพ์ออกแล้วที่ห้องยา (Job ${short}, ${Math.round((Date.now()-started)/1000)} วิหลังส่ง)`;
@@ -1736,11 +1736,11 @@ function trackPrintJob(jobId, workerAgeSec){
           statusEl.className = 'fetch-status err'; return;
         }
         if (dead(res.workerAgeSec)) warnDead();
-        if (Date.now() - started < 120000) setTimeout(tick, 4000);
+        if (Date.now() - started < 120000) setTimeout(tick, 300);
         else if (!dead(res.workerAgeSec)) { statusEl.textContent = `⏳ งาน ${short} ยังไม่ขึ้นว่าพิมพ์เสร็จ — ตรวจที่เครื่องพิมพ์ห้องยา`; statusEl.className = 'fetch-status err'; }
       }).catch(() => { if (Date.now() - started < 120000) setTimeout(tick, 5000); });
   };
-  setTimeout(tick, 3000);
+  setTimeout(tick, 0);   // wait=20 long-poll (2026-11-18)
 }
 
 function sendIntlToPharmacy(){
