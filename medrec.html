@@ -252,7 +252,7 @@ const SS_KEY = 'lkh_medrec_session';
 // (2026-11-18) GitHub Pages ให้เบราว์เซอร์จำหน้าเก่าได้ 10 นาที → ฟอร์มที่พิมพ์ยังเป็นแบบเก่าหลังอัปเดต
 // เปิดหน้าแล้วเช็คเวอร์ชันล่าสุดบน server (cache:'reload' อัปเดตแคชไปด้วย) ถ้า BUILD ไม่ตรง → โหลดหน้าใหม่ 1 ครั้ง
 // ⚠️ แก้ไฟล์นี้ทุกครั้งต้องเปลี่ยนค่า BUILD
-const BUILD = '2026-11-18T17:05';
+const BUILD = '2026-11-18T17:40';
 (function checkBuild() {
   try {
     if (sessionStorage.getItem('lkh_mr_reloaded') === BUILD) return;
@@ -900,9 +900,13 @@ async function ensureSaved() {
   $('printStatus').className = 'status'; $('printStatus').textContent = '⏳ กำลังบันทึกก่อนพิมพ์…';
   return await save(true);
 }
-function preview() {
-  const w = window.open('', '_blank');
+// (2026-11-18) ดูตัวอย่างต้องบันทึกก่อนเสมอ — เดิมไม่บันทึก ถ้าสั่งพิมพ์จากหน้าตัวอย่าง ฟอร์มจะไม่มีเลขที่ LKH-PHA-MR-…
+async function preview() {
+  const w = window.open('', '_blank');   // เปิดหน้าต่างทันทีตอนกด (กันเบราว์เซอร์บล็อก) แล้วค่อยเขียนเนื้อหาหลังบันทึก
   if (!w) { toast('เบราว์เซอร์บล็อกหน้าต่างใหม่'); return; }
+  w.document.write('<p style="font-family:sans-serif;padding:24px">กำลังบันทึกและสร้างแบบฟอร์ม…</p>');
+  const ref = await ensureSaved();
+  if (!ref) { w.close(); return; }
   w.document.open(); w.document.write(docHtml(collect())); w.document.close();
 }
 async function printHere() {
