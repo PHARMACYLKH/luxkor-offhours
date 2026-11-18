@@ -86,8 +86,29 @@
   .modal .box button { font:inherit; border:0; border-radius:10px; padding:8px 16px; cursor:pointer; margin:4px; }
   .modal .box .pri { background:var(--green); color:#fff; }
   .modal .box .sec2 { background:var(--green-soft); color:var(--green-dark); }
+  /* (2026-11-18) แบบเฝ้าระวัง A5 รายยา — ไฟล์จาก tools/build_had_forms.py (had_forms/HAD-xx.pdf, HAD-xx_A4x2.pdf) */
+  .hbtns { display:flex; flex-direction:column; gap:6px; flex-shrink:0; align-items:stretch; }
+  .qrbtn.frm { background:var(--green); color:#fff; border-color:var(--green); font-weight:700; }
+  .fbox { max-width:420px !important; text-align:left !important; }
+  .fbox .ft { display:flex; gap:8px; align-items:flex-start; }
+  .fbox .ft .hid { flex-shrink:0; background:var(--red); color:#fff; font-weight:700; border-radius:8px; padding:2px 10px; font-size:14px; }
+  .fbox .ft div { font-weight:700; color:var(--green-dark); font-size:15px; line-height:1.35; word-break:break-word; }
+  .fbox .fsub { font-size:12.5px; color:var(--muted); margin:6px 0 10px; }
+  .fgrp { border-top:1px dashed var(--line); padding:10px 0 4px; }
+  .fgrp .fl { font-size:13px; font-weight:700; color:var(--gold); margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .fgrp .fl input { width:46px; font:inherit; font-size:15px; text-align:center; border:1px solid var(--line); border-radius:8px; padding:3px 4px; color:var(--text); }
+  .modal .box .fbtn { display:flex; flex-direction:column; align-items:flex-start; width:100%; margin:0 0 8px; padding:10px 12px; border-radius:12px; border:1px solid #c5dccf;
+          background:var(--green-soft); color:var(--green-dark); font:inherit; font-size:14.5px; text-decoration:none; cursor:pointer; text-align:left; transition:background .15s; }
+  .modal .box .fbtn:hover { background:#d6e9de; }
+  .modal .box .fbtn[disabled] { opacity:.5; cursor:not-allowed; }
+  .modal .box .fbtn small { font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .modal .box .fbtn .dot { width:8px; height:8px; border-radius:50%; background:#bbb; display:inline-block; }
+  .modal .box .fbtn .dot.on { background:#1a9b55; } .modal .box .fbtn .dot.off { background:#c0392b; }
+  .fst { font-size:13.5px; min-height:20px; margin:4px 0 8px; }
+  .fst.ok { color:var(--green); } .fst.err { color:var(--red); } .fst.warn { color:#8a6d1f; }
+  .fbox .sec2 { width:100%; }
   @media print {
-    header, .chips, .qrbtn, .back, footer { display:none !important; }
+    header, .chips, .qrbtn, .back, footer, #frm { display:none !important; }
     body { background:#fff; }
     .card { break-inside:avoid; border-color:#bbb; }
     /* เปิดหน้าต่าง QR อยู่ → พิมพ์เฉพาะ QR (ติดกล่อง/กระบะยา) */
@@ -121,6 +142,22 @@
     <p id="qrurl"></p>
     <button class="pri" onclick="window.print()">พิมพ์</button>
     <button class="sec2" onclick="closeQr()">ปิด</button>
+  </div>
+</div>
+<div class="modal" id="frm" role="dialog" aria-modal="true">
+  <div class="box fbox">
+    <div class="ft"><span class="hid" id="fid"></span><div id="fname"></div></div>
+    <div class="fsub">แบบเฝ้าระวังการใช้ยาความเสี่ยงสูง (A5 แนวนอน) · 1 ใบต่อผู้ป่วย 1 ราย ต่อยา 1 รายการ · แนบเวชระเบียน</div>
+    <div class="fgrp"><div class="fl">เปิด / พิมพ์ที่เครื่องนี้</div>
+      <a class="fbtn" id="fA5" target="_blank" rel="noopener"><b>A5 แนวนอน</b><small>เครื่องพิมพ์ที่ใส่กระดาษ A5</small></a>
+      <a class="fbtn" id="fA4" target="_blank" rel="noopener"><b>A4 (2 ใบต่อแผ่น)</b><small>พิมพ์บน A4 แล้วตัดครึ่งตามเส้นประ</small></a>
+    </div>
+    <div class="fgrp"><div class="fl">ส่งเข้าคิวพิมพ์ · จำนวน <input id="fcnt" inputmode="numeric" maxlength="2" value="1" autocomplete="off"> ใบ</div>
+      <button class="fbtn" id="fPha"><b>ห้องยา (LKPC-08) · กระดาษ A5</b><small id="fPhaSt"><span class="dot"></span>กำลังตรวจสถานะ…</small></button>
+      <button class="fbtn" id="fWard"><b>Ward (LKPC-16) · A4 2 ใบต่อแผ่น</b><small id="fWardSt"><span class="dot"></span>กำลังตรวจสถานะ…</small></button>
+    </div>
+    <div class="fst" id="fst"></div>
+    <button class="sec2" onclick="closeForm()">ปิด</button>
   </div>
 </div>
 
@@ -249,7 +286,7 @@
       '<span class="hid">' + esc(it.h || 'HAD') + '</span>' +
       '<h2>' + esc(it.n) + '</h2>' +
       '<div class="meta">รหัสยา <b>' + esc(it.c) + '</b>' + (it.u ? ' · หน่วย ' + esc(it.u) : '') + (it.g ? '<br>' + esc(it.g) : '') + '</div>' +
-      '</div><button class="qrbtn" id="qrb">▦ QR</button></div>';
+      '</div><div class="hbtns"><button class="qrbtn" id="qrb">▦ QR</button><button class="qrbtn frm" id="frmb" hidden>📄 แบบเฝ้าระวัง A5</button></div></div>';
     if (siblings.length > 1) {
       h += '<div class="codes">' + siblings.filter(x => x.c !== it.c).map(x => '<span title="' + esc(x.n) + '">ใช้แนวทางเดียวกัน: ' + esc(x.c) + '</span>').join('') + '</div>';
     }
@@ -317,6 +354,7 @@
 
   // ---------- QR สำหรับติดกล่อง/กระบะยา ----------
   function bindQr(it) {
+    bindForm(it);
     const bk = $('backb');
     if (bk) bk.addEventListener('click', () => {
       if (history.state && history.state.c) history.back();
@@ -333,6 +371,61 @@
       document.body.classList.add('qr-open');
     });
   }
+  // ---------- แบบเฝ้าระวัง A5 (2026-11-18) ----------
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzuBl87e9Xc61jtFItkslSeJMsIMt8LaJQ4gmLO6_JxaarnCA5m2EecnqNIjNbwSaKP/exec';
+  let FORMS = null, curIt = null, curForm = '', busy = false;
+  fetch('had_forms/index.json', { cache: 'no-cache' }).then(r => r.json()).then(j => { FORMS = j.forms || []; if (curIt) bindForm(curIt); }).catch(() => { FORMS = []; });
+  function formOf(it) { const m = /^HAD-\d{2}/.exec(it.f || ''); return m && FORMS && FORMS.indexOf(m[0]) >= 0 ? m[0] : ''; }
+  function bindForm(it) {
+    curIt = it;
+    const b = $('frmb'); if (!b) return;
+    const f = formOf(it);
+    b.hidden = !f;
+    b.onclick = f ? () => openForm(it, f) : null;
+  }
+  function ageText(sec) { return sec == null ? null : sec < 90 ? 'พร้อมใช้งาน' : 'ไม่ตอบ ' + Math.round(sec / 60) + ' นาที'; }
+  function stHtml(sec, none) { return '<span class="dot ' + (sec != null && sec < 90 ? 'on' : 'off') + '"></span>' + esc(ageText(sec) || none); }
+  async function openForm(it, f) {
+    curForm = f;
+    $('fid').textContent = f; $('fname').textContent = it.n;
+    $('fA5').href = 'had_forms/' + f + '.pdf'; $('fA4').href = 'had_forms/' + f + '_A4x2.pdf';
+    $('fst').className = 'fst'; $('fst').textContent = '';
+    $('frm').classList.add('show');
+    $('fPhaSt').innerHTML = $('fWardSt').innerHTML = '<span class="dot"></span>กำลังตรวจสถานะ…';
+    try {
+      const p = await fetch(GAS_URL + '?action=medrecPrinters').then(r => r.json());
+      $('fPhaSt').innerHTML = stHtml(p.pha, 'ไม่พบเครื่อง');
+      $('fWardSt').innerHTML = stHtml(p.ward, 'ยังไม่ได้ติดตั้งคิวพิมพ์');
+      $('fWard').disabled = p.ward == null;
+    } catch (e) { $('fPhaSt').textContent = $('fWardSt').textContent = 'ตรวจสถานะไม่ได้'; }
+  }
+  window.closeForm = () => { $('frm').classList.remove('show'); };
+  $('frm').addEventListener('click', e => { if (e.target.id === 'frm') closeForm(); });
+  $('fcnt').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); });
+  $('fcnt').addEventListener('blur', e => { const n = Math.max(1, Math.min(10, parseInt(e.target.value, 10) || 1)); e.target.value = n; });
+  async function sendForm(target) {
+    if (busy || !curForm) return;
+    const n = Math.max(1, Math.min(10, parseInt($('fcnt').value, 10) || 1)); $('fcnt').value = n;
+    const where = target === 'ward' ? 'Ward (LKPC-16)' : 'ห้องยา (LKPC-08)', st = $('fst');
+    busy = true; $('fPha').disabled = true; $('fWard').disabled = true;
+    st.className = 'fst'; st.textContent = '⏳ กำลังส่งงานพิมพ์…';
+    try {
+      const j = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'hadFormPrint', form: curForm, target: target, count: n }) }).then(r => r.json());
+      if (j.status !== 'ok') throw new Error(j.msg || 'ส่งพิมพ์ไม่สำเร็จ');
+      st.textContent = '⏳ ส่ง ' + curForm + ' จำนวน ' + n + ' ใบ เข้าคิว ' + where + ' แล้ว กำลังรอพิมพ์…';
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const s = await fetch(GAS_URL + '?action=getPrintJobStatus&jobId=' + encodeURIComponent(j.jobId)).then(r => r.json());
+        if (s.jobStatus === 'PRINTED') { st.className = 'fst ok'; st.textContent = '✅ พิมพ์ ' + curForm + ' แล้วที่ ' + where + (target === 'ward' ? ' (' + j.sheets + ' แผ่น A4 ตัดครึ่ง)' : ''); return; }
+        if (s.jobStatus === 'ERROR') throw new Error('เครื่องพิมพ์แจ้งข้อผิดพลาด: ' + (s.errorMsg || ''));
+      }
+      st.className = 'fst warn'; st.textContent = '⚠️ ยังไม่ได้รับการยืนยันการพิมพ์ — ตรวจที่เครื่องพิมพ์ ' + where;
+    } catch (e) { st.className = 'fst err'; st.textContent = '❌ ' + e.message; }
+    finally { busy = false; $('fPha').disabled = false; openForm(curIt, curForm).catch(() => {}); }
+  }
+  $('fPha').addEventListener('click', () => sendForm('pha'));
+  $('fWard').addEventListener('click', () => sendForm('ward'));
   window.closeQr = () => { $('qrm').classList.remove('show'); document.body.classList.remove('qr-open'); };
   $('qrm').addEventListener('click', e => { if (e.target.id === 'qrm') closeQr(); });
 
