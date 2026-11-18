@@ -573,7 +573,7 @@ function applyFetched(d, an) {
 // ── save ────────────────────────────────────────────────────────────
 async function save(quiet) {
   const p = collect();
-  if (!p.patient.an && !p.patient.hn) { toast('กรุณากรอก AN หรือ HN'); $('an').focus(); return null; }
+  if (!p.ref && !/\d{3}$/.test(p.patient.an)) { toast('กรุณากรอก AN (ใช้ออกเลขที่ฟอร์ม PHA-MR-…)'); $('an').focus(); return null; }
   const bad = p.drps.find(d => !d.category);
   if (bad) { toast('กรุณาเลือกประเภท DRP ให้ครบทุกรายการ'); return null; }
   $('btnSave').disabled = true;
