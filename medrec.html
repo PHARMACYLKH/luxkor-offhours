@@ -252,7 +252,7 @@ const SS_KEY = 'lkh_medrec_session';
 // (2026-11-18) GitHub Pages ให้เบราว์เซอร์จำหน้าเก่าได้ 10 นาที → ฟอร์มที่พิมพ์ยังเป็นแบบเก่าหลังอัปเดต
 // เปิดหน้าแล้วเช็คเวอร์ชันล่าสุดบน server (cache:'reload' อัปเดตแคชไปด้วย) ถ้า BUILD ไม่ตรง → โหลดหน้าใหม่ 1 ครั้ง
 // ⚠️ แก้ไฟล์นี้ทุกครั้งต้องเปลี่ยนค่า BUILD
-const BUILD = '2026-11-18T17:40';
+const BUILD = '2026-11-18T17:50';
 (function checkBuild() {
   try {
     if (sessionStorage.getItem('lkh_mr_reloaded') === BUILD) return;
@@ -866,7 +866,7 @@ ${p.noCurrentMed ? '<div class="mr-p-watermark"><span id="wm">No Current Medicat
   <div class="mr-p-bottom-row"><div class="mr-p-bottom-chk">${chk(p.infoPatient)} ข้อมูลการใช้ยาได้จากการสอบถามผู้ป่วยโดยตรง</div><div class="mr-p-sig"><div class="ln"></div><div class="lb">(เภสัชกร)</div></div></div>
   <div class="mr-p-bottom-row"><div class="mr-p-bottom-chk">${chk(p.infoRelative)} ข้อมูลการใช้ยาได้จากการสอบถามญาติหรือผู้ดูแล</div><div class="mr-p-sig"><div class="ln"></div><div class="lb">(แพทย์)</div></div></div>
 </div>
-<div class="mr-p-docfooter"><span>PHA-0162-MR-P-00-16092025 &nbsp;&nbsp; LUX KOR Hospital 68 Phran Nok Phutthamonthon rd., Bang Phrom, Taling Chan, Bangkok 10170, Thailand, Tel. 02-017-0999</span><b>${p.ref ? 'เลขที่ ' + esc(p.ref) : ''}</b></div>
+<div class="mr-p-docfooter"><span>PHA-0162-MR-P-00-16092025 &nbsp;&nbsp; LUX KOR Hospital 68 Phran Nok Phutthamonthon rd., Bang Phrom, Taling Chan, Bangkok 10170, Thailand, Tel. 02-017-0999</span><b>${p.ref ? esc(p.ref) : ''}</b></div>
 </div>
 <script>
 function fitCells(){document.querySelectorAll('.mr-p-tbl tbody td').forEach(function(td){if(!td.textContent.trim())return;td.style.fontSize='';var s=9.5;while(td.scrollWidth>td.clientWidth+0.5&&s-0.5>=6){s-=0.5;td.style.fontSize=s+'px';}});}
