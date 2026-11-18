@@ -108,6 +108,7 @@ textarea.t{min-height:64px;resize:vertical;}
 .ldr-pct{font-family:Arial,sans-serif;font-weight:700;font-size:20px;color:var(--green);}
 @keyframes ldrPulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.72;transform:scale(.97);}}
 .pv{margin-top:12px;border-radius:12px;background:var(--green-soft);padding:12px 14px;animation:fade .3s ease;}
+.pvph{float:right;width:64px;height:80px;object-fit:cover;border-radius:8px;margin:0 0 6px 10px;border:1px solid #cfe0d6;}
 .pv .nm{font-size:21px;font-weight:700;color:var(--green-dark);line-height:1.3;}
 .pv .ids{font-size:15px;color:var(--muted);margin-bottom:6px;font-family:Arial,sans-serif;}
 .pv dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:16px;}
@@ -141,7 +142,7 @@ textarea.t{min-height:64px;resize:vertical;}
       <div class="status" id="fetchStatus"></div>
       <div id="ptView" hidden></div>
       <!-- ค่าที่ใช้บันทึก/พิมพ์ (มาจาก HIS/ระบบเท่านั้น ไม่แสดงเป็นช่องกรอก) -->
-      <div hidden><input id="hn"><input id="pname"><input id="gender"><input id="dob"><input id="age"><input id="weight"><input id="height"><input id="room"><input id="dept" value="IPD"><input id="physician"><input id="underlying"></div>
+      <div hidden><input id="hn"><input id="pname"><input id="gender"><input id="dob"><input id="age"><input id="weight"><input id="height"><input id="room"><input id="dept" value="IPD"><input id="physician"><input id="underlying"><input id="photo"></div>
     </div>
 
     <div class="card">
@@ -252,7 +253,7 @@ const SS_KEY = 'lkh_medrec_session';
 // (2026-11-18) GitHub Pages ให้เบราว์เซอร์จำหน้าเก่าได้ 10 นาที → ฟอร์มที่พิมพ์ยังเป็นแบบเก่าหลังอัปเดต
 // เปิดหน้าแล้วเช็คเวอร์ชันล่าสุดบน server (cache:'reload' อัปเดตแคชไปด้วย) ถ้า BUILD ไม่ตรง → โหลดหน้าใหม่ 1 ครั้ง
 // ⚠️ แก้ไฟล์นี้ทุกครั้งต้องเปลี่ยนค่า BUILD
-const BUILD = '2026-11-18T17:50';
+const BUILD = '2026-11-18T19:10';
 (function checkBuild() {
   try {
     if (sessionStorage.getItem('lkh_mr_reloaded') === BUILD) return;
@@ -504,7 +505,7 @@ function renderDrps() {
 }
 
 // ── collect / fill ──────────────────────────────────────────────────
-const PF = ['an', 'hn', 'pname', 'gender', 'dob', 'age', 'weight', 'height', 'room', 'dept', 'physician', 'underlying'];
+const PF = ['an', 'hn', 'pname', 'gender', 'dob', 'age', 'weight', 'height', 'room', 'dept', 'physician', 'underlying', 'photo'];
 const CK = ['drugNo', 'foodNo', 'foodYes', 'otherNo', 'otherYes', 'noCurrentMed', 'broughtYes', 'broughtNo', 'infoPatient', 'infoRelative'];
 function collect() {
   const v = id => $(id).value.trim();
@@ -611,7 +612,8 @@ function renderPt() {
   const v = id => $(id).value.trim(), d = x => x ? esc(x) : '—';
   if (!v('pname') && !v('hn')) { $('ptView').hidden = true; $('ptView').innerHTML = ''; return; }
   const wh = [v('weight') ? v('weight') + ' kg' : '', v('height') ? v('height') + ' cm' : ''].filter(Boolean).join(' / ');
-  $('ptView').innerHTML = '<div class="pv"><div class="nm">' + d(v('pname')) + '</div><div class="ids">HN ' + d(v('hn')) + ' · AN ' + d(v('an')) + '</div><dl>' +
+  const ph = /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(v('photo')) ? '<img class="pvph" src="' + v('photo') + '" alt="">' : '';
+  $('ptView').innerHTML = '<div class="pv">' + ph + '<div class="nm">' + d(v('pname')) + '</div><div class="ids">HN ' + d(v('hn')) + ' · AN ' + d(v('an')) + '</div><dl>' +
     '<dt>เพศ</dt><dd>' + d(v('gender')) + '</dd><dt>วันเกิด</dt><dd>' + d(v('dob')) + (v('age') ? ' (อายุ ' + esc(v('age')) + ' ปี)' : '') + '</dd>' +
     '<dt>น้ำหนัก/ส่วนสูง</dt><dd>' + d(wh) + '</dd><dt>ห้อง</dt><dd>' + d(v('room')) + ' · ' + d(v('dept')) + '</dd>' +
     '<dt>แพทย์</dt><dd>' + d(v('physician')) + '</dd><dt>โรคประจำตัว</dt><dd>' + d(v('underlying')) + '</dd></dl></div>';
@@ -632,6 +634,7 @@ function applyFetched(d, an) {
     if (his.gender) { const g = /^f/i.test(his.gender) ? 'Female' : /^m/i.test(his.gender) ? 'Male' : ''; if (g) $('gender').value = g; }
     set('dob', thaiDob(his.birthDate));
     if (his.underlyingDisease) $('underlying').value = his.underlyingDisease;
+    if (/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(his.photoData || '')) $('photo').value = his.photoData;
     const a = his.allergy || {};
     if (a.status === 'nkda') $('drugNo').checked = true;
     const at = allergyText(a); if (at) { $('drugText').value = at; $('drugNo').checked = false; }
@@ -787,7 +790,8 @@ body{font-family:'LKThai',Arial,sans-serif;color:#111;}
 .mr-p-hdr{display:flex;gap:12px;align-items:stretch;border-bottom:3px double #0b4a2d;padding-bottom:6px;margin-bottom:6px;}
 .mr-p-logowrap{display:flex;align-items:center;justify-content:center;width:110px;flex-shrink:0;}
 .mr-p-logowrap svg{width:100%;height:auto;display:block;}
-.mr-p-photo{width:80px;min-height:96px;flex-shrink:0;border:1.5px dashed #999;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999;}
+.mr-p-photo{width:80px;min-height:96px;flex-shrink:0;border:1.5px dashed #999;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999;position:relative;overflow:hidden;}
+.mr-p-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%;display:block;}
 .mr-p-right{flex:1;display:flex;flex-direction:column;gap:4px;}
 /* กรอบรูปอยู่แถวเดียวกับกล่องข้อมูล — สูงเท่ากล่องข้อมูลพอดี (ใต้หัวเรื่อง) */
 .mr-p-row{display:flex;gap:12px;align-items:stretch;}
@@ -833,7 +837,7 @@ table.drp td{height:24px;} table.drp td:first-child{text-align:center;}
 <div class="mr-p-hdr">
   <div class="mr-p-logowrap">${LOGO_SVG}</div>
   <div class="mr-p-right"><div class="mr-p-title">Medication Reconciliation (MR) Form</div>
-  <div class="mr-p-row"><div class="mr-p-photo">Photo</div>
+  <div class="mr-p-row"><div class="mr-p-photo">${/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(pt.photo || '') ? '<img src="' + pt.photo + '" alt="">' : 'Photo'}</div>
   <div class="mr-p-info">
     <div class="cell"><span class="k">Name :</span><span class="v">${esc(first)}</span></div>
     <div class="cell"><span class="k">Date :</span><span class="v">${today}</span></div>
