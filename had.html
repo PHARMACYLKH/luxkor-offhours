@@ -86,7 +86,7 @@
   .modal .box button { font:inherit; border:0; border-radius:10px; padding:8px 16px; cursor:pointer; margin:4px; }
   .modal .box .pri { background:var(--green); color:#fff; }
   .modal .box .sec2 { background:var(--green-soft); color:var(--green-dark); }
-  /* (2026-11-18) แบบเฝ้าระวัง A5 รายยา — ไฟล์จาก tools/build_had_forms.py (had_forms/HAD-xx.pdf, HAD-xx_A4x2.pdf) */
+  /* (2026-11-18) แบบเฝ้าระวัง A5 รายยา — ไฟล์จาก tools/build_had_forms.py (had_forms/HAD-xx.pdf — A5 แนวนอนเท่านั้น) */
   .hbtns { display:flex; flex-direction:column; gap:6px; flex-shrink:0; align-items:stretch; }
   .qrbtn.frm { background:var(--green); color:#fff; border-color:var(--green); font-weight:700; }
   .fbox { max-width:420px !important; text-align:left !important; }
@@ -150,11 +150,10 @@
     <div class="fsub">แบบเฝ้าระวังการใช้ยาความเสี่ยงสูง (A5 แนวนอน) · 1 ใบต่อผู้ป่วย 1 ราย ต่อยา 1 รายการ · แนบเวชระเบียน</div>
     <div class="fgrp"><div class="fl">เปิด / พิมพ์ที่เครื่องนี้</div>
       <a class="fbtn" id="fA5" target="_blank" rel="noopener"><b>A5 แนวนอน</b><small>เครื่องพิมพ์ที่ใส่กระดาษ A5</small></a>
-      <a class="fbtn" id="fA4" target="_blank" rel="noopener"><b>A4 (2 ใบต่อแผ่น)</b><small>พิมพ์บน A4 แล้วตัดครึ่งตามเส้นประ</small></a>
     </div>
     <div class="fgrp"><div class="fl">ส่งเข้าคิวพิมพ์ · จำนวน <input id="fcnt" inputmode="numeric" maxlength="2" value="1" autocomplete="off"> ใบ</div>
       <button class="fbtn" id="fPha"><b>ห้องยา (LKPC-08) · กระดาษ A5</b><small id="fPhaSt"><span class="dot"></span>กำลังตรวจสถานะ…</small></button>
-      <button class="fbtn" id="fWard"><b>Ward (LKPC-16) · A4 2 ใบต่อแผ่น</b><small id="fWardSt"><span class="dot"></span>กำลังตรวจสถานะ…</small></button>
+      <button class="fbtn" id="fWard"><b>Ward (LKPC-16) · A5 แนวนอน</b><small id="fWardSt"><span class="dot"></span>กำลังตรวจสถานะ…</small></button>
     </div>
     <div class="fst" id="fst"></div>
     <button class="sec2" onclick="closeForm()">ปิด</button>
@@ -388,7 +387,7 @@
   async function openForm(it, f) {
     curForm = f;
     $('fid').textContent = f; $('fname').textContent = it.n;
-    $('fA5').href = 'had_forms/' + f + '.pdf'; $('fA4').href = 'had_forms/' + f + '_A4x2.pdf';
+    $('fA5').href = 'had_forms/' + f + '.pdf';
     $('fst').className = 'fst'; $('fst').textContent = '';
     $('frm').classList.add('show');
     $('fPhaSt').innerHTML = $('fWardSt').innerHTML = '<span class="dot"></span>กำลังตรวจสถานะ…';
@@ -417,7 +416,7 @@
       for (let i = 0; i < 40; i++) {
         await new Promise(r => setTimeout(r, 3000));
         const s = await fetch(GAS_URL + '?action=getPrintJobStatus&jobId=' + encodeURIComponent(j.jobId)).then(r => r.json());
-        if (s.jobStatus === 'PRINTED') { st.className = 'fst ok'; st.textContent = '✅ พิมพ์ ' + curForm + ' แล้วที่ ' + where + (target === 'ward' ? ' (' + j.sheets + ' แผ่น A4 ตัดครึ่ง)' : ''); return; }
+        if (s.jobStatus === 'PRINTED') { st.className = 'fst ok'; st.textContent = '✅ พิมพ์ ' + curForm + ' แล้วที่ ' + where + ; return; }
         if (s.jobStatus === 'ERROR') throw new Error('เครื่องพิมพ์แจ้งข้อผิดพลาด: ' + (s.errorMsg || ''));
       }
       st.className = 'fst warn'; st.textContent = '⚠️ ยังไม่ได้รับการยืนยันการพิมพ์ — ตรวจที่เครื่องพิมพ์ ' + where;
