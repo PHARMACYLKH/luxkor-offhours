@@ -629,14 +629,50 @@ async function save(quiet) {
   const bad = p.drps.find(d => !d.category);
   if (bad) { toast('กรุณาเลือกประเภท DRP ให้ครบทุกรายการ'); return null; }
   $('btnSave').disabled = true;
+  waitShow(quiet ? 'กำลังบันทึกก่อนพิมพ์' : 'กำลังบันทึกข้อมูล');
   try {
     const j = await api({ action: 'medrecSave', token: S.token, payload: p });
     if (j.status !== 'ok') throw new Error(j.msg || 'บันทึกไม่สำเร็จ');
     F.ref = j.ref; setRef(); lastSavedSig = JSON.stringify(collectSig());
+    await waitDone(true);
     if (!quiet) toast('✅ บันทึกแล้ว (' + j.ref + ') ยา ' + j.meds + ' · DRPs ' + j.drps);
     return j.ref;
-  } catch (e) { toast('❌ ' + e.message); return null; }
+  } catch (e) { await waitDone(false); toast('❌ ' + e.message); return null; }
   finally { $('btnSave').disabled = false; }
+}
+
+// ── หน้ารอระหว่างบันทึก (แบบหน้ารอสร้างรายงานของระบบนับ stock): โลโก้ + วงแหวน % ประมาณจากเวลาบันทึกครั้งก่อน
+//    ค้างไม่เกิน 95% จนระบบตอบกลับจริงแล้วเป็น 100% — ให้เภสัชกรรู้ว่าระบบกำลังทำงานอยู่จริง ──
+const WT = { t: 0, h: 0, ms: 6000 };
+try { WT.ms = Number(localStorage.getItem('lkh_mr_savems')) || 6000; } catch (e) {}
+function waitEl() {
+  let ov = $('waitOv'); if (ov) return ov;
+  const st = document.createElement('style');
+  st.textContent = "@font-face{font-family:WTH;font-weight:400;src:url(data:font/ttf;base64," + TH_FONT_R + ") format('truetype')}" +
+    "@font-face{font-family:WTH;font-weight:700;src:url(data:font/ttf;base64," + TH_FONT_B + ") format('truetype')}" +
+    '#waitOv{position:fixed;inset:0;z-index:90;background:#f4f6f5;display:flex;align-items:center;justify-content:center;font-family:WTH,sans-serif;color:#0f613b}' +
+    '#waitOv .w{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px;animation:wIn .4s ease}#waitOv .lg{width:230px;max-width:70vw;animation:wPl 1.8s ease-in-out infinite}#waitOv .lg svg{width:100%;height:auto;display:block}' +
+    '#waitOv .rg{position:relative;width:120px;height:120px}#waitOv .rg svg{width:120px;height:120px;transform:rotate(-90deg)}#waitOv circle{fill:none;stroke-width:9}#waitOv .bg{stroke:#dbe3df}' +
+    '#waitOv .fg{stroke:url(#wgd);stroke-linecap:round;stroke-dasharray:314;stroke-dashoffset:314;transition:stroke-dashoffset .25s ease}' +
+    '#waitOv .pc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 26px Arial,sans-serif}' +
+    '#waitOv .tx{font-size:28px;font-weight:700;line-height:1}#waitOv .sb{font-size:22px;color:#6b7a73;line-height:1;margin-top:-6px}' +
+    '@keyframes wPl{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.96);opacity:.75}}@keyframes wIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}';
+  document.head.appendChild(st);
+  ov = document.createElement('div'); ov.id = 'waitOv'; ov.hidden = true; ov.setAttribute('role', 'status'); ov.setAttribute('aria-live', 'polite');
+  ov.innerHTML = '<div class="w"><div class="lg">' + LOGO_SVG + '</div><div class="rg"><svg viewBox="0 0 120 120"><defs><linearGradient id="wgd" x1="0" x2="1"><stop offset="0" stop-color="#0f613b"/><stop offset="1" stop-color="#a27e2c"/></linearGradient></defs>' +
+    '<circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" cx="60" cy="60" r="50"/></svg><div class="pc">0%</div></div><div class="tx"></div><div class="sb">โปรดรอสักครู่</div></div>';
+  document.body.appendChild(ov); return ov;
+}
+function waitSet(p) { const ov = waitEl(); ov.querySelector('.pc').textContent = p + '%'; ov.querySelector('.fg').style.strokeDashoffset = 314 * (1 - p / 100); }
+function waitShow(txt) {
+  const ov = waitEl(); ov.querySelector('.tx').textContent = txt; waitSet(0); ov.hidden = false;
+  WT.t = Date.now(); clearInterval(WT.h);
+  WT.h = setInterval(() => waitSet(Math.min(95, Math.round(100 * (1 - Math.exp(-2.3 * (Date.now() - WT.t) / WT.ms))))), 150);
+}
+function waitDone(ok) {
+  clearInterval(WT.h); const ov = $('waitOv'); if (!ov || ov.hidden) return Promise.resolve();
+  if (ok) { const ms = Date.now() - WT.t; WT.ms = Math.round(WT.ms * 0.4 + ms * 0.6); try { localStorage.setItem('lkh_mr_savems', String(WT.ms)); } catch (e) {} waitSet(100); }
+  return new Promise(r => setTimeout(() => { ov.hidden = true; r(); }, ok ? 450 : 0));
 }
 
 // ── saved list / stats ──────────────────────────────────────────────
