@@ -253,7 +253,7 @@ const SS_KEY = 'lkh_medrec_session';
 // (2026-11-18) GitHub Pages ให้เบราว์เซอร์จำหน้าเก่าได้ 10 นาที → ฟอร์มที่พิมพ์ยังเป็นแบบเก่าหลังอัปเดต
 // เปิดหน้าแล้วเช็คเวอร์ชันล่าสุดบน server (cache:'reload' อัปเดตแคชไปด้วย) ถ้า BUILD ไม่ตรง → โหลดหน้าใหม่ 1 ครั้ง
 // ⚠️ แก้ไฟล์นี้ทุกครั้งต้องเปลี่ยนค่า BUILD
-const BUILD = '2026-11-18T22:30';
+const BUILD = '2026-11-18T22:45';
 (function checkBuild() {
   try {
     if (sessionStorage.getItem('lkh_mr_reloaded') === BUILD) return;
@@ -664,7 +664,8 @@ function applyFetched(d, an) {
 }
 
 // ── save ────────────────────────────────────────────────────────────
-async function save(quiet) {
+let lastPrint = null;   // ผลส่งพิมพ์จาก medrecSave (บันทึก+พิมพ์ในคำขอเดียว — 2026-11-18)
+async function save(quiet, extra) {
   const p = collect();
   if (!p.ref && !/\d{3}$/.test(p.patient.an)) { toast('กรุณากรอก AN 3 ตัวท้าย (ใช้ออกเลขที่ฟอร์ม LKH-PHA-MR-…)'); $('an3').focus(); return null; }
   const bad = p.drps.find(d => !d.category);
@@ -672,8 +673,9 @@ async function save(quiet) {
   $('btnSave').disabled = true;
   waitShow(quiet ? 'กำลังบันทึกก่อนพิมพ์' : 'กำลังบันทึกข้อมูล');
   try {
-    const j = await api({ action: 'medrecSave', token: S.token, payload: p });
+    const j = await api(Object.assign({ action: 'medrecSave', token: S.token, payload: p }, extra || {}));
     if (j.status !== 'ok') throw new Error(j.msg || 'บันทึกไม่สำเร็จ');
+    lastPrint = j.print || null;
     F.ref = j.ref; setRef(); lastSavedSig = JSON.stringify(collectSig());
     await waitDone(true);
     if (!quiet) toast('✅ บันทึกแล้ว (' + j.ref + ') ยา ' + j.meds + ' · DRPs ' + j.drps);
@@ -925,10 +927,21 @@ async function printHere() {
   $('printStatus').className = 'status ok'; $('printStatus').textContent = '✅ บันทึกแล้ว (' + ref + ') — เลือกเครื่องพิมพ์ในหน้าต่างพิมพ์';
 }
 async function printQueue(target) {
-  const ref = await ensureSaved(); if (!ref) return;
-  const st = $('printStatus'); st.className = 'status'; st.textContent = '⏳ กำลังส่งงานพิมพ์…';
+  const st = $('printStatus');
   try {
-    const j = await api({ action: 'medrecPrint', token: S.token, target: target, ref: ref, html: docHtml(collect()) });
+    let j, ref;
+    if (F.ref && JSON.stringify(collectSig()) === lastSavedSig) {
+      ref = F.ref; st.className = 'status'; st.textContent = '⏳ กำลังส่งงานพิมพ์…';
+      j = await api({ action: 'medrecPrint', token: S.token, target: target, ref: ref, html: docHtml(collect()) });
+    } else {
+      // ⚡ (2026-11-18) บันทึก + ส่งพิมพ์ในคำขอเดียว: ระบบออกเลขที่ฟอร์มแล้วแทน __MR_REF__ ส่งเข้าเครื่องพิมพ์ทันที (ก่อนเขียนชีต)
+      const p2 = collect(); if (!p2.ref) p2.ref = '__MR_REF__';
+      st.className = 'status'; st.textContent = '⏳ กำลังบันทึกและส่งพิมพ์…';
+      lastPrint = null;
+      ref = await save(true, { printTarget: target, html: docHtml(p2) });
+      if (!ref) { st.textContent = ''; return; }
+      j = lastPrint || { status: 'err', msg: 'บันทึกแล้ว (' + ref + ') แต่ส่งพิมพ์ไม่สำเร็จ — กดพิมพ์อีกครั้ง' };
+    }
     if (j.status !== 'ok') throw new Error(j.msg || 'ส่งพิมพ์ไม่สำเร็จ');
     const where = target === 'ward' ? 'Ward (LKPC-16)' : 'ห้องยา (LKPC-08)';
     st.textContent = '⏳ ส่งเข้าคิว ' + where + ' แล้ว กำลังรอพิมพ์…';
