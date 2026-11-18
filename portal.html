@@ -154,7 +154,10 @@
       links: [['ฉลากไทย', 'sticker.html'], ['中文 / 日本語', 'label-intl.html']] },
     { icon: '💊', title: 'Medication Reconciliation', page: 'medrec.html',
       desc: 'ทำ MedRec ข้างเตียง ดึงข้อมูลจาก HIS ด้วย AN บันทึก DRPs และพิมพ์ฟอร์ม A4 ที่ห้องยาหรือ Ward (ต้องกรอกรหัสพนักงาน)',
-      links: [['เปิดระบบ', 'medrec.html'], ['ที่บันทึกไว้', 'medrec.html#saved'], ['สรุป DRPs', 'medrec.html#stats']] }
+      links: [['เปิดระบบ', 'medrec.html'], ['ที่บันทึกไว้', 'medrec.html#saved'], ['สรุป DRPs', 'medrec.html#stats']] },
+    { icon: '⚠️', title: 'ข้อมูลยาความเสี่ยงสูง (HAD)', page: 'had.html',
+      desc: 'ค้นหายาความเสี่ยงสูงตามบัญชี Index ดูแนวทางการใช้ยา: ยานี้คืออะไร ขนาดยา การผสม/การเก็บรักษา วิธีให้ยาและทางที่ให้ การติดตามและเกณฑ์แจ้งแพทย์ (ไม่ต้องกรอกรหัสพนักงาน)',
+      links: [['เปิดระบบ', 'had.html']] }
   ];
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
   function qrSvg(url) {
