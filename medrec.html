@@ -248,7 +248,7 @@ textarea.t{min-height:64px;resize:vertical;}
 <!-- login -->
 <div class="overlay show" id="login">
   <div class="sheet">
-    <h3>กรอกรหัสพนักงาน</h3>
+    <h3 style="font-family:Arial,sans-serif;letter-spacing:1px">PASSWORD</h3>
     <div class="hint">เฉพาะบุคลากรที่ได้รับสิทธิ์เท่านั้น · เภสัชกร Part time ใช้เลขที่ใบประกอบวิชาชีพ</div>
     <div class="pin-dots" id="lpDots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
     <div class="pin-grid">
@@ -271,7 +271,7 @@ const SS_KEY = 'lkh_medrec_session_v2';   // (2026-11-19) token เดิม (�
 // (2026-11-18) GitHub Pages ให้เบราว์เซอร์จำหน้าเก่าได้ 10 นาที → ฟอร์มที่พิมพ์ยังเป็นแบบเก่าหลังอัปเดต
 // เปิดหน้าแล้วเช็คเวอร์ชันล่าสุดบน server (cache:'reload' อัปเดตแคชไปด้วย) ถ้า BUILD ไม่ตรง → โหลดหน้าใหม่ 1 ครั้ง
 // ⚠️ แก้ไฟล์นี้ทุกครั้งต้องเปลี่ยนค่า BUILD
-const BUILD = '2026-11-19T10:30';
+const BUILD = '2026-11-19T11:20';
 (function checkBuild() {
   try {
     if (sessionStorage.getItem('lkh_mr_reloaded') === BUILD) return;
