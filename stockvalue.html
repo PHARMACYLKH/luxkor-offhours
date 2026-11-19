@@ -278,6 +278,12 @@ DRUG INVENTORY — Lux Kor Hospital Pharmacy
         /* (2026-11-16 ผู้ใช้ขอ) หัวคอลัมน์ Total / Pharmacy F1 เน้นเขียว หนา ใหญ่กว่าหัวอื่น 2px */
         .inv-table thead th.r1-hl{color:#0f613b!important;font-weight:800!important;font-size:13px!important;}
         #r1-inv-body .lot-grid{margin:1px 0!important;padding:2px 6px!important;}
+        /* (2026-11-19) หัวตารางตอนเลื่อน (clone): "PHARMACY F1" กว้างกว่าช่อง 95px ล้นเข้าช่องถัดไป แล้วพื้นหลังช่อง DEPARTMENT ทับคำว่า F1
+           → ย้ายพื้นหลังไปที่ตัวตาราง clone แทน (สีเดิม #f8fafc) ตัวหนังสือที่ล้นจึงไม่ถูกทับ */
+        .r1-sticky-clone-table{background:#f8fafc;}
+        .r1-sticky-clone-table thead th{background:transparent!important;}
+        /* (2026-11-19 ผู้ใช้ขอ) หน้าคอมแสดงเหมือน zoom 110% — เฉพาะจอ >= 768px (มือถือไม่โดน) */
+        @media screen and (min-width:768px){ html{zoom:1.1;} }   /* screen เท่านั้น — ไม่ให้กระทบ Print Report */
     </style>
 
 <!-- ===== (stockvalue.html เท่านั้น — สร้างโดย build_stockvalue.py) แอปนับ: แถบเมนู + layout มือถือ ===== -->
@@ -1414,8 +1420,10 @@ function syncR1StickyHeader(){
   var table = wrap.querySelector('.inv-table');
   var thead = table.querySelector('thead');
   var wrapRect = wrap.getBoundingClientRect();
-  cloneTable.style.top = wrapRect.top + 'px';
-  cloneTable.style.left = wrapRect.left + 'px';
+  // (2026-11-19) หน้าคอม zoom 110% (html{zoom:1.1}) — getBoundingClientRect ได้ค่าหลัง zoom แต่ style.top ถูกคูณ zoom ซ้ำ → หารกลับ
+  var _z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+  cloneTable.style.top = (wrapRect.top / _z) + 'px';
+  cloneTable.style.left = (wrapRect.left / _z) + 'px';
   cloneTable.style.width = table.offsetWidth + 'px';
   var realThs = thead.querySelectorAll('th');
   var cloneThs = cloneTable.firstChild.querySelectorAll('th');
