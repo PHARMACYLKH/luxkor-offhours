@@ -2206,7 +2206,8 @@ document.getElementById('invPinInput').addEventListener('keydown',e=>{
     .sv-bincell{position:relative;padding-right:150px!important;}
     .sv-bin{position:absolute;right:18px;top:50%;transform:translateY(-50%);min-width:96px;text-align:center;font-size:13px;font-weight:700;color:#0f613b;background:#eef6f1;border:1px solid #cfe3d7;border-radius:8px;padding:4px 10px;font-family:Arial,'Sarabun',sans-serif;white-space:nowrap;}
     .sv-bin.none{color:#cbd5e1;background:transparent;border-color:transparent;font-weight:400;}
-    .sv-bin-h{position:absolute;right:18px;top:50%;transform:translateY(-50%);min-width:96px;text-align:center;}
+    .sv-bin-h{position:absolute;right:18px;top:50%;transform:translateY(-50%);min-width:96px;text-align:center;cursor:pointer;user-select:none;border-radius:6px;padding:2px 4px;}
+    .sv-bin-h:hover{background:#eef6f1;color:#0f613b;}
     @media (max-width:1199px){   /* จอแคบ: ไม่มีที่ว่างพอเป็นคอลัมน์ → แสดงเป็นป้ายใต้รหัสแทน */
         .sv-bincell{padding-right:0!important;}
         .sv-bin{position:static;transform:none;display:inline-block;min-width:0;margin-top:6px;font-size:12px;padding:2px 8px;}
@@ -2229,6 +2230,22 @@ document.getElementById('invPinInput').addEventListener('keydown',e=>{
       origStatus=window._invRtStatusText, origTip=window._mmTip;
   var supBusy=false, supPend=false, supBase='', binOf={};
   // (2026-11-19 ผู้ใช้สั่ง) Bin Location ในที่ว่างซ้ายคอลัมน์ TOTAL — วางในช่องชื่อ (ไม่เพิ่ม <td> เพราะ layout มือถืออิงลำดับคอลัมน์)
+  // (2026-11-19 ผู้ใช้สั่ง) กดหัว "Bin Location" = เรียง Location A→Z (กดซ้ำ Z→A) — ไม่มี Location ไว้ท้ายเสมอ, INACTIVE ท้ายสุดเหมือนเดิม
+  // ตัววาดเดิมไม่รู้จักคีย์ 'bin' (เรียงตามชื่อ) → เรียงแถวใหม่หลังวาดเสร็จ ชื่อเดียวกัน Location เดียวกันคงลำดับตามชื่อ
+  window.svSortBin=function(){ setInvR1Order('bin'); };
+  function binSort(){
+    if(invR1Order!=='bin') return;
+    var tb=document.getElementById('r1-inv-body'), rows=[].slice.call(tb.children), data=invR1LastData||[];
+    if(rows.length!==data.length) return;
+    var dir=invR1OrderDir==='desc'?-1:1, key=function(d){ var b=binOf[d.code]||''; return /^[A-Za-z0-9]/.test(b)?b:''; },   // [SP] / - = ไม่ใช่ตำแหน่งจริง → ท้าย
+        ina=function(d){ return (d.isInactive||/INACTIVE/i.test(d.name||''))?1:0; };
+    var idx=data.map(function(_,i){ return i; }).sort(function(a,b){
+      var A=data[a], B=data[b], ka=key(A), kb=key(B);
+      return (ina(A)-ina(B)) || ((!ka)-(!kb)) || (ka&&kb ? dir*ka.localeCompare(kb,'en',{numeric:true,sensitivity:'base'}) : 0) || (a-b);
+    });
+    invR1LastData=idx.map(function(i){ return data[i]; });
+    idx.forEach(function(i,n){ var tr=rows[i]; tb.appendChild(tr); if(tr.children[0]) tr.children[0].textContent=n+1; });
+  }
   function binCells(){
     var rows=document.querySelectorAll('#r1-inv-body > tr'), data=invR1LastData||[];
     rows.forEach(function(tr,i){
@@ -2269,13 +2286,16 @@ document.getElementById('invPinInput').addEventListener('keydown',e=>{
     });
     document.body.classList.toggle('sv-sup',sup);
     var nth=r1.querySelectorAll('thead th')[1];
-    if(nth&&!nth.querySelector('.sv-bin-h')){ var h=document.createElement('span'); h.className='sv-bin-h'; h.textContent='Bin Location'; nth.classList.add('sv-bincell'); nth.appendChild(h); }
+    if(nth&&!nth.querySelector('.sv-bin-h')){ var h=document.createElement('span'); h.className='sv-bin-h'; h.title='Sort by bin location (A→Z)';
+      h.setAttribute('onclick','event.stopPropagation();svSortBin()');   // attribute (ไม่ใช่ listener) — หัวตารางลอยตอนเลื่อนเป็น clone จะกดได้ด้วย
+      h.innerHTML='Bin Location <span class="r1-sort-ind" data-k="bin"></span>'; nth.classList.add('sv-bincell'); nth.appendChild(h); }
     var nar=document.getElementById('m-r1-nar'); if(nar){ var box=nar.closest('.inv-metric'); if(box) box.classList.add('sv-nar'); }
     document.querySelectorAll('.sv-mode button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===mode); });
   }
   window.renderInvR1=function(){
     lbl();
     var r=origRender.apply(this,arguments);
+    binSort();
     binCells();
     if(mode==='sup'){
       var lb=document.getElementById('m-r1-total'); lb=lb&&lb.closest('.inv-metric'); lb=lb&&lb.querySelector('.inv-metric-label');
