@@ -2194,6 +2194,116 @@ document.getElementById('invPinInput').addEventListener('keydown',e=>{
 });
 </script>
 
+<!-- ===== (2026-11-19 ผู้ใช้สั่ง) ปุ่มสลับ Medication (11) / Medical Supply (12) — เวชภัณฑ์ = module แยก (GAS getSupplyRtView) ===== -->
+<style id="sv-mode-css">
+    .sv-mode{display:inline-flex;background:#eef2f0;border:1px solid #d6e2db;border-radius:12px;padding:3px;gap:3px;font-family:'Plus Jakarta Sans','Sarabun',sans-serif;}
+    .sv-mode button{border:0;background:transparent;color:#0f613b;font-weight:600;font-size:13px;padding:6px 12px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s;}
+    .sv-mode button.on{background:#0f613b;color:#fff;box-shadow:0 1px 3px rgba(15,97,59,.3);}
+    .sv-mode button small{font-weight:500;opacity:.75;margin-left:3px;}
+    @media (max-width:767px){ .sv-mode button{font-size:12px;padding:6px 9px;} .sv-mode button .sv-long{display:none;} }
+    body.sv-sup #inv-r1 .inv-metric.sv-nar{display:none!important;}
+    body.sv-sup #r1-inv-body > tr > td:nth-child(5)::before{content:"Main Store";}
+</style>
+<script>
+(function(){
+  var MODE_KEY='lkh_sv_mode', SNAP_SUP='lkh_inv_rt_sup_v1';
+  var mode='med'; try{ if(localStorage.getItem(MODE_KEY)==='sup') mode='sup'; }catch(e){}
+  var origSync=window._syncStockFromSheet, origApply=window._applyRtData, origRender=window.renderInvR1,
+      origStatus=window._invRtStatusText, origTip=window._mmTip;
+  var supBusy=false, supPend=false, supBase='';
+
+  // ข้อมูลคนละโหมดห้ามวาดทับกัน (โหลดค้างอยู่ตอนกดสลับ)
+  window._applyRtData=function(d){
+    if(((d&&d.kind)==='supply')!==(mode==='sup')) return;
+    if(mode==='sup') supBase=d.baselineAt||'';
+    return origApply.apply(this,arguments);
+  };
+  window._invRtStatusText=function(x){
+    origStatus.apply(this,arguments);
+    if(mode!=='sup') return;
+    var el=document.getElementById('inv-sync-status');
+    if(el) el.textContent=el.textContent.replace('Stock Real-time updated','Medical supply calculated');
+  };
+  window._mmTip=function(d){
+    var t=origTip.apply(this,arguments);
+    return mode==='sup' ? t.replace(/^Dispense /,'Transfer out of Main Store ').replace('\nNow: pharmacy ','\nNow: main store ') : t;
+  };
+  function lbl(){
+    var sup=mode==='sup';
+    var r1=document.getElementById('inv-r1'); if(!r1) return;
+    var ttl=r1.querySelector('p'); if(ttl){ if(!ttl.dataset.o) ttl.dataset.o=ttl.textContent; ttl.textContent=sup?'Medical Supply Stock Value Report':'Medication Stock Value Report'; }
+    r1.querySelectorAll('thead th').forEach(function(th){
+      var n=th.firstChild; if(!n||n.nodeType!==3) return;
+      if(!th.dataset.o) th.dataset.o=n.nodeValue;
+      var o=th.dataset.o;
+      n.nodeValue = sup ? o.replace('Pharmacy F1','Main Store').replace(/Medication Lists?/,'Medical Supply Lists') : o;
+    });
+    document.body.classList.toggle('sv-sup',sup);
+    var nar=document.getElementById('m-r1-nar'); if(nar){ var box=nar.closest('.inv-metric'); if(box) box.classList.add('sv-nar'); }
+    document.querySelectorAll('.sv-mode button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===mode); });
+  }
+  window.renderInvR1=function(){
+    lbl();
+    var r=origRender.apply(this,arguments);
+    if(mode==='sup'){
+      var lb=document.getElementById('m-r1-total'); lb=lb&&lb.closest('.inv-metric'); lb=lb&&lb.querySelector('.inv-metric-label');
+      if(lb) lb.title='Medical supply value = Σ on-hand × latest cost (incl. VAT 7%) · baseline count '+(supBase||'16/11/2026')+' + GR − transfers out of Main Store';
+      var p=(invRtMeta&&invRtMeta.mmParams)||{}, dl=document.getElementById('m-r1-doh-lb');
+      if(dl) dl.title='KPI: Days on Hand ≤ '+(p.maxDoh||90)+' days per item (main store stock ÷ average daily transfer-out, '+(p.from||'')+'–'+(p.to||'')+')';
+    }
+    return r;
+  };
+  async function supSync(force){
+    if(!SCRIPT_URL) return;
+    if(!invRtLoaded){
+      var s=null; try{ s=JSON.parse(localStorage.getItem(SNAP_SUP)); }catch(e){}
+      if(s&&s.d&&s.d.status==='ok'){ try{ window._applyRtData(s.d); }catch(e){ console.warn('supply snapshot render failed:',e); } }
+    }
+    if(supBusy){ if(force) supPend=true; return; }
+    supBusy=true;
+    window._invRtStatusText(invRtLoaded?'refreshing':'loading');
+    if(!invRtLoaded){ var tb=document.getElementById('r1-inv-body'); if(tb) tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8">Loading medical supply data…</td></tr>'; }
+    try{
+      var res=await fetch(SCRIPT_URL+'?action=getSupplyRtView'+(force?'&force=1':''));
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      var d=await res.json();
+      if(d.status!=='ok') throw new Error(d.msg||'getSupplyRtView failed');
+      try{ localStorage.setItem(SNAP_SUP, JSON.stringify({ts:Date.now(),d:d})); }catch(e){}
+      if(mode!=='sup') return;
+      window._applyRtData(d);
+      window._invRtStatusText('');
+    }catch(e){
+      console.warn('getSupplyRtView failed:',e);
+      if(mode!=='sup') return;
+      window._invRtStatusText('error');
+      if(!invRtLoaded){ var tb2=document.getElementById('r1-inv-body'); if(tb2) tb2.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:#b45309">Could not load medical supply data — '+String(e.message||e)+'</td></tr>'; }
+    }finally{
+      supBusy=false;
+      if(supPend){ supPend=false; supSync(true); }
+    }
+  }
+  window._syncStockFromSheet=function(force){ return mode==='sup' ? supSync(force) : origSync.apply(this,arguments); };
+  function setMode(m){
+    if(m===mode) return;
+    mode=m; try{ localStorage.setItem(MODE_KEY,m); }catch(e){}
+    invRtLoaded=false; invR1Data=[]; invR3Data=[]; invR5Data=[]; invR1Cat='all'; invRtTotal=null; invRtMeta={};
+    var q=document.getElementById('r1-srch'); if(q) q.value='';
+    lbl();
+    var tb=document.getElementById('r1-inv-body'); if(tb) tb.innerHTML='<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8">Loading…</td></tr>';
+    window._syncStockFromSheet();
+  }
+  // ปุ่มสลับในแถบบน (ข้างปุ่มเมนู)
+  var bar=document.querySelector('.sv-appbar');
+  if(bar){
+    var w=document.createElement('div'); w.className='sv-mode'; w.setAttribute('role','tablist');
+    w.innerHTML='<button type="button" data-m="med">💊 Medication<small>11</small></button><button type="button" data-m="sup">🩹 <span class="sv-long">Medical </span>Supply<small>12</small></button>';
+    w.addEventListener('click',function(e){ var b=e.target.closest('button[data-m]'); if(b) setMode(b.dataset.m); });
+    var back=bar.querySelector('.sv-back'); bar.insertBefore(w, back?back.nextSibling:bar.firstChild);
+  }
+  lbl();
+})();
+</script>
+
 <script>
 // (stockvalue.html) ต้อง login แอปนับก่อน — ใช้ข้อมูลผู้ใช้ที่ count.html เก็บไว้ (origin เดียวกัน)
 (function(){
