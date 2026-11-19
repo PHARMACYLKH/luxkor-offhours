@@ -20,35 +20,32 @@
   .head-in svg { height:64px; width:auto; flex-shrink:0; }
   .head-in h1 { margin:0; font-size:30px; color:var(--green-dark); }
   .head-in p { margin:4px 0 0; color:var(--muted); font-size:17.5px; }
-  main { max-width:1180px; margin:0 auto; padding:26px 24px 48px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:18px; }
-  .top { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:6px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:22px; display:flex; flex-direction:column; min-height:300px; min-width:0; /* (2026-11-18) เดิม aspect-ratio 1:1 + overflow:hidden → จอแคบปุ่มถูกตัด; ตอนนี้สูงขั้นต่ำ 300px และยืดตามเนื้อหา การ์ดในแถวเดียวกันสูงเท่ากัน */
+  /* (2026-11-19) เรียงเมนูแนวตั้งรายการเดียว (เลื่อนบนมือถือหาง่าย) ไม่มีคำอธิบาย ; QR ย่อเล็กด้านขวาของแต่ละเมนู */
+  main { max-width:760px; margin:0 auto; padding:22px 24px 48px; }
+  .grid { display:flex; flex-direction:column; gap:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; display:flex; align-items:center; gap:14px; min-width:0;
           box-shadow:0 1px 4px rgba(0,0,0,.05); transition:transform .2s ease, box-shadow .2s ease; animation:fadeIn .35s ease both; }
   .card:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(15,97,59,.12); }
   @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-  .body { flex:1; min-height:0; display:flex; flex-direction:column; }
-  .icon { width:44px; height:44px; border-radius:12px; background:#e7f1ec; color:var(--green); display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:10px; }
-  .card h2 { margin:0 0 8px; font-size:22.5px; color:var(--green-dark); }
-  .card p { margin:0 0 14px; font-size:17.5px; color:var(--muted); line-height:1.55; }
-  .links { margin-top:auto; display:flex; flex-wrap:wrap; gap:8px; }
-  .btn { display:inline-block; padding:9px 16px; border-radius:10px; background:var(--green); color:#fff; text-decoration:none; font-weight:600; font-size:17.5px; transition:background .15s; }
+  .main-col { flex:1; min-width:0; }
+  .ttl { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .icon { width:38px; height:38px; border-radius:10px; background:#e7f1ec; color:var(--green); display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
+  .card h2 { margin:0; font-size:21px; line-height:1.3; color:var(--green-dark); }
+  .links { display:flex; flex-wrap:wrap; gap:8px; }
+  .btn { display:inline-block; padding:7px 14px; border-radius:10px; background:var(--green); color:#fff; text-decoration:none; font-weight:600; font-size:16.5px; transition:background .15s; }
   .btn:hover { background:var(--green-dark); }
   .cjk { -webkit-text-stroke:0.035em currentColor; }
   .btn.ghost { background:#fff; color:var(--green); border:1.5px solid var(--green); }
   .btn.ghost:hover { background:#e7f1ec; }
-  .qr { width:118px; flex-shrink:0; text-align:center; }
-  .qr .box { width:118px; height:118px; border:1px solid var(--line); border-radius:10px; padding:6px; background:#fff; }
+  .qr { width:76px; flex-shrink:0; }
+  .qr .box { width:76px; height:76px; border:1px solid var(--line); border-radius:8px; padding:4px; background:#fff; }
   .qr .box svg { width:100%; height:100%; display:block; }
-  .qr span { display:block; font-size:15px; color:var(--muted); margin-top:6px; }
-  .note { margin-top:26px; font-size:16px; color:var(--muted); line-height:1.6; border-top:1px solid var(--line); padding-top:16px; }
-  .note b { color:var(--text); }
   @media (max-width:760px) {
-    .grid { grid-template-columns:1fr; }
-    .card { aspect-ratio:auto; }
-    .qr, .qr .box { width:96px; } .qr .box { height:96px; }
+    .card { padding:12px; gap:10px; }
+    .qr, .qr .box { width:64px; } .qr .box { height:64px; padding:3px; }
+    .card h2 { font-size:19px; } .btn { font-size:15.5px; padding:6px 12px; }
     .head-in { padding:16px; gap:14px; } .head-in svg { height:46px; } .head-in h1 { font-size:24px; } .head-in p { font-size:15px; }
-    main { padding:16px 16px 36px; }
+    main { padding:14px 12px 32px; }
   }
 </style>
 </head>
@@ -122,18 +119,13 @@
     <svg viewBox="0 0 960.55 484.69" aria-label="Lux Kor Hospital"><use href="#luxkorLogo"></use></svg>
     <div>
       <h1>ระบบงานห้องยา</h1>
-      <p>แผนกเภสัชกรรม · เปิดจากคอมพิวเตอร์ได้จากหน้านี้ (ระบบเดียวกับที่สแกน QR จากมือถือ ข้อมูลชุดเดียวกัน)</p>
+      <p>แผนกเภสัชกรรม</p>
     </div>
   </div>
 </header>
 
 <main>
   <div class="grid" id="grid"></div>
-  <div class="note">
-    <b>วิธีใช้:</b> กดปุ่มเพื่อเปิดในแท็บใหม่ หรือสแกน QR ที่มุมการ์ดด้วยมือถือ ·
-    หน้าจอของแต่ละระบบออกแบบสำหรับมือถือ บนคอมจะแสดงเป็นคอลัมน์กลางจอ ใช้งานได้ครบเหมือนกัน ·
-    การพิมพ์แบบฟอร์มอุณหภูมิจากคอม Windows ที่มีฟอนต์ Cordia New กด "พิมพ์ทันที" ได้เลย
-  </div>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
@@ -141,25 +133,18 @@
   const BASE = 'https://pharmacylkh.github.io/luxkor-offhours/';
   const SYSTEMS = [
     { icon: '🌡️', title: 'บันทึกอุณหภูมิและความชื้นห้องยา', page: 'pharmtemp.html',
-      desc: 'บันทึกอุณหภูมิ/ความชื้นห้องยา ตู้เก็บยา N และตู้เย็น รอบ 08.00 / 20.00 ดูกราฟรายเดือน และพิมพ์ฟอร์ม PHA-0021 / PHA-0031',
       links: [['บันทึก', 'pharmtemp.html#rec'], ['กราฟ', 'pharmtemp.html#chart'], ['พิมพ์ฟอร์ม', 'pharmtemp.html#print']] },
     { icon: '📦', title: 'ห้องคลังยาและเวชภัณฑ์', page: 'store.html',
-      desc: 'บันทึกเข้า-ออกห้องคลัง เบิกตามใบเบิก/เบิกด่วน รับสินค้าเข้าคลัง และบันทึกอุณหภูมิห้องคลัง',
       links: [['เปิดระบบ', 'store.html']] },
     { icon: '🔢', title: 'นับ Stock ห้องยา', page: 'count.html',
-      desc: 'นับสต็อกยารายวันแบบ blind count บันทึกลง Count_Log และใบนับ',
       links: [['เปิดระบบ', 'count.html']] },
     { icon: '🌙', title: 'เข้าห้องยานอกเวลา', page: 'index.html',
-      desc: 'บันทึกการหยิบยานอกเวลา (00.00–08.00) และเบิก/คืนกล่องยาเวรดึก และกล่องยา OR',
       links: [['เปิดระบบ', 'index.html'], ['เบิก/คืนกล่องยา', 'index.html#box'], ['กล่องยา OR', 'index.html#orbox']] },
     { icon: '🏷️', title: 'ฉลากยา (ไทย / 中文 / 日本語)', page: 'sticker.html',
-      desc: 'พิมพ์ฉลากยาภาษาไทย หรือภาษาจีน/ญี่ปุ่น ดึงข้อมูลจาก HIS และส่งพิมพ์ที่เครื่องพิมพ์ห้องยา (ต้องกรอกรหัสพนักงาน)',
       links: [['ฉลากไทย', 'sticker.html'], ['中文 / 日本語', 'label-intl.html']] },
     { icon: '💊', title: 'Medication Reconciliation', page: 'medrec.html',
-      desc: 'ทำ MedRec ข้างเตียง ดึงข้อมูลจาก HIS ด้วย AN บันทึก DRPs และพิมพ์ฟอร์ม A4 ที่ห้องยาหรือ Ward (ต้องกรอกรหัสพนักงาน)',
       links: [['เปิดระบบ', 'medrec.html'], ['ที่บันทึกไว้', 'medrec.html#saved'], ['สรุป DRPs', 'medrec.html#stats']] },
     { icon: '⚠️', title: 'ข้อมูลยาความเสี่ยงสูง (HAD)', page: 'had.html',
-      desc: 'ค้นหายาความเสี่ยงสูงตามบัญชี Index ดูแนวทางการใช้ยา: ยานี้คืออะไร ขนาดยา การผสม/การเก็บรักษา วิธีให้ยาและทางที่ให้ การติดตามและเกณฑ์แจ้งแพทย์ (ไม่ต้องกรอกรหัสพนักงาน)',
       links: [['เปิดระบบ', 'had.html']] }
   ];
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -171,11 +156,10 @@
   }
   document.getElementById('grid').innerHTML = SYSTEMS.map((s, i) =>
     '<div class="card" style="animation-delay:' + (i * 0.05) + 's">' +
-      '<div class="top"><div><div class="icon" aria-hidden="true">' + s.icon + '</div><h2>' + escCjk(s.title) + '</h2></div>' +
-      '<div class="qr"><div class="box">' + qrSvg(BASE + s.page) + '</div><span>สแกนด้วยมือถือ</span></div></div>' +
-      '<div class="body"><p>' + esc(s.desc) + '</p>' +
-      '<div class="links">' + s.links.map((l, j) => '<a class="btn' + (j ? ' ghost' : '') + '" href="' + BASE + l[1] + '" target="_blank" rel="noopener">' + escCjk(l[0]) + '</a>').join('') + '</div>' +
-    '</div></div>'
+      '<div class="main-col"><div class="ttl"><div class="icon" aria-hidden="true">' + s.icon + '</div><h2>' + escCjk(s.title) + '</h2></div>' +
+      '<div class="links">' + s.links.map((l, j) => '<a class="btn' + (j ? ' ghost' : '') + '" href="' + BASE + l[1] + '" target="_blank" rel="noopener">' + escCjk(l[0]) + '</a>').join('') + '</div></div>' +
+      '<div class="qr" title="สแกนด้วยมือถือ"><div class="box">' + qrSvg(BASE + s.page) + '</div></div>' +
+    '</div>'
   ).join('');
 </script>
 </body>
