@@ -2202,6 +2202,23 @@ document.getElementById('invPinInput').addEventListener('keydown',e=>{
     .sv-mode button small{font-weight:500;opacity:.75;margin-left:3px;}
     @media (max-width:767px){ .sv-mode button{font-size:12px;padding:6px 9px;} .sv-mode button .sv-long{display:none;} }
     body.sv-sup #inv-r1 .inv-metric.sv-nar{display:none!important;}
+    /* Bin Location — คอลัมน์เสมือนชิดขวาในช่องชื่อ (ซ้ายของ TOTAL) */
+    .sv-bincell{position:relative;padding-right:150px!important;}
+    .sv-bin{position:absolute;right:18px;top:50%;transform:translateY(-50%);min-width:96px;text-align:center;font-size:13px;font-weight:700;color:#0f613b;background:#eef6f1;border:1px solid #cfe3d7;border-radius:8px;padding:4px 10px;font-family:Arial,'Sarabun',sans-serif;white-space:nowrap;}
+    .sv-bin.none{color:#cbd5e1;background:transparent;border-color:transparent;font-weight:400;}
+    .sv-bin-h{position:absolute;right:18px;top:50%;transform:translateY(-50%);min-width:96px;text-align:center;}
+    @media (max-width:1199px){   /* จอแคบ: ไม่มีที่ว่างพอเป็นคอลัมน์ → แสดงเป็นป้ายใต้รหัสแทน */
+        .sv-bincell{padding-right:0!important;}
+        .sv-bin{position:static;transform:none;display:inline-block;min-width:0;margin-top:6px;font-size:12px;padding:2px 8px;}
+        .sv-bin::before{content:"Bin ";font-weight:500;color:#64748b;}
+        .sv-bin.none{display:none;}
+        .sv-bin-h{display:none;}
+    }
+    @media (max-width:767px){
+        .sv-bin::before{content:"Bin ";font-weight:500;color:#64748b;}
+        .sv-bin.none{display:none;}
+        .sv-bin-h{display:none;}
+    }
     body.sv-sup #r1-inv-body > tr > td:nth-child(5)::before{content:"Main Store";}
 </style>
 <script>
@@ -2210,12 +2227,24 @@ document.getElementById('invPinInput').addEventListener('keydown',e=>{
   var mode='med'; try{ if(localStorage.getItem(MODE_KEY)==='sup') mode='sup'; }catch(e){}
   var origSync=window._syncStockFromSheet, origApply=window._applyRtData, origRender=window.renderInvR1,
       origStatus=window._invRtStatusText, origTip=window._mmTip;
-  var supBusy=false, supPend=false, supBase='';
+  var supBusy=false, supPend=false, supBase='', binOf={};
+  // (2026-11-19 ผู้ใช้สั่ง) Bin Location ในที่ว่างซ้ายคอลัมน์ TOTAL — วางในช่องชื่อ (ไม่เพิ่ม <td> เพราะ layout มือถืออิงลำดับคอลัมน์)
+  function binCells(){
+    var rows=document.querySelectorAll('#r1-inv-body > tr'), data=invR1LastData||[];
+    rows.forEach(function(tr,i){
+      var d=data[i], td=tr.children[1]; if(!d||!td) return;
+      var b=binOf[d.code]; b=(!b||b==='-')?'—':b;
+      td.classList.add('sv-bincell');
+      var el=document.createElement('div'); el.className='sv-bin'+(b==='—'?' none':''); el.title='Bin Location'; el.textContent=b;
+      td.appendChild(el);
+    });
+  }
 
   // ข้อมูลคนละโหมดห้ามวาดทับกัน (โหลดค้างอยู่ตอนกดสลับ)
   window._applyRtData=function(d){
     if(((d&&d.kind)==='supply')!==(mode==='sup')) return;
     if(mode==='sup') supBase=d.baselineAt||'';
+    binOf={}; (d.items||[]).forEach(function(x){ binOf[String(x.c)]=String(x.loc||'').trim(); });   // Bin Location (ยา = Index col L, เวชภัณฑ์ = แท็บยอดตั้งต้น)
     return origApply.apply(this,arguments);
   };
   window._invRtStatusText=function(x){
@@ -2239,12 +2268,15 @@ document.getElementById('invPinInput').addEventListener('keydown',e=>{
       n.nodeValue = sup ? o.replace('Pharmacy F1','Main Store').replace(/Medication Lists?/,'Medical Supply Lists') : o;
     });
     document.body.classList.toggle('sv-sup',sup);
+    var nth=r1.querySelectorAll('thead th')[1];
+    if(nth&&!nth.querySelector('.sv-bin-h')){ var h=document.createElement('span'); h.className='sv-bin-h'; h.textContent='Bin Location'; nth.classList.add('sv-bincell'); nth.appendChild(h); }
     var nar=document.getElementById('m-r1-nar'); if(nar){ var box=nar.closest('.inv-metric'); if(box) box.classList.add('sv-nar'); }
     document.querySelectorAll('.sv-mode button').forEach(function(b){ b.classList.toggle('on',b.dataset.m===mode); });
   }
   window.renderInvR1=function(){
     lbl();
     var r=origRender.apply(this,arguments);
+    binCells();
     if(mode==='sup'){
       var lb=document.getElementById('m-r1-total'); lb=lb&&lb.closest('.inv-metric'); lb=lb&&lb.querySelector('.inv-metric-label');
       if(lb) lb.title='Medical supply value = Σ on-hand × latest cost (incl. VAT 7%) · baseline count '+(supBase||'16/11/2026')+' + GR − transfers out of Main Store';
