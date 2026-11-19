@@ -360,8 +360,45 @@ DRUG INVENTORY — Lux Kor Hospital Pharmacy
         #r1-inv-body .lot-grid,#r1-inv-body .lot-grid-header{grid-template-columns:60px minmax(0,1fr) 70px auto 38px;column-gap:6px;}
         #r1-inv-body .lot-grid{font-size:10.5px!important;padding:3px 5px!important;}
     }
+
+    /* (2026-11-19) หน้าโหลด: โลโก้ Lux Kor + วงหมุน (เหมือน count.html) */
+    #svBoot{position:fixed;inset:0;z-index:9000;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .35s ease;}
+    #svBoot.done{opacity:0;pointer-events:none;}
+    #svBoot img{width:210px;height:auto;}
+    #svBoot .sv-spin{width:44px;height:44px;border:4px solid #dbe3df;border-top-color:#0f613b;border-radius:50%;animation:svSpin .8s linear infinite;}
+    @keyframes svSpin{to{transform:rotate(360deg)}}
+    /* (2026-11-19) แป้นรหัสพนักงาน (แบบระบบฉลากยา) */
+    #svPin{position:fixed;inset:0;z-index:9500;background:rgba(10,30,20,.45);display:none;align-items:center;justify-content:center;padding:16px;}
+    #svPin.show{display:flex;}
+    #svPin .box{background:#fff;border-radius:18px;width:100%;max-width:360px;padding:22px 20px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.25);animation:svUp .25s ease;font-family:'Sarabun',sans-serif;}
+    @keyframes svUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+    #svPin h3{margin:0;font-size:21px;font-weight:700;color:#1f2a24;}
+    #svPin .sub{margin-top:4px;font-size:14px;color:#6b7a72;}
+    #svPin .dots{display:flex;gap:12px;justify-content:center;margin:16px 0;}
+    #svPin .dot{width:13px;height:13px;border-radius:50%;background:#dfe6e2;transition:background .15s;}
+    #svPin .dot.on{background:#0f613b;}
+    #svPin .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+    #svPin .key{padding:14px 0;border:1.5px solid #dfe6e2;border-radius:10px;font-family:Arial,sans-serif;font-size:21px;font-weight:700;color:#111;background:#fff;cursor:pointer;text-decoration:none;user-select:none;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;}
+    #svPin .key:hover{border-color:#0f613b;} #svPin .key:active{background:#e8f2ec;}
+    #svPin .key.sm{font-family:'Sarabun',sans-serif;font-size:15px;font-weight:600;}
+    #svPin .key.back{color:#6b7a72;}
+    #svPin .err{min-height:20px;margin-top:10px;font-size:14px;font-weight:600;color:#b3261e;}
+    #svPin .err.wait{color:#6b7a72;}
 </style>
 <body class="p-0 md:p-1">
+<div id="svBoot"><img src="luxkor-logo.svg" alt="Lux Kor Hospital"><div class="sv-spin"></div></div>
+<div id="svPin" role="dialog" aria-modal="true" aria-labelledby="svPinT"><div class="box">
+  <h3 id="svPinT">กรอกรหัสพนักงาน</h3>
+  <div class="sub">เฉพาะบุคลากรที่ได้รับสิทธิ์เท่านั้น</div>
+  <div class="dots" id="svDots"><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+  <div class="grid">
+    <button class="key" type="button" data-k="1">1</button><button class="key" type="button" data-k="2">2</button><button class="key" type="button" data-k="3">3</button>
+    <button class="key" type="button" data-k="4">4</button><button class="key" type="button" data-k="5">5</button><button class="key" type="button" data-k="6">6</button>
+    <button class="key" type="button" data-k="7">7</button><button class="key" type="button" data-k="8">8</button><button class="key" type="button" data-k="9">9</button>
+    <button class="key sm" type="button" data-k="del">ลบ</button><button class="key" type="button" data-k="0">0</button><a class="key sm back" href="count.html?menu=1">กลับ</a>
+  </div>
+  <div class="err" id="svErr"></div>
+</div></div>
 <div class="sv-appbar"><a class="sv-back" href="count.html?menu=1"><span style="font-size:15px;line-height:1">&#8249;</span> เมนู</a><span class="sv-who" id="svWho"></span></div>
 
 <div class="max-w-[1600px] mx-auto">
@@ -2163,6 +2200,53 @@ document.getElementById('invPinInput').addEventListener('keydown',e=>{
   var u=null; try{ u=JSON.parse(localStorage.getItem('lkh_count_user_v2')); }catch(e){}
   if(!u||!u.pin){ location.replace('count.html'); return; }
   var w=document.getElementById('svWho'); if(w&&u.by) w.textContent=u.by;
+})();
+
+// (2026-11-19) หน้าโหลดโลโก้ — ปิดเมื่อโหลดข้อมูลครั้งแรกเสร็จ (ห่อ _syncStockFromSheet เดิม ไม่แก้ตรรกะ) ; กันค้าง 90 วิ
+(function(){
+  var boot=document.getElementById('svBoot'), hid=false;
+  function hide(){ if(hid) return; hid=true; boot.classList.add('done'); setTimeout(function(){ boot.remove(); },400); }
+  var orig=window._syncStockFromSheet;
+  if(typeof orig==='function'){
+    window._syncStockFromSheet=function(){
+      var p; try{ p=orig.apply(this,arguments); }catch(e){ hide(); throw e; }
+      Promise.resolve(p).then(hide,hide); return p;
+    };
+  } else { window.addEventListener('load',hide); }
+  setTimeout(hide,90000);
+})();
+
+// (2026-11-19 ผู้ใช้สั่ง) แป้นรหัสพนักงานก่อนเข้า Stock Value Report — Full time 4 คน ตรวจที่ GAS (svLogin) ; token 2 ชม. ต่อแท็บ
+(function(){
+  var KEY='lkh_sv_session', pin=document.getElementById('svPin'), err=document.getElementById('svErr'), buf='', busy=false;
+  var URL_=(typeof SCRIPT_URL!=='undefined'&&SCRIPT_URL)||'';
+  function post(b){ return fetch(URL_,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(function(r){return r.json();}); }
+  function dots(){ document.querySelectorAll('#svDots .dot').forEach(function(d,i){ d.classList.toggle('on',i<buf.length); }); }
+  function setWho(n){ var w=document.getElementById('svWho'); if(w&&n) w.textContent=n; }
+  function open(msg){ try{ sessionStorage.removeItem(KEY); }catch(e){} buf=''; dots(); err.className='err'; err.textContent=msg||''; pin.classList.add('show'); }
+  function press(k){
+    if(busy) return;
+    if(k==='del'){ buf=buf.slice(0,-1); dots(); return; }
+    if(buf.length>=5) return;
+    buf+=k; dots(); err.textContent='';
+    if(buf.length<5) return;
+    busy=true; err.className='err wait'; err.textContent='กำลังตรวจสอบ…';
+    post({action:'svLogin',empCode:buf}).then(function(j){
+      if(j.status!=='ok'){ err.className='err'; err.textContent=j.msg||'เข้าสู่ระบบไม่สำเร็จ'; return; }
+      try{ sessionStorage.setItem(KEY,JSON.stringify({token:j.token,name:j.name,exp:Date.now()+(j.ttlSec||7200)*1000-60000})); }catch(e){}
+      setWho(j.name); err.textContent=''; pin.classList.remove('show');
+    }).catch(function(){ err.className='err'; err.textContent='เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'; })
+      .then(function(){ busy=false; buf=''; dots(); });
+  }
+  pin.addEventListener('click',function(e){ var b=e.target.closest('[data-k]'); if(b) press(b.getAttribute('data-k')); });
+  document.addEventListener('keydown',function(e){
+    if(!pin.classList.contains('show')) return;
+    if(/^\d$/.test(e.key)){ e.preventDefault(); press(e.key); } else if(e.key==='Backspace'){ e.preventDefault(); press('del'); }
+  });
+  var s=null; try{ s=JSON.parse(sessionStorage.getItem(KEY)); }catch(e){}
+  if(!(s&&s.token&&s.exp>Date.now())){ open(''); return; }
+  setWho(s.name);
+  post({action:'svCheck',token:s.token}).then(function(j){ if(j.status!=='ok') open('หมดเวลาการใช้งาน กรุณากรอกรหัสใหม่'); }).catch(function(){});
 })();
 </script>
 </body>
