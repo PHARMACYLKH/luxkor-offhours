@@ -8,11 +8,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* (2026-11-17) หน้ารวมสำหรับคอมพิวเตอร์ — ทุกระบบที่มี QR สำหรับมือถือ เปิดจากคอมได้จากหน้านี้ */
-  @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK'), local('THSarabunPSK'); font-weight: 100 550; unicode-range: U+0E00-0E7F; size-adjust: 135%; }
-  @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK Bold'), local('THSarabunPSK-Bold'); font-weight: 551 900; unicode-range: U+0E00-0E7F; size-adjust: 135%; }
+  @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK'), local('THSarabunPSK'); font-weight: 100 550; unicode-range: U+0E00-0E7F; size-adjust: 140%; }
+  @font-face { font-family: 'LK Thai'; src: local('TH SarabunPSK Bold'), local('THSarabunPSK-Bold'); font-weight: 551 900; unicode-range: U+0E00-0E7F; size-adjust: 140%; }
+  /* (2026-11-19) กฎฟอนต์: ไทย = TH SarabunPSK (×1.4), อังกฤษ/ตัวเลข = Arial, จีน/ญี่ปุ่น = SimSun (宋体) */
+  @font-face { font-family: 'LK CJK'; src: local('SimSun'), local('宋体'), local('NSimSun'); unicode-range: U+3000-30FF, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF; }
   :root { --green:#0f613b; --green-dark:#0b4a2d; --gold:#a27e2c; --bg:#f4f6f5; --card:#fff; --text:#1f2a24; --muted:#6b7a72; --line:#dfe6e2; --radius:16px; }
   * { box-sizing:border-box; }
-  html, body { margin:0; background:var(--bg); color:var(--text); font-family:'LK Thai','Sarabun',sans-serif; }
+  html, body { margin:0; background:var(--bg); color:var(--text); font-family:'LK Thai','LK CJK',Arial,'Sarabun',sans-serif; }
   header { background:#fff; border-bottom:1px solid var(--line); }
   .head-in { max-width:1180px; margin:0 auto; padding:22px 24px; display:flex; align-items:center; gap:22px; }
   .head-in svg { height:64px; width:auto; flex-shrink:0; }
@@ -32,6 +34,7 @@
   .links { margin-top:auto; display:flex; flex-wrap:wrap; gap:8px; }
   .btn { display:inline-block; padding:9px 16px; border-radius:10px; background:var(--green); color:#fff; text-decoration:none; font-weight:600; font-size:17.5px; transition:background .15s; }
   .btn:hover { background:var(--green-dark); }
+  .cjk { -webkit-text-stroke:0.035em currentColor; }
   .btn.ghost { background:#fff; color:var(--green); border:1.5px solid var(--green); }
   .btn.ghost:hover { background:#e7f1ec; }
   .qr { width:118px; flex-shrink:0; text-align:center; }
@@ -160,16 +163,18 @@
       links: [['เปิดระบบ', 'had.html']] }
   ];
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  // (2026-11-19) SimSun ไม่มีตัวหนา — ห่อตัวจีน/ญี่ปุ่นด้วย .cjk เพื่อทำตัวหนาด้วยเส้นขอบ
+  function escCjk(s) { return esc(s).replace(/[　-ヿ㐀-䶿一-鿿豈-﫿]+/g, m => '<span class="cjk">' + m + '</span>'); }
   function qrSvg(url) {
     try { const q = qrcode(0, 'M'); q.addData(url); q.make(); return q.createSvgTag({ cellSize: 3, margin: 0, scalable: true }); }
     catch (e) { return ''; }
   }
   document.getElementById('grid').innerHTML = SYSTEMS.map((s, i) =>
     '<div class="card" style="animation-delay:' + (i * 0.05) + 's">' +
-      '<div class="top"><div><div class="icon" aria-hidden="true">' + s.icon + '</div><h2>' + esc(s.title) + '</h2></div>' +
+      '<div class="top"><div><div class="icon" aria-hidden="true">' + s.icon + '</div><h2>' + escCjk(s.title) + '</h2></div>' +
       '<div class="qr"><div class="box">' + qrSvg(BASE + s.page) + '</div><span>สแกนด้วยมือถือ</span></div></div>' +
       '<div class="body"><p>' + esc(s.desc) + '</p>' +
-      '<div class="links">' + s.links.map((l, j) => '<a class="btn' + (j ? ' ghost' : '') + '" href="' + BASE + l[1] + '" target="_blank" rel="noopener">' + esc(l[0]) + '</a>').join('') + '</div>' +
+      '<div class="links">' + s.links.map((l, j) => '<a class="btn' + (j ? ' ghost' : '') + '" href="' + BASE + l[1] + '" target="_blank" rel="noopener">' + escCjk(l[0]) + '</a>').join('') + '</div>' +
     '</div></div>'
   ).join('');
 </script>
