@@ -277,7 +277,7 @@ const SS_KEY = 'lkh_medrec_session_v2';   // (2026-11-19) token เดิม (�
 // (2026-11-18) GitHub Pages ให้เบราว์เซอร์จำหน้าเก่าได้ 10 นาที → ฟอร์มที่พิมพ์ยังเป็นแบบเก่าหลังอัปเดต
 // เปิดหน้าแล้วเช็คเวอร์ชันล่าสุดบน server (cache:'reload' อัปเดตแคชไปด้วย) ถ้า BUILD ไม่ตรง → โหลดหน้าใหม่ 1 ครั้ง
 // ⚠️ แก้ไฟล์นี้ทุกครั้งต้องเปลี่ยนค่า BUILD
-const BUILD = '2026-11-21T10:00';
+const BUILD = '2026-11-21T16:00';
 (function checkBuild() {
   try {
     if (sessionStorage.getItem('lkh_mr_reloaded') === BUILD) return;
@@ -592,8 +592,11 @@ function thaiDob(iso) {
   return (+m[3]) + ' ' + TH[+m[2] - 1] + ' ' + y;
 }
 // his_bridge fetch_drug_allergy: {status:'known',drugs:[...]} | 'nkda' | 'pending' (รอ verify) | 'unknown'/'error'
+// (2026-11-21 ผู้ใช้สั่ง) แสดงเป็น "1. Amoxicillin - ริมฝีปากไหม้  2. Ibuprofen - ผื่นลมพิษ" — generic เท่านั้น (ไม่เอาความแรง/ยี่ห้อ) ตามด้วยอาการจาก HIS
 function allergyText(a) {
-  if (a && a.status === 'known' && Array.isArray(a.drugs)) return a.drugs.join(', ');
+  if (a && a.status === 'known' && Array.isArray(a.items) && a.items.length)
+    return a.items.map((x, i) => (i + 1) + '. ' + x.generic + (x.symptoms ? ' - ' + x.symptoms : '')).join('  ');
+  if (a && a.status === 'known' && Array.isArray(a.drugs)) return a.drugs.join(', ');   // bridge เครื่องที่ยังไม่อัปเดต
   return '';
 }
 async function fetchAN() {
@@ -958,8 +961,13 @@ async function openPrint() {
   } catch (e) { $('phaState').textContent = 'ตรวจสถานะไม่ได้'; $('wardState').textContent = 'ตรวจสถานะไม่ได้'; }
 }
 function closePrint() { $('printSheet').classList.remove('show'); }
+// (2026-11-21 ผู้ใช้สั่ง) เลข 3 ตัวท้ายของเลขที่ฟอร์มต้องตรง AN — ฟอร์มเก่าที่เลขไม่ตรง ต้องบันทึกใหม่ให้ระบบออกเลขตาม AN ก่อนพิมพ์
+function refMatchesAN() {
+  const an = $('an').value.trim();
+  return !F.ref || !/\d{3}$/.test(an) || new RegExp('^LKH-PHA-MR-\\d{6}' + an.slice(-3) + '(-\\d+)?$').test(F.ref);
+}
 async function ensureSaved() {
-  if (F.ref && JSON.stringify(collectSig()) === lastSavedSig) return F.ref;
+  if (F.ref && refMatchesAN() && JSON.stringify(collectSig()) === lastSavedSig) return F.ref;
   $('printStatus').className = 'status'; $('printStatus').textContent = '⏳ กำลังบันทึกก่อนพิมพ์…';
   return await save(true);
 }
@@ -987,12 +995,12 @@ async function printQueue(target) {
   const st = $('printStatus');
   try {
     let j, ref;
-    if (F.ref && JSON.stringify(collectSig()) === lastSavedSig) {
+    if (F.ref && refMatchesAN() && JSON.stringify(collectSig()) === lastSavedSig) {
       ref = F.ref; st.className = 'status'; st.textContent = '⏳ กำลังส่งงานพิมพ์…';
       j = await api({ action: 'medrecPrint', token: S.token, target: target, ref: ref, html: docHtml(collect()) });
     } else {
       // ⚡ (2026-11-18) บันทึก + ส่งพิมพ์ในคำขอเดียว: ระบบออกเลขที่ฟอร์มแล้วแทน __MR_REF__ ส่งเข้าเครื่องพิมพ์ทันที (ก่อนเขียนชีต)
-      const p2 = collect(); if (!p2.ref) p2.ref = '__MR_REF__';
+      const p2 = collect(); p2.ref = '__MR_REF__';   // ระบบใส่เลขจริงเสมอ (อาจออกเลขใหม่ถ้า AN เปลี่ยน)
       st.className = 'status'; st.textContent = '⏳ กำลังบันทึกและส่งพิมพ์…';
       lastPrint = null;
       ref = await save(true, { printTarget: target, html: docHtml(p2) });
