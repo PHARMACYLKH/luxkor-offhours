@@ -634,6 +634,13 @@
       <div style="font-size:12.5px;color:var(--muted);margin:-4px 0 10px">พิมพ์ชื่อยาเพื่อค้นหา หรือกดที่กล่องเพื่อดูรายการ → แตะยาที่ใช้แล้วกด −/+ ปรับจำนวน</div>
       <div class="or-search" id="orSearchWrap"><input type="text" id="orDrugSearch" placeholder="ค้นหายา เช่น fenta, propo, sux" autocomplete="off" oninput="filterOrDrugs(this.value)"><button type="button" onclick="filterOrDrugs('', true)" aria-label="ล้างคำค้น">✕</button></div>
       <div id="orDrugAcc"><div style="font-size:13px;color:var(--muted)">— กำลังโหลดรายการยา —</div></div>
+      <!-- (2026-11-22 ผู้ใช้สั่ง) เบิกแล้วไม่ได้ใช้ยา เช่น ยกเลิกผ่าตัด → คืนได้โดยระบุเหตุผล -->
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border:1px dashed #a27e2c;border-radius:10px;font-size:14px;cursor:pointer">
+        <input type="checkbox" id="orNoUse" onchange="toggleOrNoUse(this.checked)" style="width:18px;height:18px">
+        <span><b>ไม่ได้ใช้ยาจากกล่อง</b> <small style="color:var(--muted)">(เช่น ยกเลิกผ่าตัด)</small></span>
+      </label>
+      <input type="text" id="orNoUseReason" maxlength="200" placeholder="ระบุเหตุผล เช่น ยกเลิกผ่าตัด / เลื่อนผ่าตัด" autocomplete="off"
+        style="display:none;width:100%;box-sizing:border-box;margin-top:8px;padding:10px 12px;border:1px solid #ccc;border-radius:10px;font-size:15px;font-family:inherit">
     </div>
 
     <div class="card">
@@ -1501,6 +1508,17 @@
     document.getElementById('orAcc' + b).classList.toggle('has-use', n > 0);
     document.getElementById('orAccCount' + b).textContent = 'ใช้ ' + n + ' รายการ';
   }
+  function toggleOrNoUse(on) {
+    const r = document.getElementById('orNoUseReason');
+    r.style.display = on ? '' : 'none';
+    if (on) {
+      document.querySelectorAll('#orDrugAcc .drug-row.on input[type=checkbox]').forEach(function (cb) { cb.checked = false; onOrDrugToggle(cb); });
+      r.focus();
+    } else r.value = '';
+    document.getElementById('orDrugAcc').style.opacity = on ? '.4' : '';
+    document.getElementById('orDrugAcc').style.pointerEvents = on ? 'none' : '';
+    document.getElementById('orSearchWrap').style.display = on ? 'none' : '';
+  }
   function collectOrDrugUse() {
     return Array.prototype.map.call(document.querySelectorAll('#orDrugAcc .drug-row.on'), function (row) {
       return { box: row.dataset.box, code: row.dataset.code, qty: Number(row.querySelector('.dq input').value) };
@@ -1514,6 +1532,7 @@
       acc.classList.remove('expanded'); acc.querySelector('.drug-acc-body').style.maxHeight = '0';
     });
     filterOrDrugs('', true);
+    document.getElementById('orNoUse').checked = false; toggleOrNoUse(false);
   }
   function loadOpenBoxes(k) {
     k = k || 'box';
@@ -1585,11 +1604,14 @@
     if (!sel.value) { showToast('กรุณาเลือกชื่อผู้เบิก/ผู้คืน', 'error'); return; }
     if (!f.action) { showToast('กรุณาเลือกว่าเบิกหรือคืนกล่อง', 'error'); return; }
     if (!boxes.length) { showToast('กรุณาเลือกกล่องยาอย่างน้อย 1 กล่อง', 'error'); return; }
-    let drugUse = [];
+    let drugUse = [], noUse = false, noUseReason = '';
     if (k === 'or' && f.action === 'คืน' && orDrugsReady) {
-      // (2026-10-13) เบิกกล่อง OR ทุกครั้งต้องใช้ยา — ไม่มีตัวเลือก "ไม่ได้ใช้ยา" แล้ว
-      drugUse = collectOrDrugUse();
-      if (!drugUse.length) { showToast('กรุณาระบุยาที่ใช้จากกล่องอย่างน้อย 1 รายการ', 'error'); return; }
+      // (2026-10-13) ต้องระบุยาที่ใช้ — (2026-11-22) ยกเว้นติ๊ก "ไม่ได้ใช้ยา" + เหตุผล (เช่น ยกเลิกผ่าตัด)
+      noUse = document.getElementById('orNoUse').checked;
+      noUseReason = document.getElementById('orNoUseReason').value.trim();
+      drugUse = noUse ? [] : collectOrDrugUse();
+      if (noUse && !noUseReason) { showToast('กรุณาระบุเหตุผลที่ไม่ได้ใช้ยา (เช่น ยกเลิกผ่าตัด)', 'error'); return; }
+      if (!noUse && !drugUse.length) { showToast('กรุณาระบุยาที่ใช้จากกล่อง หรือติ๊ก "ไม่ได้ใช้ยาจากกล่อง" พร้อมเหตุผล', 'error'); return; }
       if (drugUse.some(function (x) { return !(x.qty > 0); })) { showToast('กรุณาระบุจำนวนยาที่ใช้ให้ครบทุกรายการ', 'error'); return; }
       const notReturned = drugUse.map(function (x) { return x.box; })
         .filter(function (b, i, a) { return a.indexOf(b) === i && boxes.indexOf(b) < 0; });
@@ -1619,7 +1641,7 @@
       body: JSON.stringify({
         action: 'addOffHoursBoxLog', boxGroup: f.group, staffName: sel.value,
         position: sel.options[sel.selectedIndex].dataset.position || '', boxAction: f.action, boxes: boxes,
-        drugUse: drugUse
+        drugUse: drugUse, noDrugUse: noUse, noUseReason: noUseReason
       })
     })
       .then(function (r) { return r.json(); })
