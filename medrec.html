@@ -251,6 +251,16 @@ textarea.t{min-height:64px;resize:vertical;}
   </div>
 </div>
 
+<!-- (2026-11-23) AN นี้มีฟอร์มของเดือนนี้แล้ว: ถามก่อนออกเลข -2 -->
+<div class="overlay" id="dupSheet" style="z-index:55" role="dialog" aria-modal="true" aria-labelledby="dupTitle">
+  <div class="sheet">
+    <h3 id="dupTitle">AN นี้มีแบบฟอร์มที่บันทึกแล้ว</h3>
+    <div class="hint" id="dupInfo"></div>
+    <div id="dupBox"></div>
+    <button class="btn ghost full" style="margin-top:8px" id="dupCancel">ยกเลิก (ยังไม่บันทึก)</button>
+  </div>
+</div>
+
 <!-- login -->
 <div class="overlay show" id="login">
   <div class="sheet">
@@ -277,7 +287,7 @@ const SS_KEY = 'lkh_medrec_session_v2';   // (2026-11-19) token เดิม (�
 // (2026-11-18) GitHub Pages ให้เบราว์เซอร์จำหน้าเก่าได้ 10 นาที → ฟอร์มที่พิมพ์ยังเป็นแบบเก่าหลังอัปเดต
 // เปิดหน้าแล้วเช็คเวอร์ชันล่าสุดบน server (cache:'reload' อัปเดตแคชไปด้วย) ถ้า BUILD ไม่ตรง → โหลดหน้าใหม่ 1 ครั้ง
 // ⚠️ แก้ไฟล์นี้ทุกครั้งต้องเปลี่ยนค่า BUILD
-const BUILD = '2026-11-21T16:00';
+const BUILD = '2026-11-23T10:00';
 (function checkBuild() {
   try {
     if (sessionStorage.getItem('lkh_mr_reloaded') === BUILD) return;
@@ -713,7 +723,15 @@ async function save(quiet, extra) {
   $('btnSave').disabled = true;
   waitShow(quiet ? 'กำลังบันทึกก่อนพิมพ์' : 'กำลังบันทึกข้อมูล');
   try {
-    const j = await api(Object.assign({ action: 'medrecSave', token: S.token, payload: p }, extra || {}));
+    let j = await api(Object.assign({ action: 'medrecSave', token: S.token, payload: p }, extra || {}));
+    if (j.status === 'dup') {   // AN นี้มีฟอร์มของเดือนนี้แล้ว — ระบบยังไม่ได้บันทึก/พิมพ์ ถามก่อน
+      await waitDone(false);
+      const ans = await askDup(j.existing || [], p);
+      if (!ans) { toast('ยกเลิกแล้ว — ยังไม่ได้บันทึก'); return null; }
+      if (ans !== 'new') p.ref = ans;
+      waitShow(quiet ? 'กำลังบันทึกก่อนพิมพ์' : 'กำลังบันทึกข้อมูล');
+      j = await api(Object.assign({ action: 'medrecSave', token: S.token, payload: p }, extra || {}, { dup: ans === 'new' ? 'new' : 'edit' }));
+    }
     if (j.status !== 'ok') throw new Error(j.msg || 'บันทึกไม่สำเร็จ');
     lastPrint = j.print || null;
     F.ref = j.ref; setRef(); lastSavedSig = JSON.stringify(collectSig());
@@ -722,6 +740,31 @@ async function save(quiet, extra) {
     return j.ref;
   } catch (e) { await waitDone(false); toast('❌ ' + e.message); return null; }
   finally { $('btnSave').disabled = false; }
+}
+
+// (2026-11-23 ผู้ใช้สั่ง) ฟอร์มใหม่ที่ AN ซ้ำกับฟอร์มที่บันทึกแล้ว → เลือก "แก้ไขใบเดิม" (เลขเดิม, ตัวเลือกแรก) หรือ "สร้างใบใหม่" (-2, -3)
+//   คืนค่า: เลขที่ใบเดิม | 'new' | null (ยกเลิก)
+let previewWin = null;
+function askDup(list, p) {
+  if (previewWin && !previewWin.closed) previewWin.close();   // หน้าตัวอย่างเปิดบังหน้าต่างคำถามอยู่
+  return new Promise(resolve => {
+    const done = v => { $('dupSheet').classList.remove('show'); resolve(v); };
+    $('dupInfo').textContent = 'AN ' + p.patient.an + ' มีแบบฟอร์มในเดือนนี้แล้ว กรุณาเลือกวิธีบันทึก' + (F.ref ? ' (ฟอร์มที่เปิดอยู่คือ ' + F.ref + ')' : '');
+    $('dupBox').innerHTML = list.map((x, i) => '<button class="popt" data-i="' + i + '"><span class="ic">✏️</span><span><b>แก้ไขใบเดิม (ใช้เลขเดิม)</b><span>' + esc(x.ref) +
+      '<br>' + esc(x.by) + ' · ' + esc(x.at) + ' · ยา ' + esc(x.meds) + ' · DRPs ' + esc(x.drps) + '</span></span></button>').join('') +
+      '<button class="popt" data-i="new"><span class="ic">📄</span><span><b>สร้างใบใหม่อีก 1 ใบ</b><span>ใช้เมื่อเป็นแบบฟอร์มอีกครั้งของผู้ป่วยรายเดิม เช่น Med Rec ตอนจำหน่าย — เลขที่ต่อท้าย -2, -3</span></span></button>';
+    $('dupBox').onclick = e => {
+      const b = e.target.closest('[data-i]'); if (!b) return;
+      if (b.dataset.i === 'new') return done('new');
+      const x = list[+b.dataset.i];
+      if ((Number(x.meds) > p.meds.length || Number(x.drps) > p.drps.length) &&
+        !confirm('ใบเดิมมียา ' + x.meds + ' รายการ, DRPs ' + x.drps + ' รายการ ซึ่งมากกว่าฟอร์มนี้ (ยา ' + p.meds.length + ', DRPs ' + p.drps.length + ')\nการบันทึกจะแทนที่ข้อมูลใบเดิมทั้งหมด ยืนยันหรือไม่?')) return;
+      done(x.ref);
+    };
+    $('dupCancel').onclick = () => done(null);
+    $('dupSheet').classList.add('show');
+    const first = $('dupBox').querySelector('.popt'); if (first) first.focus();
+  });
 }
 
 // ── หน้ารอระหว่างบันทึก (แบบหน้ารอสร้างรายงานของระบบนับ stock): โลโก้ + วงแหวน % ประมาณจากเวลาบันทึกครั้งก่อน
@@ -976,8 +1019,11 @@ async function preview() {
   const w = window.open('', '_blank');   // เปิดหน้าต่างทันทีตอนกด (กันเบราว์เซอร์บล็อก) แล้วค่อยเขียนเนื้อหาหลังบันทึก
   if (!w) { toast('เบราว์เซอร์บล็อกหน้าต่างใหม่'); return; }
   w.document.write('<p style="font-family:sans-serif;padding:24px">กำลังบันทึกและสร้างแบบฟอร์ม…</p>');
+  previewWin = w;
   const ref = await ensureSaved();
+  previewWin = null;
   if (!ref) { w.close(); return; }
+  if (w.closed) { toast('บันทึกแล้ว (' + ref + ') กรุณากดดูตัวอย่างอีกครั้ง'); return; }
   w.document.open(); w.document.write(docHtml(collect())); w.document.close();
 }
 async function printHere() {
