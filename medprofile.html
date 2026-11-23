@@ -189,6 +189,7 @@ textarea.t{min-height:64px;resize:vertical;}
 .dp-line > b,.dp-line > span{flex-shrink:0;}
 .dp-line > .dp-blank{flex:1 1 0;min-width:60px;border-bottom:1px solid #333;padding:0 4px 1px;overflow-wrap:anywhere;}
 .dp-line > .dp-val{flex:1 1 0;min-width:0;overflow-wrap:anywhere;}
+.dp-line > .dp-own{white-space:nowrap;padding-left:10px;}   /* [2026-11-23 ผู้ใช้สั่ง] ช่องติ๊ก "ผู้ป่วยมียาเดิม" ขวาของ Diagnosis */
 .allergy-line.nkda{color:#2e7d32;}
 .allergy-line.pending{color:#e65100;font-weight:700;}
 .allergy-line.known{color:#c62828;font-weight:700;}
@@ -287,6 +288,11 @@ input.t,select.t{min-width:0;}
     <div class="card">
       <h2>⚠️ ประวัติแพ้ยา</h2>
       <textarea class="t" id="drugAllergyText" rows="2" aria-label="ประวัติแพ้ยา"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>🧾 ยาเดิมของผู้ป่วย</h2>
+      <label class="chk"><input type="checkbox" id="ownMed"> <b>ผู้ป่วยมียาเดิม</b></label>
     </div>
 
     <div class="card">
@@ -426,6 +432,7 @@ let drugId = 0;
 // 'known' (แพ้ยา มีรายชื่อ) | 'unknown' (เชื่อม HIS ไม่สำเร็จ/ดึงไม่ได้ — ห้ามถือว่า NKDA)
 let patientAllergy = {status:'idle'};
 let patientPhotoUrl = '';
+let ownMedAN = '';   // AN ที่ติ๊ก "ผู้ป่วยมียาเดิม" ไว้
 
 function allergyLineHTML(){
   const a = patientAllergy || {status:'idle'};
@@ -558,6 +565,8 @@ async function fetchFromSheet(){
   const suffix=document.getElementById('anSuffix').value.trim();
   if(!suffix){toast('⚠️ กรอก AN ก่อน','warn');return;}
   const an=prefix+suffix;
+  // เปลี่ยนผู้ป่วย → ล้างติ๊ก "ผู้ป่วยมียาเดิม" ของรายก่อน (ดึง AN เดิมซ้ำ = คงไว้)
+  if(an!==ownMedAN){ document.getElementById('ownMed').checked=false; ownMedAN=an; }
   const url=getGasUrl();
   const btn=document.getElementById('btnFetch');
   const status=document.getElementById('fetchStatus');
@@ -891,7 +900,7 @@ function generatePDF(){
       </div></div></div>
     </div>
     <div class="dp-line"><b>Drug Allergy :</b><span>${chk(isNkda)} No known of drug allergy</span><span>${chk(isKnown)} Yes, Specify</span><span class="dp-blank allergy-line ${algCls}">${isNkda?'&nbsp;':dpEsc(allergyTextFinal)}</span></div>
-    <div class="dp-line"><b>Diagnosis :</b><span class="dp-val">${dpEsc(diag)||'—'}</span></div>
+    <div class="dp-line"><b>Diagnosis :</b><span class="dp-val">${dpEsc(diag)||'—'}</span><b class="dp-own">${chk(document.getElementById('ownMed').checked)} ผู้ป่วยมียาเดิม</b></div>
     <div class="dp-ttl">Continuous Medication</div>
     ${drugTable(conList)}
     <div class="dp-ttl one">One Day</div>
@@ -988,7 +997,7 @@ function afterLogin(){
   restorePharmacist();
 }
 // ออกจากระบบ = ล้างข้อมูลผู้ป่วยบนหน้าจอด้วย (เครื่อง/มือถือใช้ร่วมกันได้)
-function logout(){ ssSet(null); S={token:''}; lpBuf=''; lpDots(); resetPatient(); $id('anSuffix').value=''; $id('pharInput').value=''; $id('pharmacist').value=''; $id('who').textContent=''; showLogin(); }
+function logout(){ $id('ownMed').checked=false; ownMedAN=''; ssSet(null); S={token:''}; lpBuf=''; lpDots(); resetPatient(); $id('anSuffix').value=''; $id('pharInput').value=''; $id('pharmacist').value=''; $id('who').textContent=''; showLogin(); }
 
 // ── AN: 3 ตัวท้าย + prefix ตามปี พ.ศ. (แตะเพื่อสลับเป็นปีก่อน กรณี admit ข้ามปี) ──
 function anPrefixes(){ const be=new Date().getFullYear()+543; return [String(be%100).padStart(2,'0')+'00', String((be-1)%100).padStart(2,'0')+'00']; }
@@ -1021,6 +1030,7 @@ function resetPatient(){
 }
 function clearAllMP(){
   if(!confirm('ล้างข้อมูลทั้งหมด?')) return;
+  $id('ownMed').checked=false; ownMedAN='';
   resetPatient(); $id('anSuffix').value=''; mpAN=''; renderPt(); restorePharmacist(); window.scrollTo(0,0);
 }
 let mpAN='';   // AN ของข้อมูลที่แสดงอยู่ — กันพิมพ์ใบด้วย AN ที่แก้ในช่องแต่ยังไม่ได้ดึง
