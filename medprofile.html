@@ -430,7 +430,8 @@ let patientPhotoUrl = '';
 function allergyLineHTML(){
   const a = patientAllergy || {status:'idle'};
   if(a.status==='nkda')    return {cls:'nkda',    text:'Non-Known Drug Allergy (NKDA)'};
-  if(a.status==='known')   return {cls:'known',   text:a.drugs.join(', ')};
+  // [2026-11-23 ผู้ใช้แจ้ง] แสดงชื่อ + อาการแพ้ แบบเดียวกับ Med Recon (bridge เก่าไม่มี items → ชื่ออย่างเดียว)
+  if(a.status==='known')   return {cls:'known',   text:Array.isArray(a.items)&&a.items.length ? a.items.map((x,i)=>(i+1)+'. '+x.generic+(x.symptoms?' - '+x.symptoms:'')).join('  ') : (a.drugs||[]).join(', ')};
   if(a.status==='pending') return {cls:'pending', text:'รอ Verify แพ้ยา'};
   return {cls:'unknown', text:'ไม่สามารถดึงข้อมูลจาก HIS ได้ — กรุณาตรวจสอบใน HIS ก่อนจ่ายยา'};
 }
