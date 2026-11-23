@@ -268,6 +268,9 @@ DRUG INVENTORY — Lux Kor Hospital Pharmacy
         .inv-sync{font-size:11.5px;color:#94a3b8;display:inline-flex;align-items:center;gap:6px;transition:color .3s ease;}
         .inv-sync.is-updating{color:#0f613b;font-weight:600;}
         .inv-sync.is-error{color:#b45309;font-weight:600;}
+        .inv-refresh{border:1px solid #d6e2db;background:#fff;color:#0f613b;font-family:'Plus Jakarta Sans','Sarabun',sans-serif;font-size:11.5px;font-weight:600;line-height:1;padding:5px 10px;border-radius:99px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;}
+        .inv-refresh:hover{background:#eef6f1;}
+        .inv-refresh:disabled{opacity:.5;cursor:default;background:#fff;}
         .inv-sync-spin{width:11px;height:11px;border:2px solid #bbf7d0;border-top-color:#0f613b;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;}
         #r1-inv-body{transition:opacity .16s ease, transform .16s ease;}
         #r1-inv-body.inv-fade-out{opacity:0;transform:translateY(4px);}
@@ -423,7 +426,7 @@ DRUG INVENTORY — Lux Kor Hospital Pharmacy
                 <!-- R1 -->
                 <div class="inv-section active" id="inv-r1">
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;"><p style="font-size:14px;font-weight:700;color:#1e293b;margin:0">Drug &amp; Medical Supply Stock Value Report</p><p style="font-size:12px;color:#94a3b8;margin:0">As of <span id="inv-today"></span></p><span id="inv-sync-status" class="inv-sync"></span></div>
+                    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;"><p style="font-size:14px;font-weight:700;color:#1e293b;margin:0">Drug &amp; Medical Supply Stock Value Report</p><p style="font-size:12px;color:#94a3b8;margin:0">As of <span id="inv-today"></span></p><span id="inv-sync-status" class="inv-sync"></span><button type="button" id="inv-refresh-btn" class="inv-refresh" onclick="_invManualRefresh()" title="Recalculate stock now"><i class="fa-solid fa-rotate"></i>Refresh</button></div>
                   </div>
                   <div class="inv-metrics">
                     <div class="inv-metric"><div class="inv-metric-label">Total Value</div><div style="display:flex;align-items:center;gap:8px;"><div class="inv-metric-value inv-secret" id="m-r1-total" onclick="invOpenPin()" title="Click to unlock">—</div><button type="button" class="inv-relock" onclick="invRelock()" title="Hide value again"><i class="fa-solid fa-eye-slash"></i></button></div></div>
@@ -2010,6 +2013,9 @@ function _applyStockData(sdData, v3DataEarly){
 // ══════════════════════════════════════════════════════════════════════════════
 const INV_RT_SNAP_KEY = 'lkh_inv_rt_v1';
 let invRtLoaded = false, invRtTotal = null, invRtMeta = {}, _invRtBusy = false, _invRtPendingForce = false;
+// (2026-11-23 ผู้ใช้สั่ง) real-time: GAS คำนวณสด + หน้านี้เช็คแถวใหม่ทุก 1 นาทีเฉพาะตอนเปิดดูอยู่ (getStockRtTick) แล้วดึงยอดใหม่เอง
+const INV_LIVE_MS = 60000, INV_LIVE_MAXAGE = 300000;   // เช็คทุก 1 นาที / ผลคำนวณเก่าเกิน 5 นาทีดึงใหม่แม้ไม่มีแถวใหม่
+let _invRtSig = '', _invLiveTick = '', _invLiveAt = 0, _invLiveChk = '', _invLiveBusy = false, _invLiveFail = 0, _invLiveLast = 0;
 // วันคงเหลือถึง EXP จาก 'dd/MM/yyyy' — split string เอง (ไม่ new Date(string)), ปี พ.ศ. → ค.ศ.
 function _invDaysLeft(exp){
   const p = String(exp||'').split('/');
@@ -2024,7 +2030,9 @@ function _invRtStatusText(extra){
   const el = document.getElementById('inv-sync-status');
   if(!el) return;
   el.className = 'inv-sync' + (extra==='error' ? ' is-error' : '');
-  const src = invRtMeta.updatedAt ? 'Stock Real-time updated ' + invRtMeta.updatedAt : '';
+  const btn = document.getElementById('inv-refresh-btn');
+  if(btn) btn.disabled = extra==='loading' || extra==='refreshing';
+  const src = invRtMeta.updatedAt ? (invRtMeta.live ? 'Live · calculated ' : 'Stock Real-time updated ') + invRtMeta.updatedAt + (_invLiveChk && !extra ? ' · checked ' + _invLiveChk : '') : '';
   el.textContent = extra==='loading' ? 'Loading…'
     : extra==='refreshing' ? (src ? src + ' · refreshing…' : 'Refreshing…')
     : extra==='error' ? 'Update failed' + (src ? ' — showing ' + src : '')
@@ -2035,11 +2043,12 @@ async function _syncStockFromSheet(force){
   if(!invRtLoaded){
     let snap = null;
     try { snap = JSON.parse(localStorage.getItem(INV_RT_SNAP_KEY)); } catch(e){ snap = null; }
+    _invRtSig = '';
     if(snap && snap.d && snap.d.status==='ok'){
-      try { _applyRtData(snap.d); } catch(e){ console.warn('snapshot render failed:', e); }
+      try { _applyRtData(snap.d); _invRtSig = _invSigOf(snap.d); } catch(e){ console.warn('snapshot render failed:', e); }
     }
   }
-  if(_invRtBusy){ if(force) _invRtPendingForce = true; return; }   // กำลังโหลดอยู่ — ถ้าเป็นคำขอ force (หลังย้ายเข้า EXP) ให้ยิงซ้ำหลังรอบนี้จบ
+  if(_invRtBusy){ if(force) _invRtPendingForce = (force === true || _invRtPendingForce === true) ? true : force; return; }   // กำลังโหลดอยู่ — ถ้าเป็นคำขอ force (หลังย้ายเข้า EXP) ให้ยิงซ้ำหลังรอบนี้จบ
   _invRtBusy = true;
   _invRtStatusText(invRtLoaded ? 'refreshing' : 'loading');
   if(!invRtLoaded){
@@ -2047,12 +2056,15 @@ async function _syncStockFromSheet(force){
     if(tb) tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#94a3b8">Loading stock data…</td></tr>';
   }
   try {
-    const res = await fetch(SCRIPT_URL + '?action=getStockRtView' + (force ? '&force=1' : ''));
+    const res = await fetch(SCRIPT_URL + '?action=getStockRtView' + (force === 'fresh' ? '&fresh=1' : force ? '&force=1' : ''));   // fresh = ปุ่ม Refresh (คำนวณใหม่ ไม่เขียนแท็บ)
     if(!res.ok) throw new Error('HTTP ' + res.status);
     const d = await res.json();
     if(d.status !== 'ok') throw new Error(d.msg || 'getStockRtView failed');
     try { localStorage.setItem(INV_RT_SNAP_KEY, JSON.stringify({ ts: Date.now(), d })); } catch(e){}
-    _applyRtData(d);
+    const sig = _invSigOf(d);
+    if(invRtLoaded && invRtMeta.kind==='med' && sig===_invRtSig) _invRtSetMeta(d);   // ยอดเท่าเดิมทุกรายการ → ไม่วาดใหม่ อัปเดตแค่เวลา
+    else { _invKeepScroll(() => _applyRtData(d)); if(invRtMeta.kind==='med') _invRtSig = sig; }
+    if(invRtMeta.kind==='med'){ _invLiveTick = d.tick || ''; _invLiveAt = Date.now() - (Number(d.ageMs)||0); _invLiveChk = _invHM(); _invLiveFail = 0; }
     _invRtStatusText('');
   } catch(e){
     console.warn('getStockRtView failed:', e);
@@ -2063,12 +2075,59 @@ async function _syncStockFromSheet(force){
     }
   } finally {
     _invRtBusy = false;
-    if(_invRtPendingForce){ _invRtPendingForce = false; _syncStockFromSheet(true); }
+    if(_invRtPendingForce){ const pf = _invRtPendingForce; _invRtPendingForce = false; _syncStockFromSheet(pf); }
   }
+}
+function _invSigOf(d){ try { return JSON.stringify([d.items, d.total, d.kpiDoh, d.mmParams]); } catch(e){ return ''; } }
+function _invSetHtml(el, h){ if(el._h !== h || !el.options.length){ el.innerHTML = h; el._h = h; } }
+function _invHM(){ const n = new Date(); return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0'); }
+function _invKeepScroll(fn){   // วาดตารางใหม่โดยคงตำแหน่งเลื่อนเดิม (อัปเดตเองระหว่างดูอยู่ต้องไม่เด้งขึ้นบน)
+  const w = document.querySelector('#inv-r1 .inv-tbl-wrap'), st = w ? w.scrollTop : 0, sl = w ? w.scrollLeft : 0, y = window.scrollY, x = window.scrollX;
+  try { fn(); } finally {
+    if(w){ w.scrollTop = st; w.scrollLeft = sl; }
+    if(window.scrollY !== y || window.scrollX !== x) window.scrollTo(x, y);
+  }
+}
+function _invManualRefresh(){ if(!_invRtBusy) _syncStockFromSheet('fresh'); }
+// หน้า Stock Value กำลังแสดงอยู่จริงไหม (แท็บ browser, iframe ใน Control Center, แท็บย่อย R1, ไม่อยู่หน้าใส่รหัส)
+function _invLiveVisible(){
+  if(document.visibilityState !== 'visible') return false;
+  const r1 = document.getElementById('inv-r1'), pin = document.getElementById('svPin');
+  return !!r1 && r1.getClientRects().length > 0 && !(pin && pin.classList.contains('show'));
+}
+async function _invLiveCheck(){
+  if(!SCRIPT_URL || _invLiveBusy || _invRtBusy || !invRtLoaded || !_invLiveVisible()) return;
+  _invLiveBusy = true; _invLiveLast = Date.now();
+  const sup = () => document.body.classList.contains('sv-sup'), wasSup = sup();
+  const ac = new AbortController(), to = setTimeout(() => ac.abort(), 45000);
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=getStockRtTick', { signal: ac.signal });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    if(j.status !== 'ok' || !j.tick) throw new Error(j.msg || 'getStockRtTick failed');
+    const hadFail = _invLiveFail >= 3; _invLiveFail = 0;
+    if(wasSup !== sup() || _invRtBusy) return;   // สลับโหมด/กำลังโหลดอยู่ → รอรอบหน้า
+    const part = t => wasSup ? String(t||'').split('.')[1] || '' : String(t||'');   // เวชภัณฑ์ใช้เฉพาะส่วน GR/โอน
+    const changed = part(j.tick) !== part(_invLiveTick), old = Date.now() - _invLiveAt > INV_LIVE_MAXAGE;
+    if(changed || old){
+      await _syncStockFromSheet(wasSup && changed ? 'fresh' : undefined);
+      if(wasSup && sup()){ _invLiveTick = j.tick; _invLiveAt = Date.now(); }
+    }
+    if(wasSup === sup()){ _invLiveChk = _invHM(); if(hadFail || !document.querySelector('#inv-sync-status.is-error')) _invRtStatusText(''); }
+  } catch(e){
+    console.warn('live check failed:', e);
+    if(++_invLiveFail >= 3) _invRtStatusText('error');
+  } finally { clearTimeout(to); _invLiveBusy = false; }
+}
+setInterval(_invLiveCheck, INV_LIVE_MS);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && Date.now() - _invLiveLast > 20000) _invLiveCheck(); });
+function _invRtSetMeta(d){
+  invRtMeta = { kind: d.kind || 'med', live: !!d.live, updatedAt: d.updatedAt || '', builtAt: d.builtAt || '', sumItems: d.sumItems, mmParams: d.mmParams || null, kpiDoh: d.kpiDoh || null };
 }
 function _applyRtData(d){
   invRtTotal = d.total || null;
-  invRtMeta = { updatedAt: d.updatedAt || '', builtAt: d.builtAt || '', sumItems: d.sumItems, mmParams: d.mmParams || null, kpiDoh: d.kpiDoh || null };
+  if((d.kind || 'med') !== invRtMeta.kind){ _invLiveTick = ''; _invLiveAt = 0; _invLiveChk = ''; }   // สลับยา/เวชภัณฑ์ หรือเปิดหน้าครั้งแรก
+  _invRtSetMeta(d);
   const CM = {'1121':'ยาฉีด','1122':'ยาฉีด','1111':'ยาสามัญ','1112':'ยาสามัญ',
     '1131':'ยาน้ำ','1132':'ยาน้ำ','1141':'ยาภายนอก','1142':'ยาภายนอก',
     '1172':'ยาภายนอก','1181':'ยาสลบ','1191':'อื่นๆ','1192':'อื่นๆ'};
@@ -2153,9 +2212,9 @@ function _applyRtData(d){
     const cats = [...new Set(invR1Data.map(d=>d.cat))].sort((a,b)=>a==='Unclassified'?1:b==='Unclassified'?-1:a.localeCompare(b));
     if(invR1Cat!=='all' && !cats.includes(invR1Cat)) invR1Cat='all';
     // ข้อมูลชุดเก่าใน localStorage (ก่อนมีหมวดจาก Index) ไม่มี x.cat → อย่าโชว์ "Unclassified" ทั้งหมด ให้รอข้อมูลจริง
-    if(cats.length===1 && cats[0]==='Unclassified') _sel.innerHTML = '<option value="all">All</option><option disabled>Loading categories…</option>';
-    else _sel.innerHTML = '<option value="all">All</option>' + cats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">${c} (${invR1Data.filter(d=>d.cat===c).length})</option>`).join('');
-    _sel.value = invR1Cat;
+    if(cats.length===1 && cats[0]==='Unclassified') _sel.innerHTML = '<option value="all">All</option><option disabled>Loading categories…</option>', _sel._h = '';
+    else _invSetHtml(_sel, '<option value="all">All</option>' + cats.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">${c} (${invR1Data.filter(d=>d.cat===c).length})</option>`).join(''));
+    if(_sel.value !== invR1Cat) _sel.value = invR1Cat;
   }
   invRtLoaded = true;
   renderInvR1();
