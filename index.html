@@ -318,6 +318,8 @@
   .drug-row .dq button { width: 30px; height: 32px; border: 1.5px solid #dbe3df; border-radius: 8px; background: #fff;
     font-size: 17px; font-weight: 700; color: var(--green-dark); cursor: pointer; padding: 0; line-height: 1; }
   .drug-row .dq span { font-size: 11.5px; color: var(--muted); min-width: 28px; }
+  /* ฟอร์ม Medication Management Records ใช้ชื่อคลาสซ้ำกับแถวยา OR — คืน layout แนวตั้งเดิม */
+  #drugRowsContainer .drug-row { display: block; padding: 12px; border: 1.5px solid #e5ebe8; }
   .drug-row.on { background: #f0f7f3; }
   .drug-acc-body .drug-row { margin: 0; border: none; border-top: 1px solid #edf1ef; border-radius: 0; }
   .drug-row:not(.on) .dq { display: none; }
@@ -1044,7 +1046,7 @@
   }
 
   function renumberDrugRows() {
-    const rows = document.querySelectorAll('.drug-row');
+    const rows = document.querySelectorAll('#drugRowsContainer .drug-row');
     rows.forEach(function (row, idx) {
       row.querySelector('.drug-row-label').textContent = 'รายการที่ ' + (idx + 1);
       row.querySelector('.remove-row-btn').style.display = rows.length > 1 ? 'inline-block' : 'none';
@@ -1164,7 +1166,7 @@
       : 'ยานี้ไม่อยู่ในกล่อง Tier A — หากหยิบจากห้องยา ให้บันทึกเป็น Tier B และแจ้งเภสัชกรทาง LINE';
   }
   function refreshBoxChecks() {
-    document.querySelectorAll('.drug-row').forEach(function (row) {
+    document.querySelectorAll('#drugRowsContainer .drug-row').forEach(function (row) {
       const id = row.dataset.rowId, w = document.getElementById('drugBoxWarn_' + id);
       const msg = boxMismatch(document.getElementById('drugName_' + id).value.trim());
       w.textContent = msg ? '⚠ ' + msg : '';
@@ -1179,7 +1181,7 @@
 
   // อ่านค่าทุกแถวยาตามลำดับใน DOM + validate ชื่อยา/จำนวน (จำนวนต้องเป็นเลขจำนวนเต็มบวกเท่านั้น)
   function collectDrugRows() {
-    const rows = document.querySelectorAll('.drug-row');
+    const rows = document.querySelectorAll('#drugRowsContainer .drug-row');
     const items = [];
     for (let i = 0; i < rows.length; i++) {
       const rowId = rows[i].dataset.rowId;
