@@ -782,7 +782,7 @@
       <h2>3. รายการยา</h2>
       <div id="drugRowsContainer"></div>
       <button type="button" class="add-row-btn" onclick="addDrugRow()">+ เพิ่มรายการยา</button>
-      <div class="hint">ตำแหน่งจัดเก็บและหน่วย (UOM) จะขึ้นอัตโนมัติเมื่อเลือกยาจากรายการค้นหา (อ้างอิงจาก Sheet Index)</div>
+      <div class="hint">ตำแหน่งจัดเก็บและหน่วย (UOM) จะขึ้นอัตโนมัติเมื่อเลือกยาจากรายการค้นหา (อ้างอิงจาก Sheet Index) — Tier A เลือกได้เฉพาะยาในกล่องที่เลือก</div>
     </div>
 
     <div class="card">
@@ -896,6 +896,8 @@
       onReasonSelectChange();
     }
     document.getElementById('evidenceTitle').textContent = (hideReason ? '6' : '7') + '. หลักฐาน';
+    if (t === 'A') loadBoxDrugs();
+    refreshBoxChecks();
   }
 
   function setPharmacist(name) {
@@ -1018,6 +1020,7 @@
       '<div class="spinner" id="drugSpinner_' + rowId + '" style="display:none"></div>' +
       '<div class="suggestions" id="drugSuggestions_' + rowId + '"></div>' +
       '</div>' +
+      '<div class="hint" id="drugBoxWarn_' + rowId + '" style="display:none;color:var(--danger);font-weight:600"></div>' +
       '<div class="field-row">' +
       '<div><label>จำนวนที่เบิก <span class="req">*</span></label>' +
       '<input type="number" id="drugQty_' + rowId + '" min="1" step="1" inputmode="numeric" placeholder="เช่น 20"></div>' +
@@ -1051,12 +1054,26 @@
   // ค้นหายาแบบพิมพ์แล้วขึ้นผล (debounce 250ms) จาก Sheet "Index" จริงผ่าน action getExtendedFormulary
   // ไม่โหลดทั้งลิสต์มาไว้ล่วงหน้า เพราะยามีหลายร้อยรายการ — ค้นเฉพาะตอนพิมพ์ >= 2 ตัวอักษร
   function onDrugInput(rowId) {
-    const q = document.getElementById('drugName_' + rowId).value.trim();
+    const row = document.getElementById('drugRow_' + rowId), input = document.getElementById('drugName_' + rowId);
+    // (2026-11-24) คีย์บอร์ดมือถืออาจส่ง input ซ้ำทันทีหลังแตะเลือกยา (ตัวอักษรค้าง) เช่น "aAmitriptyline" และล้างหน่วย/ตำแหน่ง
+    // → ภายใน 600 ms หลังเลือก ให้คืนชื่อที่เลือก; ชื่อยังตรงกับที่เลือก = ไม่ล้างค่า
+    if (row.dataset.selName) {
+      if (Date.now() - Number(row.dataset.selAt) < 600) input.value = row.dataset.selName;
+      if (input.value.trim() === row.dataset.selName) return;
+      row.dataset.selName = '';
+    }
+    const q = input.value.trim();
+    document.getElementById('drugBoxWarn_' + rowId).style.display = 'none';
     hideLocBadge(rowId);
     document.getElementById('drugUom_' + rowId).value = '';
     document.getElementById('drugRow_' + rowId).dataset.location = '';
     clearTimeout(drugRowSearchTimers[rowId]);
     if (q.length < 2) { hideDrugSuggestions(rowId); return; }
+    if (currentTier === 'A' && boxDrugs && pickedBoxes().length) {   // Tier A: ค้นเฉพาะยาในกล่องที่เลือก (ไม่ต้องยิง API)
+      const items = pickedBoxItems().filter(function (it) { return it.name.toLowerCase().indexOf(q.toLowerCase()) !== -1; });
+      renderDrugSuggestions(rowId, items, 'ไม่พบยานี้ในกล่องที่เลือก — หากหยิบจากห้องยา ให้เลือก Tier B');
+      return;
+    }
     drugRowSearchTimers[rowId] = setTimeout(function () { searchDrugs(rowId, q); }, 250);
   }
 
@@ -1069,13 +1086,13 @@
       .finally(function () { document.getElementById('drugSpinner_' + rowId).style.display = 'none'; });
   }
 
-  function renderDrugSuggestions(rowId, items) {
+  function renderDrugSuggestions(rowId, items, emptyMsg) {
     const box = document.getElementById('drugSuggestions_' + rowId);
     box.innerHTML = '';
     const select = function (it) { selectDrug(rowId, it); };
     suggestionState['drugName_' + rowId] = { items: items, idx: -1, onSelect: select };
     if (!items.length) {
-      box.innerHTML = '<div class="empty">ไม่พบยาที่ตรงกับคำค้นหา — พิมพ์เองได้เลย</div>';
+      box.innerHTML = '<div class="empty">' + (emptyMsg || 'ไม่พบยาที่ตรงกับคำค้นหา — พิมพ์เองได้เลย') + '</div>';
       box.classList.add('show');
       return;
     }
@@ -1101,7 +1118,60 @@
     document.getElementById('locText_' + rowId).textContent = it.location || 'N/A';
     document.getElementById('locBadgeWrap_' + rowId).style.display = 'flex';
     row.dataset.location = it.location || '';
+    row.dataset.selName = it.name;
+    row.dataset.selAt = Date.now();
+    clearTimeout(drugRowSearchTimers[rowId]);
+    refreshBoxChecks();
   }
+
+  // ── (2026-11-24) ตรวจยากับกล่อง Tier A ตาม HP-PTC-006 ภาคผนวก ก — โหลดไม่สำเร็จ = ฝั่งหน้าเว็บไม่ตรวจ (server ตรวจซ้ำเสมอ) ──
+  let boxDrugs = null;
+  // โหลดไม่สำเร็จ → ลองใหม่อีก 2 ครั้ง (ห่าง 4 วิ) และลองใหม่เมื่อกดเลือก Tier A
+  let boxDrugsLoading = false;
+  function loadBoxDrugs(tries) {
+    if (boxDrugs || boxDrugsLoading) return;
+    boxDrugsLoading = true;
+    const left = tries === undefined ? 2 : tries;
+    fetch(WEBAPP_URL + '?action=getOffHoursBoxDrugs')
+      .then(function (r) { return r.json(); })
+      .then(function (d) { if (d.status === 'ok' && d.boxes) { boxDrugs = d.boxes; refreshBoxChecks(); } })
+      .catch(function () {})
+      .finally(function () {
+        boxDrugsLoading = false;
+        if (!boxDrugs && left > 0) setTimeout(function () { loadBoxDrugs(left - 1); }, 4000);
+      });
+  }
+  function pickedBoxes() {
+    return Array.prototype.map.call(document.querySelectorAll('input[name=tierABox]:checked'), function (c) { return c.value.charAt(0); });
+  }
+  function pickedBoxItems() {
+    const seen = {}, out = [];
+    pickedBoxes().forEach(function (b) {
+      (boxDrugs[b] || []).forEach(function (it) { if (!seen[it.code]) { seen[it.code] = 1; out.push(it); } });
+    });
+    return out;
+  }
+  function drugNameKey(s) { return String(s || '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+  // คืน '' = ผ่าน/ยังไม่ต้องตรวจ, ข้อความ = ยาไม่อยู่ในกล่องที่เลือก
+  function boxMismatch(name) {
+    if (currentTier !== 'A' || !boxDrugs || !name || !pickedBoxes().length) return '';
+    const k = drugNameKey(name);
+    if (pickedBoxItems().some(function (it) { return drugNameKey(it.name) === k; })) return '';
+    const other = Object.keys(boxDrugs).filter(function (b) {
+      return boxDrugs[b].some(function (it) { return drugNameKey(it.name) === k; });
+    });
+    return other.length ? 'ยานี้อยู่ในกล่องที่ ' + other.join(', ') + ' — กรุณาตรวจสอบกล่องที่เลือก'
+      : 'ยานี้ไม่อยู่ในกล่อง Tier A — หากหยิบจากห้องยา ให้บันทึกเป็น Tier B และแจ้งเภสัชกรทาง LINE';
+  }
+  function refreshBoxChecks() {
+    document.querySelectorAll('.drug-row').forEach(function (row) {
+      const id = row.dataset.rowId, w = document.getElementById('drugBoxWarn_' + id);
+      const msg = boxMismatch(document.getElementById('drugName_' + id).value.trim());
+      w.textContent = msg ? '⚠ ' + msg : '';
+      w.style.display = msg ? '' : 'none';
+    });
+  }
+  document.querySelectorAll('input[name=tierABox]').forEach(function (c) { c.addEventListener('change', refreshBoxChecks); });
 
   function hideLocBadge(rowId) {
     document.getElementById('locBadgeWrap_' + rowId).style.display = 'none';
@@ -1118,6 +1188,8 @@
       const uom = document.getElementById('drugUom_' + rowId).value.trim();
       const location = rows[i].dataset.location || '';
       if (!name) return { ok: false, msg: 'กรุณากรอกชื่อยารายการที่ ' + (i + 1) };
+      const boxMsg = boxMismatch(name);
+      if (boxMsg) { refreshBoxChecks(); return { ok: false, msg: 'รายการที่ ' + (i + 1) + ': ' + boxMsg }; }
       if (!qtyRaw || !/^\d+$/.test(qtyRaw) || parseInt(qtyRaw, 10) <= 0) {
         return { ok: false, msg: 'กรุณากรอกจำนวนที่เบิกเป็นตัวเลขมากกว่า 0 ในรายการที่ ' + (i + 1) };
       }
@@ -1239,11 +1311,12 @@
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.className = 'toast show ' + type;
-    setTimeout(function () { t.className = 'toast ' + type; }, 3200);
+    setTimeout(function () { t.className = 'toast ' + type; }, msg.length > 60 ? 7000 : 3200);
   }
 
   function loadLookups() {
     const splashStart = Date.now();
+    loadBoxDrugs();
     // รายชื่อพยาบาล/แพทย์มีไม่กี่สิบคน โหลดครั้งเดียวเก็บไว้กรองฝั่ง browser (ดู onStaffInput/onDoctorInput)
     const staffPromise = fetch(WEBAPP_URL + '?action=getNursingStaff')
       .then(function (r) { return r.json(); })
