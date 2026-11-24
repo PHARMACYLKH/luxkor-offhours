@@ -749,12 +749,12 @@
         <div id="nurse1Suggestions" class="suggestions"></div>
       </div>
 
-      <label>ชื่อพยาบาล/แพทย์ Double Check <span class="req">*</span></label>
+      <label>ชื่อ Double Checker <span class="req">*</span></label>
       <div class="search-wrap">
         <input type="text" id="nurse2" required autocomplete="off" oninput="onStaffInput('nurse2'); checkDuplicateNurses()" placeholder="พิมพ์ชื่อพยาบาลหรือแพทย์เพื่อค้นหา...">
         <div id="nurse2Suggestions" class="suggestions"></div>
       </div>
-      <div id="nurseDupWarning" class="hint" style="display:none;color:var(--danger);font-weight:600;">⚠ ชื่อคนที่ 1 และคนที่ 2 ต้องไม่ซ้ำกัน กรุณาใส่ชื่อใหม่</div>
+      <div id="nurseDupWarning" class="hint" style="display:none;color:var(--danger);font-weight:600;">⚠ ชื่อผู้หยิบยาและ Double Checker ต้องไม่ซ้ำกัน กรุณาใส่ชื่อใหม่</div>
       <div class="hint">ต้องเป็นคนละคนกับผู้หยิบยา</div>
 
       <label>HN ผู้ป่วย <span class="req">*</span></label>
@@ -1271,7 +1271,7 @@
     ev.preventDefault();
 
     if (checkDuplicateNurses()) {
-      showToast('ชื่อพยาบาลคนที่ 1 และ 2 ห้ามซ้ำกัน กรุณาใส่ชื่อใหม่', 'error'); return;
+      showToast('ชื่อผู้หยิบยาและ Double Checker ห้ามซ้ำกัน กรุณาใส่ชื่อใหม่', 'error'); return;
     }
     if (!currentTier) { showToast('กรุณาเลือกระดับบัญชียา (Tier A/B)', 'error'); return; }
     const tierABoxes = Array.prototype.map.call(document.querySelectorAll('input[name=tierABox]:checked'), function (c) { return c.value; });
