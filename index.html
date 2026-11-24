@@ -766,8 +766,8 @@
     <div class="card">
       <h2>2. ระดับบัญชียาที่หยิบ (Tier)</h2>
       <div class="tier-toggle">
-        <button type="button" id="tierABtn" onclick="setTier('A')">Tier A<br><span style="font-weight:400;font-size:11.5px">ยาในกล่อง (3 กล่อง)</span></button>
-        <button type="button" id="tierBBtn" onclick="setTier('B')">Tier B<br><span style="font-weight:400;font-size:11.5px">ยานอกกล่อง (ต้องเปิดห้องยา)</span></button>
+        <button type="button" id="tierABtn" onclick="setTier('A')">Tier A<br><span style="font-weight:400;font-size:11.5px">(ยาในกล่อง)</span></button>
+        <button type="button" id="tierBBtn" onclick="setTier('B')">Tier B<br><span style="font-weight:400;font-size:11.5px">(เปิดห้องยา)</span></button>
       </div>
       <div id="tierABoxBlock" class="conditional">
         <label>นำมาจากกล่องไหน <span class="req">*</span> <span style="font-weight:400;color:var(--muted)">(เลือกได้มากกว่า 1 กล่อง)</span></label>
@@ -1073,7 +1073,7 @@
     if (q.length < 2) { hideDrugSuggestions(rowId); return; }
     if (currentTier === 'A' && boxDrugs && pickedBoxes().length) {   // Tier A: ค้นเฉพาะยาในกล่องที่เลือก (ไม่ต้องยิง API)
       const items = pickedBoxItems().filter(function (it) { return it.name.toLowerCase().indexOf(q.toLowerCase()) !== -1; });
-      renderDrugSuggestions(rowId, items, 'ไม่พบยานี้ในกล่องที่เลือก — หากหยิบจากห้องยา ให้เลือก Tier B');
+      renderDrugSuggestions(rowId, items, 'ไม่พบยานี้ในกล่องที่เลือก — หากหยิบจากห้องยา ให้เลือก Tier B (เปิดห้องยา)');
       return;
     }
     drugRowSearchTimers[rowId] = setTimeout(function () { searchDrugs(rowId, q); }, 250);
@@ -1163,7 +1163,7 @@
       return boxDrugs[b].some(function (it) { return drugNameKey(it.name) === k; });
     });
     return other.length ? 'ยานี้อยู่ในกล่องที่ ' + other.join(', ') + ' — กรุณาตรวจสอบกล่องที่เลือก'
-      : 'ยานี้ไม่อยู่ในกล่อง Tier A — หากหยิบจากห้องยา ให้บันทึกเป็น Tier B และแจ้งเภสัชกรทาง LINE';
+      : 'ยานี้ไม่อยู่ในกล่อง Tier A — หากหยิบจากห้องยา ให้บันทึกเป็น Tier B (เปิดห้องยา) และแจ้งเภสัชกรทาง LINE';
   }
   function refreshBoxChecks() {
     document.querySelectorAll('#drugRowsContainer .drug-row').forEach(function (row) {
@@ -1348,7 +1348,7 @@
     if (checkDuplicateNurses()) {
       showToast('ชื่อผู้หยิบยาและ Double Checker ห้ามซ้ำกัน กรุณาใส่ชื่อใหม่', 'error'); return;
     }
-    if (!currentTier) { showToast('กรุณาเลือกระดับบัญชียา (Tier A/B)', 'error'); return; }
+    if (!currentTier) { showToast('กรุณาเลือก Tier A (ยาในกล่อง) หรือ Tier B (เปิดห้องยา)', 'error'); return; }
     const tierABoxes = Array.prototype.map.call(document.querySelectorAll('input[name=tierABox]:checked'), function (c) { return c.value; });
     if (currentTier === 'A' && !tierABoxes.length) { showToast('กรุณาเลือกว่านำยามาจากกล่องไหน', 'error'); return; }
     if (currentTier === 'B' && !selectedPharmacist) {
