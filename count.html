@@ -832,8 +832,17 @@
     }
     var btn = $('dSave'), note = $('dNote').value.trim();
     btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
-    return post({ action: 'submitDailyCount', pin: who || S.pin, code: d.c, lots: lots, id: form.id, note: (S.dTest ? 'TEST ' : '') + note, clientTime: new Date().toISOString(), test: S.dTest ? 1 : 0 }).then(function (r) {
+    var req = { action: 'submitDailyCount', pin: who || S.pin, code: d.c, lots: lots, id: form.id, note: (S.dTest ? 'TEST ' : '') + note, clientTime: new Date().toISOString(), test: S.dTest ? 1 : 0 };
+    var f0 = form, tries = 0, send = function () { return post(req).then(function (r) {   // ระบบไม่ว่าง: ส่งซ้ำเอง (id เดิม ไม่บันทึกซ้ำ)
+      if (r.retry && ++tries < 4) { btn.textContent = 'ระบบกำลังบันทึกรายการอื่น กำลังลองใหม่…'; return new Promise(function (ok) { setTimeout(ok, 3000); }).then(send); }
+      return r;
+    }); };
+    return send().then(function (r) {
       btn.disabled = false; btn.textContent = 'บันทึก';
+      if (form !== f0) {   // ปิดหน้านี้หรือเปิดยาตัวอื่นไปแล้วระหว่างรอ: แจ้งผลอย่างเดียว ห้ามแตะหน้าที่เปิดอยู่
+        var res = r.status !== 'ok' ? 'บันทึกไม่สำเร็จ กรุณานับใหม่' : (r.result === 'นับซ้ำ' ? 'ยอดไม่ตรงกับระบบ กรุณานับซ้ำ' : (r.result === 'ยอดตรง' ? 'ยอดตรง' : 'ส่งเภสัชกรตรวจแล้ว'));
+        toast(d.n + ' · ' + res); loadDaily(); return '';
+      }
       if (r.status !== 'ok') return fail(r.msg || 'บันทึกไม่สำเร็จ กรุณาลองใหม่');
       if (r.result === 'นับซ้ำ') {
         d.recount = true; form.id = uid();
@@ -843,7 +852,7 @@
       d.recount = false; d.done = r.result === 'ยอดตรง' ? 'ยอดตรง' : 'รอตรวจ';
       success(r.result === 'ยอดตรง' ? 'ยอดตรง' : 'ส่งเภสัชกรตรวจแล้ว', d.loc || '');
       closeSheet(); loadDaily(); return '';
-    }).catch(function () { btn.disabled = false; btn.textContent = 'บันทึก'; return fail('เชื่อมต่อไม่ได้ กดบันทึกอีกครั้งเมื่อมีอินเทอร์เน็ต'); });
+    }).catch(function () { btn.disabled = false; btn.textContent = 'บันทึก'; if (form !== f0) { toast(d.n + ' · เชื่อมต่อไม่ได้ กรุณานับใหม่'); return ''; } return fail('เชื่อมต่อไม่ได้ กดบันทึกอีกครั้งเมื่อมีอินเทอร์เน็ต'); });
   }
   function reviewHtml() {
     if (!S.review) { ldStart(); return loaderHtml('กำลังโหลดรายการรอตรวจ'); }
