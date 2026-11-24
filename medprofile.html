@@ -533,7 +533,19 @@ function toggleDrugType(id){
 const _MON={Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
 function _ymd(y,m,d){ y=+y; if(y>2400) y-=543; return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
 function ymdLocal(dt){ return _ymd(dt.getFullYear(),dt.getMonth()+1,dt.getDate()); }
-function orderDateKey(row){
+// [แก้ 2026-11-24 ผู้ใช้แจ้ง] ยา gen ตามระบบ: HIS สร้างใบเวลา 14:00:00 พอดี "วันก่อนหน้า" ของวันที่ใช้ยา
+// (เช่น MEI-2611240002 สร้าง 23/11 14:00:00 = ยาของ 24/11) → ใช้วันที่ในเลขใบ (MEI-YYMMDDnnnn) แทน
+// เฉพาะเวลาสร้าง 14:00:00 และเลขใบเป็นวันหลังวันสร้าง; ใบอื่นทั้งหมดใช้วันที่สั่งตามเดิม
+function genDateKey(key,timeStr,ref){
+  if(!key||timeStr!=='14:00:00') return key;
+  const m=String(ref||'').trim().match(/^[A-Z]+-(\d{2})(\d{2})(\d{2})\d{4}$/);
+  if(!m) return key;
+  const k=_ymd('20'+m[1],+m[2],+m[3]);
+  return k>key?k:key;
+}
+function _hms(s){ const m=String(s||'').match(/(\d{1,2}):(\d{2}):(\d{2})/); return m?m[1].padStart(2,'0')+':'+m[2]+':'+m[3]:''; }
+function orderDateKey(row){ return genDateKey(_orderDateKey(row),_hms(row.rxType),row.refDoc); }
+function _orderDateKey(row){
   const s=String(row.rxType||'').trim();
   let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if(m) return _ymd(m[3],m[2],m[1]);
@@ -699,7 +711,7 @@ async function fetchFromSheet(){
         if(t<g._first) g._first=t;
         g.net+=(+d.qty||0);
         if(d.prescNo) g.refDocs.add(String(d.prescNo).trim());
-        const dk=hisLocalDateKey(d.timestamp);
+        const dk=genDateKey(hisLocalDateKey(d.timestamp),_hms(d.timestamp),d.prescNo);
         if(dk) (g.byDate[dk]=g.byDate[dk]||[]).push({t:t,qty:+d.qty||0});
       });
       [...pomGroups.values()].sort((a,b)=>a._first-b._first).forEach(g=>{
